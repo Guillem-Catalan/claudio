@@ -95,7 +95,7 @@ CREATE TABLE calls (
     owner_email       TEXT,
     owner_nombre      TEXT,
     rol               call_role,
-    tag               TEXT,
+    tags              TEXT[] DEFAULT '{}',
     team              TEXT,
     duracion_segundos INTEGER,
     company_name      TEXT,
@@ -455,6 +455,7 @@ CREATE INDEX idx_calls_crm_id ON calls(crm_id);
 CREATE INDEX idx_calls_hs_deal_id ON calls(hs_deal_id);
 CREATE INDEX idx_calls_owner_email ON calls(owner_email);
 CREATE INDEX idx_calls_rol ON calls(rol);
+CREATE INDEX idx_calls_tags ON calls USING GIN(tags);
 
 CREATE INDEX idx_pbd_audits_call_id ON pbd_audits(call_id);
 CREATE INDEX idx_pbd_audits_deal_ref ON pbd_audits(deal_ref);
