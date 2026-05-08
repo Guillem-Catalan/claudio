@@ -4,8 +4,6 @@ from src.pipelines.audit.context import get_deal_context
 from src.pipelines.audit.prompt_builder import build
 from src.pipelines.audit.parser import parse
 
-MAX_PER_CYCLE = 30
-
 
 def run_single(call_id: str) -> dict | None:
     call = (
@@ -20,52 +18,6 @@ def run_single(call_id: str) -> dict | None:
         return None
 
     return _audit(call.data)
-
-
-def run_pending(limit: int = MAX_PER_CYCLE):
-    pbd_stubs = (
-        supabase.table("pbd_audits")
-        .select("call_id")
-        .is_("win_rate_score", "null")
-        .limit(limit)
-        .execute()
-    ).data or []
-
-    pae_stubs = (
-        supabase.table("pae_audits")
-        .select("call_id")
-        .is_("win_rate_score", "null")
-        .limit(limit)
-        .execute()
-    ).data or []
-
-    pending_ids = [s["call_id"] for s in pbd_stubs + pae_stubs]
-    print(f"Found {len(pending_ids)} pending audits (PBD: {len(pbd_stubs)}, PAE: {len(pae_stubs)})")
-
-    if not pending_ids:
-        return []
-
-    calls = (
-        supabase.table("calls")
-        .select("*")
-        .in_("call_id", pending_ids)
-        .order("fecha")
-        .limit(limit)
-        .execute()
-    ).data or []
-
-    results = []
-    for i, call in enumerate(calls, 1):
-        print(f"\n[{i}/{len(calls)}] Auditing call {call['call_id']} ({call.get('rol')})...")
-        try:
-            result = _audit(call)
-            if result:
-                results.append(result)
-        except Exception as e:
-            print(f"  [!] Failed: {e}")
-
-    print(f"\nDone: {len(results)}/{len(calls)} audited")
-    return results
 
 
 def _audit(call: dict) -> dict | None:
