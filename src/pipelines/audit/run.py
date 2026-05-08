@@ -23,33 +23,40 @@ def run_single(call_id: str) -> dict | None:
 
 
 def run_pending(limit: int = MAX_PER_CYCLE):
-    pbd_audited = {
-        r["call_ref"]
-        for r in (supabase.table("pbd_audits").select("call_ref").execute()).data
-        if r["call_ref"]
-    }
-    pae_audited = {
-        r["call_ref"]
-        for r in (supabase.table("pae_audits").select("call_ref").execute()).data
-        if r["call_ref"]
-    }
-    audited_ids = pbd_audited | pae_audited
-
-    all_calls = (
-        supabase.table("calls")
-        .select("*")
-        .order("fecha")
+    pbd_stubs = (
+        supabase.table("pbd_audits")
+        .select("call_id")
+        .is_("win_rate_score", "null")
+        .limit(limit)
         .execute()
     ).data or []
 
-    pending = [c for c in all_calls if c["id"] not in audited_ids]
-    batch = pending[:limit]
+    pae_stubs = (
+        supabase.table("pae_audits")
+        .select("call_id")
+        .is_("win_rate_score", "null")
+        .limit(limit)
+        .execute()
+    ).data or []
 
-    print(f"Found {len(pending)} pending calls, processing {len(batch)}")
+    pending_ids = [s["call_id"] for s in pbd_stubs + pae_stubs]
+    print(f"Found {len(pending_ids)} pending audits (PBD: {len(pbd_stubs)}, PAE: {len(pae_stubs)})")
+
+    if not pending_ids:
+        return []
+
+    calls = (
+        supabase.table("calls")
+        .select("*")
+        .in_("call_id", pending_ids)
+        .order("fecha")
+        .limit(limit)
+        .execute()
+    ).data or []
 
     results = []
-    for i, call in enumerate(batch, 1):
-        print(f"\n[{i}/{len(batch)}] Auditing call {call['call_id']} ({call.get('rol')})...")
+    for i, call in enumerate(calls, 1):
+        print(f"\n[{i}/{len(calls)}] Auditing call {call['call_id']} ({call.get('rol')})...")
         try:
             result = _audit(call)
             if result:
@@ -57,7 +64,7 @@ def run_pending(limit: int = MAX_PER_CYCLE):
         except Exception as e:
             print(f"  [!] Failed: {e}")
 
-    print(f"\nDone: {len(results)}/{len(batch)} audited")
+    print(f"\nDone: {len(results)}/{len(calls)} audited")
     return results
 
 
