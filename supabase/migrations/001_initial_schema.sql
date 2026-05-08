@@ -1,6 +1,5 @@
 -- ============================================================================
 -- Claudio — Initial Schema
--- Migrated from Airtable (El Juez) to Supabase (PostgreSQL)
 -- ============================================================================
 
 -- ── Extensions ──────────────────────────────────────────────────────────────
@@ -10,18 +9,6 @@ CREATE EXTENSION IF NOT EXISTS "pg_net" WITH SCHEMA "extensions";
 
 
 -- ── Enums ───────────────────────────────────────────────────────────────────
-
-CREATE TYPE pbd_status AS ENUM (
-    'Sin Empezar',
-    'En Progreso',
-    'Demo Agendada',
-    'Handover Completado'
-);
-
-CREATE TYPE pae_status AS ENUM (
-    'Sin Empezar',
-    'En Progreso'
-);
 
 CREATE TYPE call_role AS ENUM ('PBD', 'PAE');
 
@@ -39,20 +26,16 @@ CREATE TYPE red_flag_type AS ENUM (
 );
 
 
--- ── Companies ───────────────────────────────────────────────────────────────
+-- ── Atlas (replaces companies — one row per company) ────────────────────────
 
-CREATE TABLE companies (
-    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    crm_id     TEXT UNIQUE NOT NULL,
-    name       TEXT NOT NULL,
-    pbd_owner  TEXT,
-    pae_owner  TEXT,
-    pbd_status pbd_status DEFAULT 'Sin Empezar',
-    pae_status pae_status DEFAULT 'Sin Empezar',
+CREATE TABLE atlas (
+    id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    crm_id           TEXT UNIQUE NOT NULL,
+    name             TEXT NOT NULL,
 
-    pbd_analisis_global TEXT,
-    handover_notes_pae  TEXT,
-    handover_pending    BOOLEAN DEFAULT FALSE,
+    deal_history_raw TEXT,
+    company_context  TEXT,
+    last_generated   TIMESTAMPTZ,
 
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
@@ -64,7 +47,7 @@ CREATE TABLE companies (
 CREATE TABLE deals (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     deal_id         TEXT UNIQUE NOT NULL,
-    company_id      UUID REFERENCES companies(id) ON DELETE SET NULL,
+    atlas_id        UUID REFERENCES atlas(id) ON DELETE SET NULL,
     crm_id          TEXT,
 
     deal_name       TEXT,
@@ -91,10 +74,7 @@ CREATE TABLE deals (
     demo_booked_entered_sdr      DATE,
     demo_booked_exited_sdr       DATE,
 
-    -- Notes (HubSpot notes sync)
-    hs_notes          TEXT,
-    notes_summary     TEXT,
-    notes_last_synced TIMESTAMPTZ,
+    numero_de_notas INTEGER DEFAULT 0,
 
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
@@ -106,7 +86,6 @@ CREATE TABLE deals (
 CREATE TABLE calls (
     id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     call_id           TEXT UNIQUE NOT NULL,
-    company_id        UUID REFERENCES companies(id) ON DELETE SET NULL,
     deal_id           UUID REFERENCES deals(id) ON DELETE SET NULL,
     crm_id            TEXT,
     hs_deal_id        TEXT,
@@ -268,7 +247,6 @@ CREATE TABLE emails (
     id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     hs_engagement_id TEXT UNIQUE NOT NULL,
     deal_id          UUID REFERENCES deals(id) ON DELETE SET NULL,
-    company_id       UUID REFERENCES companies(id) ON DELETE SET NULL,
     hs_deal_id       TEXT,
     crm_id           TEXT,
 
@@ -288,18 +266,20 @@ CREATE TABLE emails (
 );
 
 
--- ── Company Atlas (historical context) ──────────────────────────────────────
+-- ── Notes ───────────────────────────────────────────────────────────────────
 
-CREATE TABLE company_atlas (
-    id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_id       UUID UNIQUE REFERENCES companies(id) ON DELETE CASCADE,
-    crm_id           TEXT,
-    deal_history_raw TEXT,
-    company_context  TEXT,
-    last_generated   TIMESTAMPTZ,
+CREATE TABLE notes (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    deal_id     UUID REFERENCES deals(id) ON DELETE CASCADE,
+    hs_deal_id  TEXT NOT NULL,
+    hs_note_id  TEXT UNIQUE NOT NULL,
 
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
+    content     TEXT,
+    author      TEXT,
+    created_hs  TIMESTAMPTZ,
+
+    created_at  TIMESTAMPTZ DEFAULT now(),
+    updated_at  TIMESTAMPTZ DEFAULT now()
 );
 
 
@@ -321,12 +301,11 @@ CREATE TABLE deal_confirmations (
 
     calls_ready  BOOLEAN DEFAULT FALSE,
     emails_ready BOOLEAN DEFAULT FALSE,
-    audit_ready  BOOLEAN DEFAULT FALSE,
     atlas_ready  BOOLEAN DEFAULT FALSE,
     notes_ready  BOOLEAN DEFAULT FALSE,
 
     all_ready    BOOLEAN GENERATED ALWAYS AS (
-        calls_ready AND emails_ready AND audit_ready AND atlas_ready AND notes_ready
+        calls_ready AND emails_ready AND atlas_ready AND notes_ready
     ) STORED,
 
     front_deal_triggered_at TIMESTAMPTZ,
@@ -464,13 +443,12 @@ CREATE TABLE front_rep_briefs (
 -- Indexes
 -- ============================================================================
 
-CREATE INDEX idx_companies_crm_id ON companies(crm_id);
+CREATE INDEX idx_atlas_crm_id ON atlas(crm_id);
 
-CREATE INDEX idx_deals_company_id ON deals(company_id);
+CREATE INDEX idx_deals_atlas_id ON deals(atlas_id);
 CREATE INDEX idx_deals_crm_id ON deals(crm_id);
 CREATE INDEX idx_deals_deal_stage ON deals(deal_stage);
 
-CREATE INDEX idx_calls_company_id ON calls(company_id);
 CREATE INDEX idx_calls_deal_id ON calls(deal_id);
 CREATE INDEX idx_calls_fecha ON calls(fecha);
 CREATE INDEX idx_calls_crm_id ON calls(crm_id);
@@ -485,12 +463,12 @@ CREATE INDEX idx_pae_audits_call_id ON pae_audits(call_id);
 CREATE INDEX idx_pae_audits_deal_ref ON pae_audits(deal_ref);
 
 CREATE INDEX idx_emails_deal_id ON emails(deal_id);
-CREATE INDEX idx_emails_company_id ON emails(company_id);
 CREATE INDEX idx_emails_hs_deal_id ON emails(hs_deal_id);
 CREATE INDEX idx_emails_date ON emails(date);
 CREATE INDEX idx_emails_crm_id ON emails(crm_id);
 
-CREATE INDEX idx_company_atlas_crm_id ON company_atlas(crm_id);
+CREATE INDEX idx_notes_deal_id ON notes(deal_id);
+CREATE INDEX idx_notes_hs_deal_id ON notes(hs_deal_id);
 
 CREATE INDEX idx_deal_confirmations_all_ready
     ON deal_confirmations(all_ready)
@@ -516,7 +494,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_companies_updated_at BEFORE UPDATE ON companies
+CREATE TRIGGER trg_atlas_updated_at BEFORE UPDATE ON atlas
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER trg_deals_updated_at BEFORE UPDATE ON deals
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
@@ -528,7 +506,7 @@ CREATE TRIGGER trg_pae_audits_updated_at BEFORE UPDATE ON pae_audits
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER trg_emails_updated_at BEFORE UPDATE ON emails
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-CREATE TRIGGER trg_company_atlas_updated_at BEFORE UPDATE ON company_atlas
+CREATE TRIGGER trg_notes_updated_at BEFORE UPDATE ON notes
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER trg_deal_confirmations_updated_at BEFORE UPDATE ON deal_confirmations
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
@@ -546,13 +524,13 @@ CREATE TRIGGER trg_front_rep_briefs_updated_at BEFORE UPDATE ON front_rep_briefs
 -- Row Level Security
 -- ============================================================================
 
-ALTER TABLE companies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE atlas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE deals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE calls ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pbd_audits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pae_audits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE emails ENABLE ROW LEVEL SECURITY;
-ALTER TABLE company_atlas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE config ENABLE ROW LEVEL SECURITY;
 ALTER TABLE deal_confirmations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE front_deal_snapshots ENABLE ROW LEVEL SECURITY;
@@ -560,14 +538,13 @@ ALTER TABLE front_rep_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE front_rep_aggregates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE front_rep_briefs ENABLE ROW LEVEL SECURITY;
 
--- Service role bypasses RLS. These policies allow authenticated frontend reads.
-CREATE POLICY "Authenticated read" ON companies FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Authenticated read" ON atlas FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Authenticated read" ON deals FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Authenticated read" ON calls FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Authenticated read" ON pbd_audits FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Authenticated read" ON pae_audits FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Authenticated read" ON emails FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Authenticated read" ON company_atlas FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Authenticated read" ON notes FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Authenticated read" ON deal_confirmations FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Authenticated read" ON front_deal_snapshots FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Authenticated read" ON front_rep_snapshots FOR SELECT TO authenticated USING (true);
