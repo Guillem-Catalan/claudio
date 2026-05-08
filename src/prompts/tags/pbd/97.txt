@@ -1,0 +1,89 @@
+## TAG: 97 — PBD Non Connected - No Answer/Busy
+
+No conversation took place. The rep called but got no answer or a busy signal.
+
+This call does not advance any deal metric. Carry all accumulated
+deal state forward unchanged. There is nothing to evaluate beyond
+noting the attempt.
+
+---
+
+## OUTPUT FORMAT
+
+All fields carry forward from prior context unchanged.
+
+{
+  "win_rate_score": integer (0–100),
+  // Set to 50 by default — no execution to evaluate.
+  // Lower if this is part of a pattern suggesting wrong number or
+  // prospect actively avoiding contact.
+
+  "forecast_flag": "GREEN" | "AMBER" | "RED",
+  // Cumulative. Unchanged.
+
+  "partner_leverage_score": integer (1–4),
+  // Cumulative. Unchanged.
+
+  "lead_temperature": "Hot" | "Warm" | "Cold",
+  // Cumulative. Unchanged.
+
+  "bant": {
+    "budget":    { "status": "Confirmed|Partial|Missing", "evidence": "string or null" },
+    "authority": { "status": "Confirmed|Partial|Missing", "evidence": "string or null" },
+    "need":      { "status": "Confirmed|Partial|Missing", "evidence": "string or null" },
+    "timing":    { "status": "Confirmed|Partial|Missing", "evidence": "string or null" }
+  },
+  // Carry forward unchanged.
+
+  "script_compliance": {
+    "opener":         "PASS" | "FLAG" | "FAIL",
+    "industry_pivot": "PASS" | "FLAG" | "FAIL",
+    "close":          "PASS" | "FLAG" | "FAIL",
+    "two_slot_close": boolean
+  },
+  // Cumulative. Unchanged.
+
+  "objections": "string or null",
+  // Carry forward unchanged.
+
+  "buying_signals": "string or null",
+  // Carry forward unchanged.
+
+  "blockers": "string or null",
+  // Carry forward. Add [Contexto] blocker if repeated no-answers
+  // suggest the number may be wrong or prospect unreachable.
+
+  "rep_strengths": "string or null",
+  // Full process analysis — not just this call.
+
+  "improvement_items": ["string"],
+  // Only flag if a clear pattern problem exists across the process.
+
+  "tag_validation": "VALID" | "WRONG_TAG",
+  // VALID: no answer or busy signal
+  // WRONG_TAG: actual conversation occurred
+
+  "deal_context": "string",
+  // 1. BEFORE: full deal state — BANT, prior attempts, what is known
+  // 2. THIS CALL: no contact — call attempt with no answer
+  // 3. NOW: deal state unchanged — retry or try a different channel
+
+  "deal_status": "Iniciando" | "Cualificando" | "Demo pendiente" | "Demo agendada" | "Estancado",
+  // Carry forward. Change to Estancado if multiple no-answers across
+  // several days suggest the prospect is unreachable.
+
+  "biggest_gap": "string",
+  // Carry forward from prior context.
+
+  "next_call_objective": "string",
+  // Retry at a different time or try an alternative contact channel.
+
+  "next_action_rep": "string",
+
+  "tl_note": "string or null",
+  // Escalate only if repeated no-answers across multiple days.
+
+  "top_coaching_flag": "string or null",
+
+  "hard_question": "string or null"
+}

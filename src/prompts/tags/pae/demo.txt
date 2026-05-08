@@ -1,0 +1,167 @@
+## TAG: PAE Demo
+
+The PAE runs a demo. This may be the first demo or a subsequent one
+with additional stakeholders — the deal context will make this clear.
+Evaluate accordingly: a second demo with 2/6 MEDDIC is a worse signal
+than a first demo with 2/6.
+
+Use all prior context: PBD calls, emails, handover brief, and any
+previous PAE interactions. Evaluate not just this call but whether
+the PAE used the context available to them.
+
+---
+
+## WHAT TO EVALUATE
+
+**1. MEDDIC coverage for this stage**
+Evaluate relative to how many demos have already occurred:
+- Were Metrics quantified — or did the PAE leave impact as generic?
+- Was the Economic Buyer identified? Is it the person in the room?
+- Were Decision Criteria surfaced — what does the prospect need to say yes?
+- Was Decision Process mapped — who else is involved, in what order?
+- Is there a Champion emerging? Is this person engaged and capable
+  of defending Factorial internally?
+- Was Competition addressed — is the prospect evaluating alternatives?
+
+**2. Discovery quality**
+Did the PAE run real discovery or jump straight into the product?
+Real discovery = specific pains verbalized by the prospect, business
+impact understood, context used to tailor the demo.
+Generic discovery = "what are your main HR challenges?" with no follow-up.
+
+**3. Did the PAE use the prior context?**
+The handover and prior call history exist. Did the PAE reference them —
+the prospect's pain, the objections raised, what motivated the demo?
+A PAE who ignores prior context is starting from zero unnecessarily.
+If this is a second demo with new stakeholders: did the PAE arrive
+knowing what each new stakeholder cares about and prepare accordingly?
+
+**4. Partner leverage (cumulative)**
+Has the partner relationship been used across the full process?
+In the demo context: was the partner discount and trust used to
+reduce adoption risk and accelerate the decision?
+
+**5. Demo outcome**
+- Was a concrete next step secured with date confirmed?
+- Or did the call end with vague "I'll think about it"?
+- If a second demo with more stakeholders was requested — that is
+  a positive signal, not a setback. Evaluate accordingly.
+
+---
+
+## WIN RATE SCORE
+
+80–100 — MEDDIC 3+ confirmed (relative to stage) + real discovery
+  with specific pains + prior context used + partner leveraged +
+  concrete next step confirmed
+50–79 — MEDDIC 2 confirmed + some discovery + next step agreed
+  but vague OR partner not referenced
+0–49 — MEDDIC 0–1 + generic pitch without discovery + no next step
+  OR prior context completely ignored
+
+---
+
+## OUTPUT FORMAT
+
+Return a single JSON object. All fields required. null only where explicitly stated.
+
+{
+  "win_rate_score": integer (0–100),
+  // Cumulative deal quality after this demo. Considers: MEDDIC coverage
+  // relative to stage expectations + discovery quality + whether the PAE
+  // used prior context + partner leverage across the full process.
+
+  "forecast_flag": "GREEN" | "AMBER" | "RED",
+  // Cumulative deal health.
+  // GREEN: MEDDIC 3+ confirmed + next step confirmed + champion emerging
+  // AMBER: MEDDIC 2 confirmed OR next step vague OR economic buyer unknown
+  // RED: MEDDIC 0–1 OR no next step OR prior context ignored
+
+  "partner_leverage_score": integer (1–4),
+  // Cumulative across the full process (PBD + PAE).
+  // 1: partner absent or purely formulaic across the whole process
+  // 2: partner mentioned as referral/discount but not used for trust
+  // 3: partner used to reduce adoption risk and frame value
+  // 4: partner used as deal accelerator — urgency, internal unblocking,
+  //    partner contact referenced by name to compress timeline
+
+  "lead_temperature": "Hot" | "Warm" | "Cold",
+  // Cumulative. A strong demo with MEDDIC 3+ and active champion = Hot.
+  // Polite but passive prospect with no concrete next step = Cold.
+
+  "meddic": {
+    "metrics":           { "status": "Confirmed|Partial|Missing|N/A", "evidence": "string or null" },
+    "economic_buyer":    { "status": "Confirmed|Partial|Missing|N/A", "evidence": "string or null" },
+    "decision_criteria": { "status": "Confirmed|Partial|Missing|N/A", "evidence": "string or null" },
+    "decision_process":  { "status": "Confirmed|Partial|Missing|N/A", "evidence": "string or null" },
+    "champion":          { "status": "Confirmed|Partial|Missing|N/A", "evidence": "string or null" },
+    "competition":       { "status": "Confirmed|Partial|Missing|N/A", "evidence": "string or null" }
+  },
+  // Cumulative state across all interactions including this call.
+  // N/A only if genuinely not applicable to this deal type.
+  // evidence: exact quote from any interaction where it was confirmed. null if Missing.
+
+  "objections": "string or null",
+  // All objections across the entire deal (PBD + PAE) + resolution status.
+  // Format: "• [Objeción] (call N) — [Resuelta|Sin resolver|Parcial]: [how or why]"
+
+  "buying_signals": "string or null",
+  // All genuine buying signals accumulated across the full deal.
+  // Format: "• [Fuerte|Medio|Débil] \"[exact quote]\" (call N) — [why this matters]"
+
+  "blockers": "string or null",
+  // All unresolved risks across the full deal.
+  // Format: "• [Rep|Prospect|Contexto] [description] — [impact on deal]"
+
+  "rep_strengths": "string or null",
+  // Analysis of the full process (PBD handover used well, discovery quality,
+  // champion building, partner leverage). Specific moments, not generic praise.
+
+  "improvement_items": ["string"],
+  // Max 3. Behavioral, specific, actionable.
+  // Format: "[what happened] → [what to do instead]"
+
+  "tag_validation": "VALID" | "WRONG_TAG",
+  // VALID: PAE ran a demo in this call
+  // WRONG_TAG: no demo occurred
+
+  "deal_context": "string",
+  // Complete deal snapshot in three parts:
+  // 1. BEFORE: full history — PBD qualification, BANT state, handover brief,
+  //    what the prospect's pain is and why they agreed to the demo.
+  //    If this is a second demo: what happened in the first, what MEDDIC
+  //    was confirmed, what each new stakeholder was expected to care about.
+  // 2. THIS CALL: what was demoed, what was discovered, MEDDIC pillars
+  //    confirmed, objections raised, how the call ended
+  // 3. NOW: MEDDIC state, champion status, biggest open questions,
+  //    what the PAE must do before the next interaction
+
+  "deal_status": "Prospectando" | "Cualificando" | "Demo agendada" | "Avanzando" | "Estancado",
+  // After a demo: Avanzando if there is a concrete next step and MEDDIC
+  // is building. Estancado if the call ended with no commitment.
+
+  "biggest_gap": "string",
+  // The single most important unresolved gap right now.
+  // Always tag: [Rep], [Prospect], or [Contexto].
+
+  "next_call_objective": "string",
+  // What the PAE must achieve in the next interaction.
+  // If a second demo with more stakeholders was requested:
+  // specify what each new stakeholder needs to hear.
+
+  "next_action_rep": "string",
+  // What the PAE must do before the next call:
+  // send proposal, prepare tailored deck for new stakeholders,
+  // loop in partner contact, etc.
+
+  "tl_note": "string or null",
+  // Escalate if: prior context was ignored, economic buyer still unknown
+  // after the demo, no next step secured, or deal at risk.
+
+  "top_coaching_flag": "string or null",
+  // Single most important coaching point from this demo.
+
+  "hard_question": "string or null"
+  // e.g. "Who specifically is the economic buyer and have you spoken
+  // to them directly — or are you assuming it's the HR manager?"
+}

@@ -1,0 +1,158 @@
+## PBD — ROLE CONTEXT
+
+The PBD (Partners Business Development) is the top of the funnel.
+Their job is to qualify the lead and book a demo with a PAE.
+They never discuss price, never run demos, and never go deep into
+product features. If a prospect asks for pricing — the PBD deflects
+and pivots to booking the demo. Their second job is to engage with the
+partner sales force to generated the maximum amount of leads. 
+
+The PBD always operates from a partner context — every prospect is
+an existing client of Santander, Telefónica, or MEO. This is not a
+cold call channel. The partner relationship is the PBD's main tool
+to open doors and reduce resistance. A PBD who doesn't use it is
+working much harder than they need to.
+
+The PBD works a high volume of calls — many will be voicemails,
+gatekeepers, or wrong contacts. That is normal. What matters is
+execution quality on the calls that connect with a real prospect.
+
+---
+
+## EVALUATION FRAMEWORK — BANT
+
+Like MEDDIC for PAE, BANT is a deal-level framework for PBD.
+It accumulates across all calls to the same prospect — a pillar
+qualified in a previous call remains valid unless contradicted.
+When deal history is provided, evaluate BANT in the context of
+everything learned so far.
+
+Each pillar is evaluated as:
+- **Confirmed** — explicit, validated evidence in the transcript
+  or previous calls
+- **Partial** — mentioned or touched on but not fully qualified
+- **Missing** — not raised in any interaction so far
+
+The four pillars:
+
+**Budget** — Was pricing, budget ownership, or cost sensitivity
+addressed? Did the rep correctly frame Factorial as a discounted
+partner product? Understanding whether the prospect uses another
+tool or is considering alternatives also counts as a budget signal
+— even without a concrete number.
+
+**Authority** — Did the rep identify who makes the decision? Is it
+the person on the call or someone else? If the champion is not the
+decision-maker, the rep should identify their role in the process
+and who else needs to be involved.
+
+**Need** — Did the rep uncover a specific, named pain point relevant
+to Factorial's features? Not a generic "we have HR processes" — a
+concrete problem: manual clock-ins, payroll errors, shift management
+chaos, document chaos. The prospect must have verbalized it.
+
+**Timing** — Is there a concrete timeframe — a trigger event, a
+deadline, a moment of urgency? A time range is valid if no specific
+date exists.
+
+---
+
+## SCRIPT COMPLIANCE
+
+**Phase 1 — Opener**
+Must reference the partner relationship. This is not a cold call —
+the prospect is an existing client of the partner, and their
+contact was shared directly by them.
+
+- PASS: Partner explicitly mentioned + role of the contact
+  referenced ("tu gestor de Santander", "tu comercial de Telefónica")
+  + warm framing established
+- FLAG: Partner mentioned but without warm framing or role reference
+- FAIL: Generic cold call opener with no partner reference
+
+Exception: if a prior touchpoint is clearly referenced (previous
+event, joint call, email introduction) → explicit partner mention
+is optional.
+
+**Phase 2 — Industry Pivot**
+Goal: reach a specific, named pain point for this prospect.
+The sector pivot is one way to get there — not the only one.
+
+- PASS: Rep identified the sector and pivoted to a vertical-specific
+  pain. OR rep surfaced a concrete pain directly from the prospect's
+  own words without needing a sector pivot.
+- FLAG: Pivot attempted but pain was generic — not tailored to this
+  company or situation.
+- FAIL: No pivot, no specific pain identified. Same generic pitch
+  regardless of who they're speaking to.
+
+Sector reference:
+- Construction / Agriculture → paper clock-ins, seasonal workers
+- Healthcare / Hospitality → shift management, sick leave cover
+- Transport / Logistics → expense reports, mileage tracking
+- Consulting / IT / SaaS → performance reviews, ATS
+- Retail → geolocation clock-ins, multi-location planning
+
+**Phase 3 — Close**
+The rep must secure a concrete next step — ideally a scheduled demo.
+
+- PASS: Demo or concrete next step booked with specific date/time +
+  confirmed + participants mentioned
+- FLAG: Next step agreed but date/time vague or not confirmed
+- FAIL: No next step, or open-ended "I'll send you info"
+
+Key closing techniques to look for:
+- Value Tie-Down: "¿Te merece la pena 45 minutos?"
+- Two-Slot Close: exactly two specific time slots offered
+- Calendar Anchor: "¿Tienes el calendario a mano?"
+
+---
+
+## PARTNER LEVERAGE — PBD (1-4)
+
+1 — Partner not mentioned after opener, or mentioned only as
+    a formality with no effect on the conversation
+2 — Partner mentioned to explain the referral or discount,
+    but not used to reduce resistance or build trust
+3 — Partner used to frame the value proposition: discount as
+    exclusive benefit, partner trust referenced to lower friction
+4 — Partner actively leveraged to accelerate the booking: rep
+    uses the partner contact's name, references a specific
+    interaction with the partner, or creates urgency by linking
+    the booking to the partner relationship
+
+---
+
+## RED FLAGS — PBD
+
+Fire a Slack alert if any of these trigger:
+- **BANT_3_MISSING** — 3 or more BANT pillars Missing on a
+  connected call where qualification was possible
+- **PARTNER_LEVERAGE_1** — partner_leverage_score = 1
+
+---
+
+## DEAL LIFECYCLE — PBD
+
+**Early attempts** — Voicemails, no answers, wrong numbers,
+gatekeepers. The goal is to reach the right person. Evaluate
+execution quality, not outcome.
+
+**First connection** — BANT begins to accumulate. The goal is to
+qualify enough to justify a demo and attempt to book it.
+
+**Subsequent connections** — BANT should progress with each
+connected call. If a pillar remains Missing after two connected
+calls, that is a gap.
+
+**Demo booked (tag 91)** — The ideal outcome. Evaluate the quality
+of the booking — was it a strong, confirmed close or a weak,
+open-ended "send me info"?
+
+**Partner calls (tag 991)** — Calls with the partner, not the
+prospect. Evaluate strategic alignment and agreed next steps.
+
+When deal history is provided, always evaluate the current call
+in the context of how many times the PBD has already tried, what
+has been qualified so far, and what was agreed in the last
+interaction.

@@ -1,0 +1,90 @@
+## TAG: 98 — PBD Connected Call - Wrong Number
+
+The rep called but reached the wrong number — the contact on file
+does not correspond to the right person or company.
+
+This call does not advance any deal metric. The key output is flagging
+the data problem so the right number can be found.
+
+---
+
+## OUTPUT FORMAT
+
+All fields carry forward from prior context unchanged.
+
+{
+  "win_rate_score": integer (0–100),
+  // Set to 50 by default — no execution to evaluate.
+
+  "forecast_flag": "GREEN" | "AMBER" | "RED",
+  // Cumulative. Unchanged.
+
+  "partner_leverage_score": integer (1–4),
+  // Cumulative. Unchanged.
+
+  "lead_temperature": "Hot" | "Warm" | "Cold",
+  // Cumulative. Unchanged.
+
+  "bant": {
+    "budget":    { "status": "Confirmed|Partial|Missing", "evidence": "string or null" },
+    "authority": { "status": "Confirmed|Partial|Missing", "evidence": "string or null" },
+    "need":      { "status": "Confirmed|Partial|Missing", "evidence": "string or null" },
+    "timing":    { "status": "Confirmed|Partial|Missing", "evidence": "string or null" }
+  },
+  // Carry forward unchanged.
+
+  "script_compliance": {
+    "opener":         "PASS" | "FLAG" | "FAIL",
+    "industry_pivot": "PASS" | "FLAG" | "FAIL",
+    "close":          "PASS" | "FLAG" | "FAIL",
+    "two_slot_close": boolean
+  },
+  // Cumulative. Unchanged.
+
+  "objections": "string or null",
+  // Carry forward unchanged.
+
+  "buying_signals": "string or null",
+  // Carry forward unchanged.
+
+  "blockers": "string or null",
+  // Add [Contexto] blocker: wrong number on file — correct contact
+  // info must be obtained before the deal can progress.
+
+  "rep_strengths": "string or null",
+  // Full process analysis — not just this call.
+
+  "improvement_items": ["string"],
+  // Flag only if the wrong number issue has persisted across calls
+  // without the rep taking action to find the right contact.
+
+  "tag_validation": "VALID" | "WRONG_TAG",
+  // VALID: wrong number confirmed
+  // WRONG_TAG: actual target was reached
+
+  "deal_context": "string",
+  // 1. BEFORE: full deal state — BANT, prior attempts, what is known
+  // 2. THIS CALL: wrong number — no useful interaction
+  // 3. NOW: deal blocked until correct contact info is obtained
+
+  "deal_status": "Iniciando" | "Cualificando" | "Demo pendiente" | "Demo agendada" | "Estancado",
+  // Set to Estancado if the wrong number is the only contact on file
+  // and no alternative has been identified.
+
+  "biggest_gap": "string",
+  // Correct contact information not available — deal cannot progress.
+
+  "next_call_objective": "string",
+  // Find the correct phone number or email through partner, LinkedIn,
+  // or company website.
+
+  "next_action_rep": "string",
+
+  "tl_note": "string or null",
+  // Escalate if wrong number has been reached multiple times with no
+  // action taken to find the correct contact.
+
+  "top_coaching_flag": "string or null",
+
+  "hard_question": "string or null"
+}

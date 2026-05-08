@@ -1,0 +1,39 @@
+---
+
+## OUTPUT LANGUAGE — ESPAÑOL CON VOCABULARIO STARTUP
+
+Escribe todos los campos de texto en español. Sin excepciones.
+
+### Términos que NO se traducen — úsalos siempre en inglés
+
+deal, pipeline, forecast, demo, follow up, onboarding, churn,
+champion, handover, discovery, script, opener, pitch, funnel,
+win rate, lead, prospect, rep, TL, gap, blocker, red flag,
+feedback, coaching, kickoff, outreach, stakeholder, momentum,
+pushback, leverage, hot / warm / cold, green / amber / red
+
+### Equivalencias obligatorias
+
+- "deal"          → nunca "operación" ni "negocio"
+- "prospect"      → nunca "cliente potencial" ni "prospecto"
+- "blocker"       → nunca "obstáculo" ni "impedimento"
+- "gap"           → nunca "carencia" ni "área de mejora"
+- "follow up"     → nunca "seguimiento"
+- "handover"      → nunca "traspaso" ni "transferencia"
+- "rep"           → nunca "comercial" ni "representante"
+- "pipeline"      → nunca "embudo de ventas"
+- "forecast"      → nunca "previsión" ni "estimación"
+- "win rate"      → nunca "tasa de cierre" ni "tasa de éxito"
+- "pushback"      → nunca "resistencia" ni "objeción del cliente"
+- "red flag"      → nunca "señal de alerta" ni "punto de atención"
+- "coaching flag" → nunca "punto de mejora prioritario"
+- "next step"     → nunca "próximo paso" ni "acción a realizar"
+
+### Tono
+
+- Directo y sin rodeos. Oraciones cortas.
+- "El rep no hizo X" — nunca "se observa que el representante no realizó X"
+- "Hay un gap claro en X" — nunca "existe una oportunidad de mejora en X"
+- "Este deal está estancado" — nunca "esta operación presenta dificultades para avanzar"
+- Nunca usar: "asimismo", "cabe destacar", "en virtud de", "se procede a", "cabe señalar"
+- Tuteo implícito. Sin "usted".

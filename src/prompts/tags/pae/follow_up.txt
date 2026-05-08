@@ -1,0 +1,157 @@
+## TAG: PAE Follow Up / PAE Follow Up Meeting
+
+A post-demo interaction has occurred. Use this call plus the full
+deal history to produce a current snapshot of where this deal stands.
+
+Your job is not to audit this call in isolation. It is to answer:
+given everything that has happened in this deal — PBD qualification,
+demo(s), follow-ups, emails — where is it right now, and what needs
+to happen to close it?
+
+This call is the most recent update to that picture.
+
+---
+
+## WHAT TO ASSESS
+
+**Deal momentum**
+Is the deal gaining or losing momentum? Look at the full arc:
+- Is MEDDIC advancing call by call, or stagnating?
+- Is the champion becoming more active or going quiet?
+- Are blockers getting resolved or accumulating?
+- Is the prospect moving toward a decision or drifting?
+
+**MEDDIC state (cumulative)**
+Evaluate each pillar across the full deal — not just this call.
+Flag what's still missing relative to how far along the deal is:
+- A 3rd follow-up with Economic Buyer still Missing is a critical gap
+- Champion Partial after 4 interactions means the internal ally is weak
+- Decision Process Missing means the PAE is flying blind on the close
+
+**What this call contributed**
+Did this call advance the deal? If yes: what moved.
+If no: why not — was it a rep execution gap or a deal circumstance?
+
+**Multi-threading (if meeting)**
+If multiple stakeholders attended: did the PAE use it to identify
+the economic buyer, map decision criteria per stakeholder, and build
+beyond the single champion contact?
+
+**Partner leverage (cumulative)**
+Across the full process — has the partner been used to create
+urgency, unblock internally, or compress the decision timeline?
+
+---
+
+## WIN RATE SCORE
+
+Not a score of this call. A score of this deal right now.
+Based on: MEDDIC coverage relative to stage + deal momentum +
+champion strength + distance to a concrete close.
+
+A deal at 4th follow-up with MEDDIC 2/6 scores in the 20s
+regardless of how well the rep performed today.
+
+80–100 — MEDDIC 4+ confirmed + champion active + economic buyer
+  engaged + concrete timeline to close + no critical blockers
+50–79 — MEDDIC 2–3 + deal progressing but gaps remain
+0–49 — MEDDIC 0–1 OR deal drifting OR economic buyer never engaged
+  OR champion gone cold
+
+---
+
+## OUTPUT FORMAT
+
+All fields reflect the current state of the deal after this call.
+Carry forward everything confirmed in prior interactions.
+
+{
+  "win_rate_score": integer (0–100),
+  // Current probability of closing this deal based on everything known.
+  // Not this call's performance — the deal's overall health right now.
+
+  "forecast_flag": "GREEN" | "AMBER" | "RED",
+  // Current deal health across the full process.
+  // GREEN: MEDDIC 4+ + champion active + economic buyer engaged + timeline
+  // AMBER: MEDDIC 2–3 OR champion passive OR economic buyer not yet engaged
+  // RED: MEDDIC 0–1 OR deal drifting OR critical blocker unresolved 2+ calls
+
+  "partner_leverage_score": integer (1–4),
+  // Cumulative across the full process (PBD + all PAE calls).
+
+  "lead_temperature": "Hot" | "Warm" | "Cold",
+  // Current prospect engagement level based on the full arc of the deal.
+  // A declining temperature across follow-ups is itself a red flag.
+
+  "meddic": {
+    "metrics":           { "status": "Confirmed|Partial|Missing|N/A", "evidence": "string or null" },
+    "economic_buyer":    { "status": "Confirmed|Partial|Missing|N/A", "evidence": "string or null" },
+    "decision_criteria": { "status": "Confirmed|Partial|Missing|N/A", "evidence": "string or null" },
+    "decision_process":  { "status": "Confirmed|Partial|Missing|N/A", "evidence": "string or null" },
+    "champion":          { "status": "Confirmed|Partial|Missing|N/A", "evidence": "string or null" },
+    "competition":       { "status": "Confirmed|Partial|Missing|N/A", "evidence": "string or null" }
+  },
+  // Current cumulative state. A pillar confirmed in any prior interaction
+  // remains Confirmed unless directly contradicted.
+  // evidence: exact quote from whichever interaction confirmed it.
+
+  "objections": "string or null",
+  // All objections raised across the full deal + current resolution status.
+  // Format: "• [Objeción] (call N) — [Resuelta|Sin resolver|Parcial]: [how or why]"
+
+  "buying_signals": "string or null",
+  // All buying signals accumulated across the full deal.
+  // Format: "• [Fuerte|Medio|Débil] \"[exact quote]\" (call N) — [why this matters]"
+
+  "blockers": "string or null",
+  // All unresolved risks currently in the deal.
+  // A blocker that has appeared in multiple calls without resolution
+  // must be flagged as [Rep] — the rep is not addressing it.
+  // Format: "• [Rep|Prospect|Contexto] [description] — [impact on deal]"
+
+  "rep_strengths": "string or null",
+  // What the PAE has done well across the full process — not just today.
+
+  "improvement_items": ["string"],
+  // Max 3. The most impactful gaps in how the rep has handled this deal.
+  // Format: "[pattern across the deal] → [what to do instead]"
+
+  "tag_validation": "VALID" | "WRONG_TAG",
+  // VALID: post-demo follow-up call or meeting
+  // WRONG_TAG: this was actually a demo or a closing attempt
+
+  "deal_context": "string",
+  // Current deal snapshot — not a call summary. Must cover:
+  // 1. FULL HISTORY: how the deal started (PBD), what the prospect's
+  //    pain is, what the demo(s) established, how follow-ups have gone
+  // 2. THIS CALL: what changed, what advanced, what was left unresolved
+  // 3. CURRENT STATE: MEDDIC status, champion engagement, open blockers,
+  //    deal momentum, and what specifically needs to happen to close
+
+  "deal_status": "Prospectando" | "Cualificando" | "Demo agendada" | "Avanzando" | "Estancado",
+  // Avanzando: deal is progressing with clear momentum toward close
+  // Estancado: deal has stopped moving — vague timelines, passive prospect,
+  //   or same blockers repeating across calls
+
+  "biggest_gap": "string",
+  // The single most critical thing preventing this deal from closing.
+  // Always tag: [Rep], [Prospect], or [Contexto].
+
+  "next_call_objective": "string",
+  // What must happen in the next interaction to move this deal toward close.
+
+  "next_action_rep": "string",
+  // What the PAE must do before the next call.
+
+  "tl_note": "string or null",
+  // Escalate if: deal drifting across multiple calls, economic buyer
+  // never engaged, champion disengaged, or deal at real risk of dying.
+
+  "top_coaching_flag": "string or null",
+  // The most important coaching point from how the PAE has handled
+  // this deal overall — not just today.
+
+  "hard_question": "string or null"
+  // A specific question the TL should ask in the next 1:1 about
+  // where this deal actually stands.
+}

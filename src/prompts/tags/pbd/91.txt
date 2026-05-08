@@ -1,0 +1,177 @@
+## TAG: 91 — PBD Demo Scheduled
+
+This call ended with a demo booked. Evaluate the quality of the booking
+and the state of the deal at this moment — not just the call in isolation.
+
+Use all prior context provided (previous calls, emails, deal history)
+to assess how BANT has accumulated across the deal, not just this call.
+
+---
+
+## WHAT TO EVALUATE
+
+**1. BANT at booking (cumulative)**
+Evaluate BANT as it stands at this moment across the full deal.
+A pillar confirmed in a previous call remains Confirmed unless
+directly contradicted. A pillar Missing across all calls is a real gap.
+
+**2. Demo booking quality**
+Was the booking strong or weak?
+- Strong: specific date + time + participants confirmed + reconfirmation
+  technique used (e.g., calendar link sent, prospect verbally confirmed)
+- Weak: vague "let's find a time" or "I'll send a calendar link"
+- Prospect-initiated: prospect suggests the demo themselves —
+  the rep didn't close, the prospect volunteered
+
+**3. Partner leverage (cumulative)**
+Did the rep consistently use the partner relationship throughout the
+full PBD process to open doors, reduce resistance, and create urgency?
+Evaluate the pattern across all interactions — not just this call.
+
+**4. Objections across the deal**
+What objections came up at any point? Were they handled or bypassed?
+An objection bypassed (not handled) is a risk that will resurface
+in the PAE demo.
+
+**5. Handover readiness**
+Is there enough information in this deal for a PAE to walk into
+a demo with a clear picture of who they're meeting, why they
+accepted, and what matters to them?
+
+---
+
+## WIN RATE SCORE
+
+80–100 — BANT 3–4 confirmed + strong close (date/time/participants
+  confirmed) + partner leveraged consistently across the deal +
+  objections handled or absent
+50–79 — BANT 2 confirmed + decent close OR partner underused across
+  the deal OR one unhandled objection
+0–49 — BANT 0–1 OR demo booked by prospect initiative OR no
+  date/time confirmed + objections bypassed
+
+---
+
+## OUTPUT FORMAT
+
+Return a single JSON object. All fields required. null only where explicitly stated.
+
+{
+  "win_rate_score": integer (0–100),
+  // Cumulative deal quality at booking moment. Not this call alone.
+  // Considers: BANT accumulated across all interactions + how consistently
+  // the rep leveraged the partner throughout + quality of the demo close.
+  // 80–100: BANT 3–4 + strong close + partner leveraged across the deal
+  // 50–79: BANT 2 + decent close OR partner underused across the deal
+  // 0–49: BANT 0–1 OR demo not genuinely closed by the rep
+
+  "forecast_flag": "GREEN" | "AMBER" | "RED",
+  // Cumulative deal health at this moment.
+  // GREEN: BANT 3–4 confirmed + strong close + no critical blockers
+  // AMBER: BANT 2 confirmed OR weak close OR one unresolved blocker
+  // RED: BANT 0–1 OR demo booked by prospect initiative OR critical blockers
+
+  "partner_leverage_score": integer (1–4),
+  // Cumulative across the full PBD process — not just this call.
+  // Evaluate the pattern: did the rep consistently use the partner
+  // to open doors, reduce resistance, and create urgency throughout?
+  // 1: partner absent or purely formulaic across the whole process
+  // 2: partner used to explain referral/discount but not to build trust
+  // 3: partner woven into the value proposition across multiple calls
+  // 4: partner used as a deal accelerator — urgency, trust, unblocking
+
+  "lead_temperature": "Hot" | "Warm" | "Cold",
+  // Based on cumulative signals across the deal.
+  // Hot: prospect engaged, pain clear, timing confirmed
+  // Warm: interested but vague on need or timing
+  // Cold: booked to get rid of the rep, or no real pain surfaced
+
+  "bant": {
+    "budget":    { "status": "Confirmed|Partial|Missing", "evidence": "string or null" },
+    "authority": { "status": "Confirmed|Partial|Missing", "evidence": "string or null" },
+    "need":      { "status": "Confirmed|Partial|Missing", "evidence": "string or null" },
+    "timing":    { "status": "Confirmed|Partial|Missing", "evidence": "string or null" }
+  },
+  // Cumulative state across all interactions.
+  // A pillar confirmed in a previous call remains Confirmed unless contradicted.
+  // evidence: exact quote from any call in the deal where it was confirmed. null if Missing.
+
+  "script_compliance": {
+    "opener":         "PASS" | "FLAG" | "FAIL",
+    "industry_pivot": "PASS" | "FLAG" | "FAIL",
+    "close":          "PASS" | "FLAG" | "FAIL",
+    "two_slot_close": boolean
+  },
+  // Cumulative across the full PBD process.
+  // If opener was executed correctly in a previous call, it is PASS here.
+  // Evaluate whether each phase was completed at any point in the process.
+  // two_slot_close: true if the rep ever used the two-slot technique in this deal.
+
+  "objections": "string or null",
+  // All objections raised across the entire deal + resolution status of each.
+  // Format: "• [Objeción] (call N) — [Resuelta|Sin resolver|Parcial]: [how or why]"
+  // null if no objections surfaced in any interaction.
+
+  "buying_signals": "string or null",
+  // All genuine buying signals accumulated across the deal.
+  // Format: "• [Fuerte|Medio|Débil] \"[exact quote]\" (call N) — [why this matters]"
+  // null if none detected.
+
+  "blockers": "string or null",
+  // All unresolved risks heading into the demo — from any point in the deal.
+  // Each blocker tagged by origin:
+  // [Rep] = something the rep can fix
+  // [Prospect] = external factor, client side
+  // [Contexto] = structural deal circumstance
+  // Format: "• [Rep|Prospect|Contexto] [description] — [impact on deal]"
+  // null if no blockers identified.
+
+  "rep_strengths": "string or null",
+  // Analysis of the full PBD process for this deal — not just this call.
+  // What did the rep do consistently well across the interactions?
+  // Specific moments, not generic praise.
+  // null if nothing notable across the process.
+
+  "improvement_items": ["string"],
+  // Max 3. Behavioral, specific, actionable. Across the full process.
+  // Format: "[what happened across the deal] → [what to do instead]"
+
+  "tag_validation": "VALID" | "WRONG_TAG",
+  // VALID: transcript confirms demo was booked
+  // WRONG_TAG: no demo was booked — flag as mistagged
+
+  "deal_context": "string",
+  // Complete deal snapshot structured in three parts:
+  // 1. BEFORE THIS CALL: what was known, BANT state, previous agreements
+  // 2. THIS CALL: what advanced, what was closed, what was left unresolved
+  // 3. NOW: full PAE briefing — company + verbalized pain + who attends the demo
+  //    + what motivated acceptance + BANT gaps for PAE to cover + what NOT to raise
+
+  "deal_status": "Iniciando" | "Cualificando" | "Demo pendiente" | "Demo agendada" | "Estancado",
+  // Current stage of the deal. For TAG 91 this will almost always be "Demo agendada".
+
+  "biggest_gap": "string",
+  // The single most important unresolved gap in this deal right now.
+  // Always specify origin: [Rep], [Prospect], or [Contexto].
+
+  "next_call_objective": "string",
+  // What the PAE must achieve in the demo. Specific to this deal.
+
+  "next_action_rep": "string",
+  // What the PBD rep must do before the demo:
+  // calendar confirmation, handover prep, intro to PAE, etc.
+
+  "tl_note": "string or null",
+  // Flag for the Team Lead only if something requires attention:
+  // pattern across the process, rep behavior, deal risk.
+  // null if nothing warrants escalation.
+
+  "top_coaching_flag": "string or null",
+  // The single most important coaching point from the full PBD process
+  // on this deal. null if performance was solid.
+
+  "hard_question": "string or null"
+  // A hard question the TL should ask this rep in their next 1:1
+  // about how they handled this deal — not generic, specific to what happened.
+  // null if no hard question warranted.
+}

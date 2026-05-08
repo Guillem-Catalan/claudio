@@ -1,0 +1,123 @@
+## TAG: 99 — PBD Connected Call - Wrong Champion/Person
+
+The rep reached someone at the company but not the right contact —
+a colleague or employee, not a gatekeeper. This person is not a filter;
+they simply are not the decision-maker.
+
+The goal is to extract the right contact's name and role, and ideally
+get a warm introduction or direct transfer.
+
+This call does not advance BANT unless the right contact's identity
+is explicitly confirmed. Carry all accumulated deal state forward.
+
+---
+
+## WHAT TO EVALUATE
+
+**1. Did the rep extract the right contact?**
+- Name and role of the decision-maker obtained
+- Direct line, email, or warm intro secured
+- Did the rep leverage this person to get closer to the right contact?
+
+**2. Did the rep avoid pitching to the wrong person?**
+Pitching to someone who has no decision power wastes the call.
+Flag if it happened.
+
+**3. Partner leverage**
+The partner reference adds credibility even with the wrong person
+and increases the chance of getting a warm intro.
+
+---
+
+## WIN RATE SCORE
+
+Measures execution quality on this specific call only.
+
+80–100 — Right contact name + role confirmed + warm intro or direct
+  path secured
+50–79 — Partial info obtained — name but no role, or role but no name
+0–49 — No useful contact info extracted, or rep pitched to wrong person
+
+---
+
+## OUTPUT FORMAT
+
+All fields reflect cumulative deal state. Carry forward unchanged
+unless this call explicitly added something new.
+
+{
+  "win_rate_score": integer (0–100),
+  // Execution quality on this call only.
+
+  "forecast_flag": "GREEN" | "AMBER" | "RED",
+  // Cumulative. Unchanged by this call.
+
+  "partner_leverage_score": integer (1–4),
+  // Cumulative across full process.
+
+  "lead_temperature": "Hot" | "Warm" | "Cold",
+  // Cumulative. Unchanged by this call.
+
+  "bant": {
+    "budget":    { "status": "Confirmed|Partial|Missing", "evidence": "string or null" },
+    "authority": { "status": "Confirmed|Partial|Missing", "evidence": "string or null" },
+    "need":      { "status": "Confirmed|Partial|Missing", "evidence": "string or null" },
+    "timing":    { "status": "Confirmed|Partial|Missing", "evidence": "string or null" }
+  },
+  // Carry forward. Authority may move if the right contact's name
+  // and role were explicitly confirmed in this call.
+
+  "script_compliance": {
+    "opener":         "PASS" | "FLAG" | "FAIL",
+    "industry_pivot": "PASS" | "FLAG" | "FAIL",
+    "close":          "PASS" | "FLAG" | "FAIL",
+    "two_slot_close": boolean
+  },
+  // Cumulative across full process.
+
+  "objections": "string or null",
+  // Carry forward unchanged.
+
+  "buying_signals": "string or null",
+  // Carry forward. A warm intro counts as a buying signal.
+
+  "blockers": "string or null",
+  // Carry forward. Add blocker only if right contact is proving
+  // difficult to identify or reach.
+  // Format: "• [Rep|Prospect|Contexto] [description] — [impact on deal]"
+
+  "rep_strengths": "string or null",
+  // Full process analysis — not just this call.
+
+  "improvement_items": ["string"],
+  // Max 3. Flag if rep pitched to wrong person.
+
+  "tag_validation": "VALID" | "WRONG_TAG",
+  // VALID: rep reached someone at the company but not the right contact
+  // WRONG_TAG: rep actually reached the right person
+
+  "deal_context": "string",
+  // 1. BEFORE: full deal state — BANT, prior attempts, what is known
+  // 2. THIS CALL: who was reached, what contact info was extracted
+  // 3. NOW: deal state unchanged — what path exists to reach the right person
+
+  "deal_status": "Iniciando" | "Cualificando" | "Demo pendiente" | "Demo agendada" | "Estancado",
+  // Carry forward. Change to Estancado if multiple calls have failed
+  // to reach the right person despite having a company contact.
+
+  "biggest_gap": "string",
+  // Right contact not yet reached — unless prior context has a bigger gap.
+
+  "next_call_objective": "string",
+  // Reach the right contact using the info extracted here.
+
+  "next_action_rep": "string",
+
+  "tl_note": "string or null",
+  // Escalate if: rep pitched to wrong person, or deal repeatedly
+  // failing to reach the right contact.
+
+  "top_coaching_flag": "string or null",
+
+  "hard_question": "string or null"
+}

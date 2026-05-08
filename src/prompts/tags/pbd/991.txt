@@ -1,0 +1,109 @@
+## TAG: 991 — PBD Partner Call
+
+This is a coordination call between the PBD rep and a partner contact
+(Banco Santander, Telefónica, or MEO). No prospect is on the line.
+The goal is to align on joint pipeline: which prospects to activate,
+which deals need partner support, and what concrete actions each party
+will take.
+
+Do NOT evaluate BANT or script compliance as prospect-facing frameworks.
+Evaluate partner relationship management quality instead.
+
+If deal context is available (prior calls and audits from this deal),
+use it to evaluate whether this coordination call is actually advancing
+that specific deal — or whether the rep is coordinating without effect.
+
+---
+
+## WHAT TO EVALUATE
+
+**1. Deals discussed**
+Which specific prospects or deals were mentioned?
+For each: what is the current status, what was said, what was agreed?
+
+**2. Partner activation quality**
+Is the rep treating the partner as a passive info source,
+or actively directing them to open doors, make introductions,
+send warm referrals, or unblock deals?
+A rep who only asks "any news?" scores low.
+A rep who says "I need you to call Cliente X before Friday
+to confirm they received my email" scores high.
+
+**3. Actions agreed**
+Were concrete next actions committed to by both sides?
+- Strong: specific action + named party + deadline
+- Weak: vague agreement ("I'll look into it", "we'll see")
+- None: call ended without clear commitments
+
+**4. Intel value**
+Did the rep extract new, useful information about any prospect
+that could be used to advance a deal?
+(e.g., prospect's decision timeline, internal resistance,
+budget status, who to contact next)
+
+---
+
+## WIN RATE SCORE
+
+Measure of how effectively the rep is managing the partner relationship
+and advancing joint pipeline through this call.
+
+80–100: Specific deals discussed + partner directed to take concrete actions
+  + new intel obtained + clear next steps with dates
+50–79: Some deals discussed + partial actions agreed + limited intel
+0–49: No specific deals advanced + vague coordination + no clear output
+
+---
+
+## OUTPUT FORMAT
+
+Return a single JSON object. All fields required.
+BANT fields: all "Missing" with null evidence (no prospect on the line).
+Script compliance: all "PASS" (not applicable — do not penalize).
+
+{
+  "win_rate_score": integer (0–100),
+  "forecast_flag": "GREEN" | "AMBER" | "RED",
+  "partner_leverage_score": integer (1–4),
+  "lead_temperature": "Warm",
+  "bant": {
+    "budget":    { "status": "Missing", "evidence": null },
+    "authority": { "status": "Missing", "evidence": null },
+    "need":      { "status": "Missing", "evidence": null },
+    "timing":    { "status": "Missing", "evidence": null }
+  },
+  "script_compliance": {
+    "opener": "PASS", "industry_pivot": "PASS",
+    "close": "PASS", "two_slot_close": false
+  },
+  "objections": null,
+  "buying_signals": null,
+  "blockers": "string or null",
+  "rep_strengths": "string or null",
+  "improvement_items": ["string"],
+  "tag_validation": "VALID",
+  "deal_context": "string",
+  "deal_status": "Cualificando",
+  "biggest_gap": "string",
+  "next_call_objective": "string",
+  "next_action_rep": "string",
+  "tl_note": "string or null",
+  "top_coaching_flag": "string or null",
+  "hard_question": "string or null"
+}
+
+deal_context: Summary of which deals were discussed, what the partner
+said about each, and what actions were agreed. If prior deal context
+is available, indicate whether this call advanced or stalled that deal.
+
+biggest_gap: The main reason this call did not advance deals as much
+as it could have — from the rep's side.
+
+next_call_objective: What the rep should align with the partner on
+in the next coordination call.
+
+next_action_rep: The most important thing the rep must do before
+the next partner call — specific, not generic.
+
+tl_note: Flag if the rep is under-utilizing the partner, not following
+up on agreed actions, or if a deal is at risk. null if well managed.
