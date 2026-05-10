@@ -1,0 +1,36 @@
+name: Sync Deals
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+    inputs:
+      full:
+        description: "Full sync (all deals, not just recent)"
+        type: boolean
+        default: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements.txt
+
+      - name: Sync deals from HubSpot
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
+        run: |
+          if [ "${{ inputs.full }}" = "true" ]; then
+            python -m scripts.sync_deals --full
+          else
+            python -m scripts.sync_deals
+          fi
