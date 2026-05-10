@@ -154,6 +154,7 @@ def _upsert_calls(calls: list[dict]) -> int:
             "duracion_segundos": call["duracion_segundos"],
             "transcript": call["transcript"],
             "subteam": call["subteam"],
+            "source": "modjo",
         })
 
     if not rows:
