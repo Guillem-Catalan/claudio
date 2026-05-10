@@ -1,0 +1,33 @@
+name: Sync Emails
+
+on:
+  workflow_dispatch:
+    inputs:
+      deal_uuid:
+        description: "Supabase deal UUID"
+        required: true
+        type: string
+      hs_deal_id:
+        description: "HubSpot deal ID"
+        required: true
+        type: string
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements.txt
+
+      - name: Sync emails for deal
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
+        run: python -m scripts.sync_emails "${{ inputs.deal_uuid }}" "${{ inputs.hs_deal_id }}"
