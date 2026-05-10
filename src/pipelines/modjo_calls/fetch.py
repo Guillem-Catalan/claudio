@@ -92,12 +92,11 @@ def normalize(raw: dict) -> dict | None:
     if isinstance(account, list):
         account = account[0] if account else {}
 
-    company_name = account.get("name", "")
-    if company_name.lower().strip() in ALL_PARTNER_NAMES:
-        company_name = ""
+    account_name = account.get("name", "")
+    is_partner = account_name.lower().strip() in ALL_PARTNER_NAMES
 
     crm_id = ""
-    if company_name:
+    if account_name and not is_partner:
         crm_id = str(account.get("accountCrmId") or account.get("accountId") or "")
 
     deal = rels.get("deal") or {}
@@ -113,7 +112,6 @@ def normalize(raw: dict) -> dict | None:
         "rol": role,
         "tags": tags,
         "team": "Partners",
-        "company_name": company_name,
         "crm_id": crm_id,
         "hs_deal_id": hs_deal_id,
         "transcript": transcript,
@@ -124,14 +122,17 @@ def normalize(raw: dict) -> dict | None:
 def _resolve_deal_uuid(hs_deal_id: str) -> str | None:
     if not hs_deal_id:
         return None
-    result = (
-        supabase.table("deals")
-        .select("id")
-        .eq("deal_id", hs_deal_id)
-        .maybe_single()
-        .execute()
-    )
-    return result.data["id"] if result.data else None
+    try:
+        result = (
+            supabase.table("deals")
+            .select("id")
+            .eq("deal_id", hs_deal_id)
+            .maybe_single()
+            .execute()
+        )
+        return result.data["id"] if result.data else None
+    except Exception:
+        return None
 
 
 def _upsert_calls(calls: list[dict]) -> int:
@@ -151,7 +152,6 @@ def _upsert_calls(calls: list[dict]) -> int:
             "tags": call["tags"],
             "team": call["team"],
             "duracion_segundos": call["duracion_segundos"],
-            "company_name": call["company_name"] or None,
             "transcript": call["transcript"],
             "subteam": call["subteam"],
         })

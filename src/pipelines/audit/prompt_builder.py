@@ -6,6 +6,7 @@ from src.config import (
     ALL_KNOWN_TAGS,
     get_subteam,
 )
+from src.db.client import supabase
 
 PROMPTS_DIR = Path(__file__).resolve().parent.parent.parent / "prompts"
 
@@ -43,6 +44,22 @@ TAG_TO_FILE = {
     "Partners - PAE Closing Call":                                                   "pae/closing.txt",
     "Partners - PAE Closing Meeting":                                                "pae/closing.txt",
 }
+
+
+def _resolve_company_name(crm_id: str | None) -> str:
+    if not crm_id:
+        return "Unknown"
+    try:
+        result = (
+            supabase.table("atlas")
+            .select("name")
+            .eq("crm_id", crm_id)
+            .maybe_single()
+            .execute()
+        )
+        return result.data["name"] if result.data else "Unknown"
+    except Exception:
+        return "Unknown"
 
 
 def _read(path: Path) -> str:
@@ -101,7 +118,7 @@ def build(call: dict, deal_context: str) -> tuple[str, str]:
 - Role: {role}
 - Date: {(call.get('fecha') or '?')[:10]}
 - Duration: {call.get('duracion_segundos', 0)} seconds ({round((call.get('duracion_segundos') or 0) / 60, 1)} min)
-- Company: {call.get('company_name') or 'Unknown'}
+- Company: {_resolve_company_name(call.get('crm_id'))}
 - Tags: [{tags_str}]
 - Primary tag for evaluation: {primary_tag or 'none (untagged)'}
 
