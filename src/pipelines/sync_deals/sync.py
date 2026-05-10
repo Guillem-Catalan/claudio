@@ -27,16 +27,19 @@ def _resolve_atlas_ids(crm_ids: set[str]) -> dict[str, str]:
         return {}
     atlas_map: dict[str, str] = {}
     crm_list = list(crm_ids)
-    for i in range(0, len(crm_list), 100):
-        batch = crm_list[i : i + 100]
-        result = (
-            supabase.table("atlas")
-            .select("id, crm_id")
-            .in_("crm_id", batch)
-            .execute()
-        )
-        for row in result.data or []:
-            atlas_map[row["crm_id"]] = row["id"]
+    try:
+        for i in range(0, len(crm_list), 100):
+            batch = crm_list[i : i + 100]
+            result = (
+                supabase.table("atlas")
+                .select("id, crm_id")
+                .in_("crm_id", batch)
+                .execute()
+            )
+            for row in result.data or []:
+                atlas_map[row["crm_id"]] = row["id"]
+    except Exception:
+        pass
     return atlas_map
 
 
