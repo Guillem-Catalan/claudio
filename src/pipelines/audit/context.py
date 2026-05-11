@@ -181,7 +181,10 @@ def get_deal_context(deal_uuid: str | None, call_date: str, role: str) -> str:
         .order("fecha")
         .execute()
     ).data or []
-    prior_calls = [c for c in prior_calls if _before(c.get("fecha"), call_date)]
+    prior_calls = [
+        c for c in prior_calls
+        if _before(c.get("fecha"), call_date) and len(c.get("transcript") or "") >= 200
+    ]
 
     pbd_audits_raw = (
         supabase.table("pbd_audits")

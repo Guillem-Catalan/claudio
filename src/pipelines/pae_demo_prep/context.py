@@ -110,13 +110,14 @@ def build_context(deal_uuid: str) -> tuple[dict, str]:
     atlas = deal_data.get("atlas") or {}
 
     # Calls + audits
-    calls = (
+    all_calls = (
         supabase.table("calls")
         .select("*")
         .eq("deal_id", deal_uuid)
         .order("fecha")
         .execute()
     ).data or []
+    calls = [c for c in all_calls if len(c.get("transcript") or "") >= 200]
 
     pbd_audits = {
         a["call_ref"]: a

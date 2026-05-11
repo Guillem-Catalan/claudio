@@ -39,6 +39,7 @@ BEGIN
     FROM calls c
     WHERE c.deal_id = p_deal_id
       AND c.rol IS NOT NULL
+      AND LENGTH(COALESCE(c.transcript, '')) >= 200
       AND NOT EXISTS (
           SELECT 1 FROM pbd_audits a
           WHERE a.call_ref = c.id AND a.win_rate_score IS NOT NULL

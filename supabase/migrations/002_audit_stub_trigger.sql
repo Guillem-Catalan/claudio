@@ -5,6 +5,11 @@
 CREATE OR REPLACE FUNCTION create_audit_stub()
 RETURNS TRIGGER AS $$
 BEGIN
+    -- Skip calls with transcript < 200 chars (call logs, not real conversations)
+    IF LENGTH(COALESCE(NEW.transcript, '')) < 200 THEN
+        RETURN NEW;
+    END IF;
+
     IF NEW.rol = 'PBD' THEN
         INSERT INTO pbd_audits (call_ref, call_id, deal_ref, crm_id, hs_deal_id, owner_name)
         VALUES (NEW.id, NEW.call_id, NEW.deal_id, NEW.crm_id, NEW.hs_deal_id, NEW.owner_nombre);
