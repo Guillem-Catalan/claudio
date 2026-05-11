@@ -152,11 +152,8 @@ def run(deal_uuid: str, hs_deal_id: str):
 
         body_raw = p.get("hs_email_text") or p.get("hs_email_html") or ""
         body_clean = _clean_body(body_raw)
-        if not body_clean:
-            skipped += 1
-            continue
 
-        rows.append({
+        row = {
             "hs_engagement_id": hs_id,
             "deal_id": deal_uuid,
             "hs_deal_id": hs_deal_id,
@@ -168,7 +165,15 @@ def run(deal_uuid: str, hs_deal_id: str):
             "body": body_raw[:50000],
             "thread_key": _normalize_subject(p.get("hs_email_subject")),
             "body_clean": body_clean,
-        })
+        }
+
+        if not body_clean:
+            skipped += 1
+            row["email_summary"] = ""
+            row["email_type"] = "admin"
+            row["key_people"] = ""
+
+        rows.append(row)
 
     if rows:
         result = (
