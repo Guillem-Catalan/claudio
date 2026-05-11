@@ -179,13 +179,22 @@ CREATE TRIGGER trg_dc_email_inserted
     FOR EACH ROW
     EXECUTE FUNCTION dc_on_email_inserted();
 
--- Dispatch email_processing.yml (was only in Supabase, not in migrations)
+-- Dispatch email_processing.yml or auto-fill short emails
 CREATE OR REPLACE FUNCTION dispatch_email_processing()
 RETURNS TRIGGER AS $$
 DECLARE
     _pat  TEXT;
     _repo TEXT;
 BEGIN
+    -- Short emails (<200 chars) are confirmations/scheduling — auto-fill, skip Claude
+    IF LENGTH(COALESCE(NEW.body_clean, '')) < 200 THEN
+        UPDATE emails SET email_summary = NEW.body_clean,
+                          email_type = 'admin',
+                          key_people = ''
+        WHERE id = NEW.id;
+        RETURN NEW;
+    END IF;
+
     SELECT decrypted_secret INTO _pat
     FROM vault.decrypted_secrets
     WHERE name = 'github_pat';
