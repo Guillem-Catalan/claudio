@@ -145,4 +145,15 @@ def run(deal_uuid: str, hs_deal_id: str):
     else:
         print("   No notes with content to write")
 
+    print("6. Updating deals.numero_de_notas with actual count ...")
+    count_result = (
+        supabase.table("notes")
+        .select("id", count="exact")
+        .eq("deal_id", deal_uuid)
+        .execute()
+    )
+    actual_count = count_result.count or 0
+    supabase.table("deals").update({"numero_de_notas": actual_count}).eq("id", deal_uuid).execute()
+    print(f"   numero_de_notas set to {actual_count}")
+
     print(f"   HubSpot API requests: {hubspot.total_requests()}")
