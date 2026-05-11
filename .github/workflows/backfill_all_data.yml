@@ -4,50 +4,50 @@ on:
   workflow_dispatch:
 
 jobs:
-  notes:
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: pip install -r requirements.txt
-      - name: Backfill notes (7k deals)
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
-        run: python -m scripts.backfill_notes
-
   emails:
-    needs: notes
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      - name: Backfill emails (2.8k deals)
+      - name: Backfill emails (2.8k deals, ~2h)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
         run: python -m scripts.backfill_emails
 
-  calls:
+  notes:
     needs: emails
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      - name: Backfill calls (6.3k deals)
+      - name: Backfill notes (7k deals, ~4h)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
+        run: python -m scripts.backfill_notes
+
+  calls:
+    needs: notes
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Backfill calls (6.3k deals, ~4h)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
