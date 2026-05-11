@@ -7,7 +7,7 @@ import json
 import re
 
 from src.db.client import supabase
-from src.integrations.claude import analyze, _MODEL_FAST
+from src.integrations.claude import analyze
 
 SYSTEM_PROMPT = (
     "You are an assistant that analyzes sales emails. "
@@ -64,7 +64,7 @@ def run(email_id: str):
         body_clean=email["body_clean"],
     )
 
-    raw_response = analyze(SYSTEM_PROMPT, prompt, model=_MODEL_FAST, max_tokens=1024)
+    raw_response = analyze(SYSTEM_PROMPT, prompt, max_tokens=1024)
     parsed = _parse_response(raw_response)
 
     email_type = parsed.get("email_type", "other")
