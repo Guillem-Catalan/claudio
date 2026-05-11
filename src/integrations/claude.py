@@ -12,7 +12,7 @@ _client = anthropic.Anthropic(
     },
 )
 
-_MODEL = os.environ.get("AZURE_CLAUDE_DEPLOYMENT", "claude-opus-4-6")
+_MODEL = os.environ.get("AZURE_CLAUDE_DEPLOYMENT") or "claude-opus-4-6"
 
 
 def analyze(system_prompt: str, user_prompt: str) -> str:
