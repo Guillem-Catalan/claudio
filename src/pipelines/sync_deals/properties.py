@@ -23,6 +23,8 @@ CORE_PROPS = [
     "hs_deal_stage_probability",
     "hubspot_owner_id",
     "partner_name",
+    "first_meeting_at",
+    "hs_next_meeting_start_time",
 ]
 
 PIPELINE_DATE_MAP: dict[str, str] = {
@@ -171,6 +173,8 @@ def fetch_deal_properties(deal_ids: list[str], stages: dict[str, str]) -> list[d
                 "stage_probability_hs": float(stage_prob) if stage_prob else None,
                 "_owner_id": p.get("hubspot_owner_id") or "",
                 "_partner_name": p.get("partner_name") or "",
+                "first_meeting_at": _to_date(p.get("first_meeting_at")),
+                "hs_next_meeting_start_time": p.get("hs_next_meeting_start_time") or None,
             }
 
             for hs_prop, col in PIPELINE_DATE_MAP.items():

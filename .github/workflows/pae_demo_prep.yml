@@ -1,0 +1,36 @@
+name: "PAE Demo Prep"
+
+on:
+  workflow_dispatch:
+    inputs:
+      deal_uuid:
+        description: "Supabase deal UUID"
+        required: true
+
+jobs:
+  prep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install system dependencies (weasyprint)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf-2.0-0 libcairo2 libffi-dev
+
+      - run: pip install -r requirements.txt
+
+      - name: Generate demo brief and send to Slack
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          AZURE_CLAUDE_ENDPOINT: ${{ secrets.AZURE_CLAUDE_ENDPOINT }}
+          AZURE_CLAUDE_API_KEY: ${{ secrets.AZURE_CLAUDE_API_KEY }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          PAE_SLACK_CHANNEL: ${{ secrets.PAE_SLACK_CHANNEL }}
+        run: python -m scripts.pae_demo_prep "${{ inputs.deal_uuid }}"
