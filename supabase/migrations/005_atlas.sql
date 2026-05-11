@@ -16,7 +16,22 @@ CREATE TABLE atlas (
     crm_id          TEXT UNIQUE NOT NULL,
     company_name    TEXT,
 
-    -- Output columns TBD (will be added via ALTER TABLE when defined)
+    -- Company info (direct from HubSpot)
+    industry        TEXT,
+    company_size    TEXT,
+    country         TEXT,
+    website         TEXT,
+    description     TEXT,
+
+    -- Raw data (formatted text, input for Claude)
+    company_info        TEXT,
+    deals_breakdown     TEXT,
+    contacts_breakdown  TEXT,
+
+    -- Claude-generated output
+    deal_history    TEXT,
+    contacts_map    TEXT,
+    company_context TEXT,
 
     last_generated  TIMESTAMPTZ,
     created_at      TIMESTAMPTZ DEFAULT now(),
