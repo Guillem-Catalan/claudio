@@ -1,4 +1,4 @@
-"""Temporary backfill: sync all HubSpot calls for deals that have them."""
+"""Temporary backfill: sync calls for deals that have fewer calls loaded than expected."""
 
 import time
 from src.db.client import supabase
@@ -8,8 +8,10 @@ BATCH = 500
 
 
 def _pending_deals() -> list[dict]:
-    print("  Loading all deals with calls ...")
-    deals = []
+    """Find deals where actual call count < expected, using RPC."""
+    print("  Finding deals with call gaps ...")
+
+    all_deals = []
     offset = 0
     while True:
         result = (
@@ -21,21 +23,62 @@ def _pending_deals() -> list[dict]:
             .execute()
         )
         rows = result.data or []
-        deals.extend(rows)
+        all_deals.extend(rows)
         if len(rows) < BATCH:
             break
         offset += BATCH
 
-    print(f"  {len(deals)} deals with calls in total")
+    print(f"  {len(all_deals)} deals with calls expected")
 
-    print("  Counting calls already loaded per deal ...")
+    deal_ids = [d["id"] for d in all_deals]
+    actual_counts: dict[str, int] = {}
+    for i in range(0, len(deal_ids), BATCH):
+        batch = deal_ids[i : i + BATCH]
+        result = (
+            supabase.rpc("count_calls_per_deal", {"deal_ids": batch}).execute()
+        )
+        for r in (result.data or []):
+            actual_counts[r["deal_id"]] = r["cnt"]
+
+    pending = [
+        d for d in all_deals
+        if actual_counts.get(d["id"], 0) < d["numero_de_calls"]
+    ]
+
+    print(f"  {len(all_deals) - len(pending)} complete, {len(pending)} with gaps")
+    return pending
+
+
+def _pending_deals_simple() -> list[dict]:
+    """Fallback: load deals and count calls separately."""
+    print("  Loading deals with calls ...")
+    all_deals = []
+    offset = 0
+    while True:
+        result = (
+            supabase.table("deals")
+            .select("id, deal_id, numero_de_calls")
+            .gt("numero_de_calls", 0)
+            .order("deal_id")
+            .range(offset, offset + BATCH - 1)
+            .execute()
+        )
+        rows = result.data or []
+        all_deals.extend(rows)
+        if len(rows) < BATCH:
+            break
+        offset += BATCH
+
+    print(f"  {len(all_deals)} deals with calls expected")
+    print("  Counting loaded calls per deal ...")
+
     loaded: dict[str, int] = {}
     offset = 0
     while True:
         result = (
             supabase.table("calls")
-            .select("hs_deal_id")
-            .not_.is_("hs_deal_id", "null")
+            .select("deal_id")
+            .not_.is_("deal_id", "null")
             .range(offset, offset + 9999)
             .execute()
         )
@@ -43,19 +86,28 @@ def _pending_deals() -> list[dict]:
         if not rows:
             break
         for r in rows:
-            did = r["hs_deal_id"]
+            did = r["deal_id"]
             loaded[did] = loaded.get(did, 0) + 1
         if len(rows) < 10000:
             break
         offset += 10000
 
-    pending = [d for d in deals if loaded.get(d["deal_id"], 0) < d["numero_de_calls"]]
-    print(f"  {len(deals) - len(pending)} already complete, {len(pending)} still pending")
+    pending = [
+        d for d in all_deals
+        if loaded.get(d["id"], 0) < d["numero_de_calls"]
+    ]
+
+    print(f"  {len(all_deals) - len(pending)} complete, {len(pending)} with gaps")
     return pending
 
 
 def main():
-    deals = _pending_deals()
+    try:
+        deals = _pending_deals()
+    except Exception:
+        print("  RPC not available, using fallback method ...")
+        deals = _pending_deals_simple()
+
     if not deals:
         print("Nothing to do.")
         return
