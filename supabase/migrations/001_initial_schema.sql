@@ -69,12 +69,71 @@ CREATE TABLE deals (
     pae             TEXT,
     last_synced     TIMESTAMPTZ,
 
-    demo_booked_entered_partners DATE,
-    demo_booked_exited_partners  DATE,
-    demo_booked_entered_sdr      DATE,
-    demo_booked_exited_sdr       DATE,
+    numero_de_notas  INTEGER DEFAULT 0,
+    numero_de_emails INTEGER DEFAULT 0,
+    numero_de_calls  INTEGER DEFAULT 0,
 
-    numero_de_notas INTEGER DEFAULT 0,
+    -- Pipeline date columns (SDR Partner Opportunities)
+    sdr_prequalified_entered DATE,
+    sdr_prequalified_exited DATE,
+    sdr_attempting_to_contact_entered DATE,
+    sdr_attempting_to_contact_exited DATE,
+    sdr_associating_the_partner_entered DATE,
+    sdr_associating_the_partner_exited DATE,
+    sdr_engaged_entered DATE,
+    sdr_engaged_exited DATE,
+    sdr_demo_booked_entered DATE,
+    sdr_demo_booked_exited DATE,
+    sdr_nurturing_entered DATE,
+    sdr_nurturing_exited DATE,
+    sdr_opportunity_lost_entered DATE,
+    sdr_opportunity_lost_exited DATE,
+    sdr_to_reschedule_entered DATE,
+    sdr_to_reschedule_exited DATE,
+
+    -- Pipeline date columns (Partners Distribution)
+    dist_new_deals_entered DATE,
+    dist_new_deals_exited DATE,
+    dist_demo_booked_entered DATE,
+    dist_demo_booked_exited DATE,
+    dist_product_alignment_entered DATE,
+    dist_product_alignment_exited DATE,
+    dist_do_not_use_entered DATE,
+    dist_do_not_use_exited DATE,
+    dist_pricing_and_packaging_entered DATE,
+    dist_pricing_and_packaging_exited DATE,
+    dist_contracting_entered DATE,
+    dist_contracting_exited DATE,
+    dist_closed_pending_payment_entered DATE,
+    dist_closed_pending_payment_exited DATE,
+    dist_closed_won_entered DATE,
+    dist_closed_won_exited DATE,
+    dist_on_hold_entered DATE,
+    dist_on_hold_exited DATE,
+    dist_closed_lost_entered DATE,
+    dist_closed_lost_exited DATE,
+    dist_to_reschedule_entered DATE,
+    dist_to_reschedule_exited DATE,
+
+    -- Pipeline date columns (Sales Pipeline)
+    sales_meeting_booked_entered DATE,
+    sales_meeting_booked_exited DATE,
+    sales_discovery_entered DATE,
+    sales_discovery_exited DATE,
+    sales_to_reschedule_entered DATE,
+    sales_to_reschedule_exited DATE,
+    sales_product_alignment_entered DATE,
+    sales_product_alignment_exited DATE,
+    sales_pricing_and_packaging_entered DATE,
+    sales_pricing_and_packaging_exited DATE,
+    sales_contracting_entered DATE,
+    sales_contracting_exited DATE,
+    sales_closed_pending_payment_entered DATE,
+    sales_closed_pending_payment_exited DATE,
+    sales_closed_won_entered DATE,
+    sales_closed_won_exited DATE,
+    sales_closed_lost_entered DATE,
+    sales_closed_lost_exited DATE,
 
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
@@ -98,9 +157,11 @@ CREATE TABLE calls (
     tags              TEXT[] DEFAULT '{}',
     team              TEXT,
     duracion_segundos INTEGER,
-    company_name      TEXT,
     transcript        TEXT,
     subteam           subteam,
+
+    hs_call_id        TEXT,
+    source            TEXT DEFAULT 'modjo',
 
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
@@ -269,14 +330,15 @@ CREATE TABLE emails (
 -- ── Notes ───────────────────────────────────────────────────────────────────
 
 CREATE TABLE notes (
-    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    deal_id     UUID REFERENCES deals(id) ON DELETE CASCADE,
-    hs_deal_id  TEXT NOT NULL,
-    hs_note_id  TEXT UNIQUE NOT NULL,
+    id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    hs_engagement_id TEXT UNIQUE NOT NULL,
+    deal_id          UUID REFERENCES deals(id) ON DELETE CASCADE,
+    hs_deal_id       TEXT NOT NULL,
+    crm_id           TEXT,
 
-    content     TEXT,
-    author      TEXT,
-    created_hs  TIMESTAMPTZ,
+    date             TIMESTAMPTZ,
+    owner            TEXT,
+    content          TEXT,
 
     created_at  TIMESTAMPTZ DEFAULT now(),
     updated_at  TIMESTAMPTZ DEFAULT now()
@@ -299,10 +361,10 @@ CREATE TABLE deal_confirmations (
     deal_id      UUID UNIQUE REFERENCES deals(id) ON DELETE CASCADE,
     hs_deal_id   TEXT UNIQUE NOT NULL,
 
-    calls_ready  BOOLEAN DEFAULT FALSE,
-    emails_ready BOOLEAN DEFAULT FALSE,
+    calls_ready  BOOLEAN DEFAULT TRUE,
+    emails_ready BOOLEAN DEFAULT TRUE,
+    notes_ready  BOOLEAN DEFAULT TRUE,
     atlas_ready  BOOLEAN DEFAULT FALSE,
-    notes_ready  BOOLEAN DEFAULT FALSE,
 
     all_ready    BOOLEAN GENERATED ALWAYS AS (
         calls_ready AND emails_ready AND atlas_ready AND notes_ready
@@ -456,6 +518,7 @@ CREATE INDEX idx_calls_hs_deal_id ON calls(hs_deal_id);
 CREATE INDEX idx_calls_owner_email ON calls(owner_email);
 CREATE INDEX idx_calls_rol ON calls(rol);
 CREATE INDEX idx_calls_tags ON calls USING GIN(tags);
+CREATE UNIQUE INDEX idx_calls_hs_call_id ON calls(hs_call_id) WHERE hs_call_id IS NOT NULL;
 
 CREATE INDEX idx_pbd_audits_call_id ON pbd_audits(call_id);
 CREATE INDEX idx_pbd_audits_deal_ref ON pbd_audits(deal_ref);
