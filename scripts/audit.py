@@ -4,7 +4,7 @@ from src.pipelines.audit.run import run_single
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python -m scripts.audit_single <call_id>")
+        print("Usage: python -m scripts.audit <call_id>")
         sys.exit(1)
 
     result = run_single(sys.argv[1])

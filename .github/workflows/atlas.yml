@@ -1,17 +1,21 @@
-name: Audit Call
+name: Atlas
 
 on:
   workflow_dispatch:
     inputs:
-      call_id:
-        description: "Modjo call ID to audit"
+      atlas_id:
+        description: "Supabase atlas UUID"
+        required: true
+        type: string
+      crm_id:
+        description: "HubSpot company ID"
         required: true
         type: string
 
 jobs:
-  audit:
+  generate:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
@@ -21,10 +25,11 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - name: Run audit
+      - name: Generate atlas context
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           AZURE_CLAUDE_ENDPOINT: ${{ secrets.AZURE_CLAUDE_ENDPOINT }}
           AZURE_CLAUDE_API_KEY: ${{ secrets.AZURE_CLAUDE_API_KEY }}
-        run: python -m scripts.audit "${{ inputs.call_id }}"
+          HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
+        run: python -m scripts.atlas "${{ inputs.atlas_id }}" "${{ inputs.crm_id }}"
