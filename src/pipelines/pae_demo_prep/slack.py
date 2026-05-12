@@ -1,9 +1,11 @@
 """
-Send PAE demo brief to Slack: intro message + PDF attachment in a single post.
+Send PAE demo brief to Slack: single message with intro text + PDF.
+Uses raw API calls instead of files_upload_v2 to avoid double-message bug.
 """
 
 import os
 
+import requests
 from slack_sdk import WebClient
 
 SLACK_BOT_TOKEN = os.environ.get("SLACK_BOT_TOKEN", "")
@@ -34,13 +36,21 @@ def send_demo_brief(
     filename = f"demo-brief-{company.lower().replace(' ', '-')}.pdf"
 
     try:
-        _client.files_upload_v2(
-            channel=channel,
-            content=pdf_bytes,
+        resp = _client.files_getUploadURLExternal(
             filename=filename,
-            title=filename,
+            length=len(pdf_bytes),
+        )
+        upload_url = resp["upload_url"]
+        file_id = resp["file_id"]
+
+        requests.post(upload_url, data=pdf_bytes, headers={"Content-Type": "application/pdf"})
+
+        _client.files_completeUploadExternal(
+            files=[{"id": file_id, "title": filename}],
+            channel_id=channel,
             initial_comment=intro,
         )
+
         print(f"  Slack: sent to {channel}")
         return True
     except Exception as e:

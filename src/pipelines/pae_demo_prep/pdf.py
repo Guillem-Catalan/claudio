@@ -3,7 +3,8 @@ Generate a 2-page PDF demo brief from Claude's structured output.
 Page 1: Company overview, BANT, objections, pre-demo actions
 Page 2: Demo roadmap with numbered steps and strategy
 
-CSS uses table/float layouts for WeasyPrint compatibility.
+All layout uses display:table for bulletproof WeasyPrint rendering.
+No floats, no position:absolute — text never overlaps.
 """
 
 from datetime import date
@@ -25,16 +26,20 @@ body {
     line-height: 1.5;
     color: #1a1a18;
     background: #faf9f6;
-    -webkit-font-smoothing: antialiased;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
 }
-.page { background: #fff; width: 100%; overflow: hidden; }
+.page { background: #fff; width: 100%; }
 .page-2 { page-break-before: always; }
+
+/* ── TABLE LAYOUT UTIL ── */
+.tbl { display: table; width: 100%; }
+.tbl-cell { display: table-cell; vertical-align: top; }
 
 /* ── HEADER ── */
 .hdr { padding: 24px 36px 0; }
-.hdr-row { overflow: hidden; }
-.hdr-left { float: left; max-width: 65%; }
-.hdr-right { float: right; text-align: right; }
+.hdr-left { width: 65%; }
+.hdr-right { text-align: right; }
 .hdr .brand { font-size: 12px; font-weight: 600; color: #c8102e; letter-spacing: .3px; }
 .hdr .type { font-size: 9px; text-transform: uppercase; letter-spacing: 2px; color: #8e8d88; margin-top: 1px; }
 .hdr .name { font-size: 26px; font-weight: 700; letter-spacing: -.5px; margin-top: 2px; color: #1a1a18; }
@@ -50,9 +55,9 @@ body {
 .kpi-val.red { color: #c8102e; }
 
 /* ── BODY 2-COL ── */
-.body-grid { padding: 0 36px 30px; overflow: hidden; }
-.col-left { float: left; width: 48%; padding-right: 14px; border-right: .5px solid #e4e3de; }
-.col-right { float: right; width: 48%; padding-left: 14px; }
+.body-grid { padding: 0 36px 30px; }
+.col-left { width: 50%; padding-right: 16px; border-right: .5px solid #e4e3de; }
+.col-right { width: 50%; padding-left: 16px; }
 
 /* ── SECTIONS ── */
 .sec { margin-bottom: 12px; }
@@ -64,17 +69,11 @@ body {
     border-bottom: 1px solid #f0efe9;
 }
 
-/* ── BULLET LIST ── */
-.blist { list-style: none; padding: 0; }
-.blist li {
-    padding: 2px 0 2px 12px; position: relative;
-    font-size: 9.5px; line-height: 1.5; color: #5c5b57; font-weight: 300;
-}
-.blist li::before {
-    content: '\\2014'; color: #c8102e; font-size: 9px;
-    position: absolute; left: 0; top: 2px;
-}
-.blist li strong { font-weight: 500; color: #1a1a18; }
+/* ── BULLET LIST (table-based, no absolute positioning) ── */
+.blist { border-collapse: collapse; width: 100%; }
+.blist td { font-size: 9.5px; line-height: 1.5; color: #5c5b57; font-weight: 300; padding: 2px 0; vertical-align: top; }
+.blist .dash { width: 12px; color: #c8102e; font-size: 9px; }
+.blist strong { font-weight: 500; color: #1a1a18; }
 
 /* ── BANT STATUS ── */
 .status-grid table { width: 100%; border-collapse: separate; border-spacing: 0 3px; }
@@ -106,17 +105,14 @@ body {
 .obj-a { color: #5c5b57; font-weight: 300; }
 
 /* ── FOOTER ── */
-.pfoot {
-    padding: 6px 36px; border-top: 1px solid #f0efe9;
-    overflow: hidden; font-size: 8px; color: #8e8d88; letter-spacing: .04em;
-}
-.pfoot-left { float: left; }
-.pfoot-right { float: right; }
+.pfoot { padding: 6px 36px; border-top: 1px solid #f0efe9; font-size: 8px; color: #8e8d88; letter-spacing: .04em; }
+.pfoot-left { width: 70%; }
+.pfoot-right { text-align: right; }
 
 /* ── PAGE 2 HEADER ── */
-.p2-head { padding: 18px 36px 14px; border-bottom: 1px solid #e4e3de; overflow: hidden; }
-.p2h-left { float: left; }
-.p2h-right { float: right; }
+.p2-head { padding: 18px 36px 14px; border-bottom: 1px solid #e4e3de; }
+.p2h-left { width: 75%; }
+.p2h-right { text-align: right; vertical-align: bottom; }
 .p2h-label {
     font-family: 'Courier New', Courier, monospace;
     font-size: 7px; font-weight: 600; letter-spacing: .2em;
@@ -127,7 +123,7 @@ body {
 .p2h-badge {
     background: #fdf0f0; border: 1px solid #ffccd4;
     padding: 4px 12px; font-size: 9px; font-weight: 500; color: #c8102e;
-    display: inline-block; margin-top: 8px;
+    display: inline-block;
 }
 
 /* ── STRATEGY BANNER ── */
@@ -137,23 +133,21 @@ body {
 }
 .strategy-banner strong { color: #fff; font-weight: 500; }
 
-/* ── ROADMAP STEPS ── */
+/* ── ROADMAP STEPS (table-based, no absolute positioning) ── */
 .roadmap { padding: 14px 36px 30px; }
-.step { overflow: hidden; position: relative; padding-bottom: 6px; }
-.step-left { float: left; width: 36px; position: relative; }
+.step-table { width: 100%; border-collapse: collapse; }
+.step-table td { vertical-align: top; }
+.step-num-cell { width: 36px; padding-bottom: 8px; }
+.step-num-cell.line { border-right: 2px solid #e4e3de; }
 .step-num {
     width: 28px; height: 28px;
     background: #1a1a18; color: #fff;
     text-align: center; line-height: 28px;
     font-size: 12px; font-weight: 500;
-    border-radius: 50%; margin-top: 2px;
+    border-radius: 50%;
 }
-.step.key .step-num { background: #c8102e; }
-.step-line {
-    position: absolute; top: 34px; left: 13px;
-    width: 2px; bottom: 0; background: #e4e3de;
-}
-.step-body { margin-left: 44px; padding-bottom: 12px; }
+.step-key .step-num { background: #c8102e; }
+.step-content { padding: 2px 0 14px 14px; }
 .step-title { font-size: 12px; font-weight: 600; letter-spacing: -.02em; color: #1a1a18; margin-bottom: 3px; }
 .step-desc { font-size: 9.5px; color: #5c5b57; line-height: 1.55; font-weight: 300; margin-bottom: 5px; }
 .step-desc strong { font-weight: 500; color: #1a1a18; }
@@ -172,10 +166,11 @@ def _esc(text: str) -> str:
 
 def _blist(items: list[str]) -> str:
     if not items:
-        return '<ul class="blist"><li>No hay información disponible</li></ul>'
-    return '<ul class="blist">' + "".join(
-        f"<li>{_esc(i)}</li>" for i in items
-    ) + "</ul>"
+        return '<table class="blist"><tr><td class="dash">&mdash;</td><td>No hay información disponible</td></tr></table>'
+    rows = "".join(
+        f'<tr><td class="dash">&mdash;</td><td>{_esc(i)}</td></tr>' for i in items
+    )
+    return f'<table class="blist">{rows}</table>'
 
 
 def _render_bant(bant: dict) -> str:
@@ -220,30 +215,36 @@ def _render_pain_principal(pain: dict) -> str:
     )
 
 
-def _render_step(num: int, step: dict, is_last: bool) -> str:
-    is_key = step.get("key", False)
-    cls = "step key" if is_key else "step"
-    titulo = _esc(step.get("titulo", f"Paso {num}"))
-    desc = _esc(step.get("desc", ""))
-    line = "" if is_last else '<div class="step-line"></div>'
+def _render_steps(steps: list[dict]) -> str:
+    if not steps:
+        return ""
+    rows = ""
+    for i, step in enumerate(steps):
+        is_key = step.get("key", False)
+        is_last = (i == len(steps) - 1)
+        row_cls = "step-key" if is_key else ""
+        num_cls = "step-num-cell" if is_last else "step-num-cell line"
+        titulo = _esc(step.get("titulo", f"Paso {i + 1}"))
+        desc = _esc(step.get("desc", ""))
 
-    chips_html = ""
-    for c in (step.get("chips") or []):
-        if isinstance(c, str):
-            chips_html += f'<span class="chip">{_esc(c)}</span>'
-        elif isinstance(c, dict):
-            red = " red" if c.get("key") else ""
-            chips_html += f'<span class="chip{red}">{_esc(c.get("text", ""))}</span>'
+        chips_html = ""
+        for c in (step.get("chips") or []):
+            if isinstance(c, str):
+                chips_html += f'<span class="chip">{_esc(c)}</span>'
+            elif isinstance(c, dict):
+                red = " red" if c.get("key") else ""
+                chips_html += f'<span class="chip{red}">{_esc(c.get("text", ""))}</span>'
 
-    return (
-        f'<div class="{cls}">'
-        f'<div class="step-left"><div class="step-num">{num}</div>{line}</div>'
-        f'<div class="step-body">'
-        f'<div class="step-title">{titulo}</div>'
-        f'<div class="step-desc">{desc}</div>'
-        f'<div>{chips_html}</div>'
-        f'</div></div>'
-    )
+        rows += (
+            f'<tr class="{row_cls}">'
+            f'<td class="{num_cls}"><div class="step-num">{i + 1}</div></td>'
+            f'<td class="step-content">'
+            f'<div class="step-title">{titulo}</div>'
+            f'<div class="step-desc">{desc}</div>'
+            f'<div>{chips_html}</div>'
+            f'</td></tr>'
+        )
+    return f'<table class="step-table">{rows}</table>'
 
 
 def generate_pdf(
@@ -271,23 +272,7 @@ def generate_pdf(
     objeciones_html = _render_objeciones(brief.get("objeciones", []))
     acciones_html = _blist(brief.get("acciones_criticas", []))
     estrategia = _esc(brief.get("estrategia", ""))
-
-    steps = brief.get("steps", [])
-    steps_html = ""
-    for i, step in enumerate(steps):
-        steps_html += _render_step(i + 1, step, is_last=(i == len(steps) - 1))
-
-    c_name = _esc(contact.get("name", ""))
-    c_title = _esc(contact.get("jobtitle", ""))
-    c_email = _esc(contact.get("email", ""))
-    c_phone = contact.get("phone", "")
-    contact_line = c_name
-    if c_title:
-        contact_line += f" &middot; {c_title}"
-    if c_email:
-        contact_line += f" &middot; {c_email}"
-    if c_phone:
-        contact_line += f" &middot; {_esc(c_phone)}"
+    steps_html = _render_steps(brief.get("steps", []))
 
     esc_company = _esc(company)
     esc_date_long = _esc(demo_date_long)
@@ -297,14 +282,15 @@ def generate_pdf(
     esc_partner = _esc(partner)
 
     page1 = f'''<div class="page">
+
   <div class="hdr">
-    <div class="hdr-row">
-      <div class="hdr-left">
+    <div class="tbl">
+      <div class="tbl-cell hdr-left">
         <div class="brand">Factorial</div>
         <div class="type">Demo Brief</div>
         <div class="name">{esc_company}</div>
       </div>
-      <div class="hdr-right">
+      <div class="tbl-cell hdr-right">
         <div class="dates">
           {esc_date_long}<br>
           <span class="sub">{fecha_sub}</span>
@@ -323,8 +309,8 @@ def generate_pdf(
     </tr>
   </table></div>
 
-  <div class="body-grid">
-    <div class="col-left">
+  <div class="body-grid tbl">
+    <div class="tbl-cell col-left">
       <div class="sec">
         <div class="sec-label">Cliente</div>
         {cliente_html}
@@ -340,7 +326,7 @@ def generate_pdf(
       </div>
     </div>
 
-    <div class="col-right">
+    <div class="tbl-cell col-right">
       <div class="sec">
         <div class="sec-label">BANT</div>
         {bant_html}
@@ -356,20 +342,22 @@ def generate_pdf(
     </div>
   </div>
 
-  <div class="pfoot">
-    <span class="pfoot-left">{esc_company} &middot; Demo Brief &middot; Factorial</span>
-    <span class="pfoot-right">Página 01 / 02</span>
+  <div class="pfoot tbl">
+    <div class="tbl-cell pfoot-left">{esc_company} &middot; Demo Brief &middot; Factorial</div>
+    <div class="tbl-cell pfoot-right">Página 01 / 02</div>
   </div>
+
 </div>'''
 
     page2 = f'''<div class="page page-2">
-  <div class="p2-head">
-    <div class="p2h-left">
+
+  <div class="p2-head tbl">
+    <div class="tbl-cell p2h-left">
       <div class="p2h-label">Roadmap de la demo</div>
       <div class="p2h-title">Cómo conducir la conversación</div>
       <div class="p2h-sub">Por dónde tirar paso a paso &middot; tenlo delante durante la demo</div>
     </div>
-    <div class="p2h-right">
+    <div class="tbl-cell p2h-right">
       <span class="p2h-badge">{esc_date_short}</span>
     </div>
   </div>
@@ -382,10 +370,11 @@ def generate_pdf(
     {steps_html}
   </div>
 
-  <div class="pfoot">
-    <span class="pfoot-left">{esc_company} &middot; Demo Brief &middot; Factorial</span>
-    <span class="pfoot-right">Página 02 / 02</span>
+  <div class="pfoot tbl">
+    <div class="tbl-cell pfoot-left">{esc_company} &middot; Demo Brief &middot; Factorial</div>
+    <div class="tbl-cell pfoot-right">Página 02 / 02</div>
   </div>
+
 </div>'''
 
     html = (
