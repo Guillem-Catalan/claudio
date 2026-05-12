@@ -548,10 +548,10 @@ def run(deal_uuid: str, hs_deal_id: str):
         update["calls_ready"] = True
         print("   calls_ready = TRUE")
     else:
-        print(
-            f"   calls_ready = FALSE"
-            f" ({audit_failures} failures)" if audit_failures else ""
-        )
+        msg = "   calls_ready = FALSE"
+        if audit_failures:
+            msg += f" ({audit_failures} failures)"
+        print(msg)
 
     supabase.table("deal_confirmations").update(update).eq(
         "deal_id", deal_uuid
