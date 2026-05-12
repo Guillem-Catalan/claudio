@@ -35,6 +35,7 @@ jobs:
           AZURE_CLAUDE_ENDPOINT: ${{ secrets.AZURE_CLAUDE_ENDPOINT }}
           AZURE_CLAUDE_API_KEY: ${{ secrets.AZURE_CLAUDE_API_KEY }}
           AZURE_CLAUDE_DEPLOYMENT: ${{ secrets.AZURE_CLAUDE_DEPLOYMENT }}
+          HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           PAE_CHANNEL_OVERRIDE: ${{ inputs.channel_override }}
         run: python -m scripts.pae_demo_prep "${{ inputs.deal_uuid }}"
