@@ -46,7 +46,6 @@ def _ensure_stubs() -> int:
         print(f"  [{created}/{len(crm_list)}] stubs created")
 
     print("  Linking deals to atlas ...")
-    offset = 0
     linked = 0
     while True:
         result = (
@@ -54,7 +53,7 @@ def _ensure_stubs() -> int:
             .select("id, crm_id")
             .is_("atlas_id", "null")
             .not_.is_("crm_id", "null")
-            .range(offset, offset + BATCH - 1)
+            .range(0, BATCH - 1)
             .execute()
         )
         rows = result.data or []
@@ -75,9 +74,6 @@ def _ensure_stubs() -> int:
                 linked += 1
         if linked % 500 == 0:
             print(f"  {linked} deals linked ...")
-        if len(rows) < BATCH:
-            break
-        offset += BATCH
     print(f"  {linked} deals linked total")
 
     return created
