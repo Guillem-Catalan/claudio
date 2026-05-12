@@ -277,7 +277,7 @@ def main():
                 continue
 
             duration_ms = p.get("hs_call_duration")
-            duration_s = int(int(duration_ms) / 1000) if duration_ms else None
+            duration_s = int(float(duration_ms) / 1000) if duration_ms else None
             fecha = _parse_date(p.get("hs_timestamp"))
             sub = get_subteam(owner_email) if owner_email else None
 
