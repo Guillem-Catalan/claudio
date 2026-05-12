@@ -138,15 +138,15 @@ def build_context_from_hubspot(deal_uuid: str) -> str:
 
     deal = (
         supabase.table("deals")
-        .select("hs_deal_id, atlas:atlas_id(company_name, company_context, deal_history, contacts_map)")
+        .select("deal_id, atlas:atlas_id(company_name, company_context, deal_history, contacts_map)")
         .eq("id", deal_uuid)
         .maybe_single()
         .execute()
     )
-    if not deal.data or not deal.data.get("hs_deal_id"):
+    if not deal.data or not deal.data.get("deal_id"):
         return "No interactions recorded."
 
-    hs_deal_id = deal.data["hs_deal_id"]
+    hs_deal_id = deal.data["deal_id"]
     atlas = deal.data.get("atlas") or {}
 
     parts: list[str] = []
