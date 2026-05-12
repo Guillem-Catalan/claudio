@@ -129,7 +129,8 @@ def run(deal_uuid: str):
         print(f"   No Slack channel for PAE '{pae_name}' — skipping")
         return
 
-    company = (deal_data.get("atlas") or {}).get("company_name") or deal_data.get("deal_name") or "?"
+    raw_company = (deal_data.get("atlas") or {}).get("company_name") or deal_data.get("deal_name") or "?"
+    company = raw_company.split(" - from ")[0].split(" from ")[0].strip() if " from " in raw_company else raw_company
     contact = _extract_contact(deal_data)
     demo_time = _meeting_time(deal_data)
     demo_date_long = _meeting_date_long(deal_data)
