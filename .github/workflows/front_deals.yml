@@ -1,0 +1,36 @@
+name: "Front Deals Snapshot"
+
+on:
+  workflow_dispatch:
+    inputs:
+      deal_uuid:
+        required: true
+        type: string
+      hs_deal_id:
+        required: true
+        type: string
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements.txt
+
+      - name: Generate front_deal snapshot
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          AZURE_CLAUDE_ENDPOINT: ${{ secrets.AZURE_CLAUDE_ENDPOINT }}
+          AZURE_CLAUDE_API_KEY: ${{ secrets.AZURE_CLAUDE_API_KEY }}
+          AZURE_CLAUDE_DEPLOYMENT: ${{ secrets.AZURE_CLAUDE_DEPLOYMENT }}
+        run: |
+          python -m scripts.front_deals \
+            --deal-uuid "${{ inputs.deal_uuid }}" \
+            --hs-deal-id "${{ inputs.hs_deal_id }}"

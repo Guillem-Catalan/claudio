@@ -1,0 +1,182 @@
+=== CAPA 3: OUTPUT ===
+
+Devuelve exactamente este JSON y nada más. Sin prose, sin markdown, solo el objeto JSON.
+
+{
+  "PBD": "...",
+  "PAE": "...",
+  "Deal_Summary": "...",
+  "M_accumulate": "...",
+  "M_score": 0,
+  "E_accumulate": "...",
+  "E_score": 0,
+  "DC_accumulate": "...",
+  "DC_score": 0,
+  "DP_accumulate": "...",
+  "DP_score": 0,
+  "I_accumulate": "...",
+  "I_score": 0,
+  "C_accumulate": "...",
+  "C_score": 0,
+  "objections": "...",
+  "buyer_signals": "...",
+  "live_blockers": "...",
+  "improvements": "...",
+  "deal_strengths": "...",
+  "next_step": "..."
+}
+
+INSTRUCCIONES POR CAMPO:
+
+PBD: Identifica el PBD owner principal del deal. Lee todos los PBD owners registrados en el contexto
+y determina quién ha sido el responsable principal — el que aparece en más comunicaciones PBD.
+Solo devolver el nombre, sin explicación.
+
+PAE: Identifica el PAE owner principal del deal. Lee todos los PAE owners registrados en el contexto
+y determina quién ha sido el responsable principal — el que aparece en más comunicaciones PAE.
+Solo devolver el nombre, sin explicación.
+
+Deal_Summary: Genera exactamente 3 frases en este orden fijo:
+Frase 1 — Contexto del prospect: quién es la empresa, cuántos empleados tiene, qué problema tiene
+y por qué está evaluando Factorial.
+Frase 2 — Estado actual del deal: qué ha pasado más recientemente, qué está bloqueando o acelerando,
+y quiénes son los interlocutores clave.
+Frase 3 — Lo que está en juego: MRR del deal, stage actual, y el factor crítico que determinará
+si cierra o no.
+Sin títulos, sin bullets, solo las 3 frases seguidas como texto corrido. Máximo 40 palabras por frase.
+
+M_accumulate: Genera exactamente 2 frases en este orden fijo:
+Frase 1 — Lo que se ha cuantificado: qué métricas concretas ha confirmado o mencionado el prospect
+a lo largo del deal (ahorro de tiempo, coste actual, headcount afectado, ROI esperado, etc.)
+Frase 2 — Lo que falta: qué métricas no se han conseguido cuantificar o validar todavía.
+Sin títulos, sin bullets, solo las 2 frases como texto corrido. Máximo 35 palabras por frase.
+Basarse únicamente en evidencia explícita del contexto del deal, no inferir métricas no mencionadas.
+
+M_score: Número entero del 1 al 10. Evalúa en orden estos criterios, cada uno es requisito del siguiente:
+¿Se han mencionado métricas concretas en alguna comunicación del deal? Si no → score máximo 3.
+¿Alguna de esas métricas está cuantificada con números reales expresados por el prospect? Si no → score máximo 5.
+¿El prospect ha validado esas métricas en alguna comunicación? Si no → score máximo 7.
+¿Las métricas están vinculadas a un impacto económico concreto y confirmado por la persona correcta? Si no → score máximo 9. Si sí → score 10.
+Dentro de cada tramo, ajusta el número según la cantidad y solidez de las evidencias encontradas.
+Solo devolver el número, sin explicación.
+
+E_accumulate: Genera exactamente 2 frases en este orden fijo:
+Frase 1 — Lo que se sabe: quién es el Economic Buyer identificado, si está confirmado o solo intuido,
+y qué nivel de acceso o contacto directo se ha tenido con él.
+Frase 2 — Estado: si el Economic Buyer está completamente validado, confirmarlo explícitamente.
+Si no, indicar qué falta por conseguir (acceso directo, confirmación de presupuesto, implicación
+en la decisión, etc.)
+Sin títulos, sin bullets, solo las 2 frases como texto corrido. Máximo 35 palabras por frase.
+Basarse únicamente en evidencia explícita del contexto del deal, no inferir nada no mencionado.
+
+E_score: Número entero del 1 al 10. Evalúa en orden:
+¿Se ha identificado quién es el Economic Buyer en alguna comunicación del deal? Si no → score máximo 3.
+¿Se ha tenido contacto directo con el Economic Buyer en alguna comunicación? Si no → score máximo 5.
+¿El Economic Buyer ha confirmado que hay presupuesto disponible? Si no → score máximo 7.
+¿El Economic Buyer está activamente involucrado en el proceso de decisión y ha dado señales claras
+de avanzar? Si no → score máximo 9. Si sí → score 10.
+Dentro de cada tramo, ajusta según cantidad y solidez de evidencias. Solo devolver el número.
+
+DC_accumulate: Genera exactamente 2 frases en este orden fijo:
+Frase 1 — Lo que se sabe: qué criterios de decisión ha expresado el prospect para evaluar y elegir
+una solución (funcionalidades clave, integraciones, precio, implementación, etc.)
+Frase 2 — Estado: si los criterios de decisión están completamente identificados y validados,
+confirmarlo explícitamente. Si no, indicar qué criterios faltan por descubrir o validar.
+Sin títulos, sin bullets, solo las 2 frases como texto corrido. Máximo 35 palabras por frase.
+Basarse únicamente en evidencia explícita del contexto del deal, no inferir nada no mencionado.
+
+DC_score: Número entero del 1 al 10. Evalúa en orden:
+¿Se han identificado criterios de decisión del prospect en alguna comunicación del deal? Si no → score máximo 3.
+¿Están completamente mapeados los criterios de decisión relevantes? Si no → score máximo 5.
+¿Factorial está explícitamente alineado con esos criterios en alguna comunicación? Si no → score máximo 7.
+¿El prospect ha confirmado que Factorial cumple sus criterios frente a otras alternativas? Si no → score máximo 9. Si sí → score 10.
+Solo devolver el número, sin explicación.
+
+DP_accumulate: Genera exactamente 2 frases en este orden fijo:
+Frase 1 — Lo que se sabe: cómo toma decisiones el prospect internamente (quién aprueba, cuántas
+personas involucradas, qué pasos tienen que seguir, qué timings manejan, etc.)
+Frase 2 — Estado: si el proceso de decisión está completamente mapeado y validado, confirmarlo
+explícitamente. Si no, indicar qué partes del proceso faltan por entender o validar.
+Sin títulos, sin bullets, solo las 2 frases como texto corrido. Máximo 35 palabras por frase.
+Basarse únicamente en evidencia explícita del contexto del deal, no inferir nada no mencionado.
+
+DP_score: Número entero del 1 al 10. Evalúa en orden:
+¿Se ha identificado cómo toma decisiones el prospect internamente? Si no → score máximo 3.
+¿Se conocen todas las personas involucradas en el proceso de decisión? Si no → score máximo 5.
+¿Se conocen los pasos y timings del proceso de decisión? Si no → score máximo 7.
+¿El rep está alineado con el proceso y tiene acceso directo a todos los decisores clave? Si no → score máximo 9. Si sí → score 10.
+Solo devolver el número, sin explicación. Analiza solo hasta el momento de la firma, el proceso de post firma no es relevante ahora.
+
+I_accumulate: Genera exactamente 2 frases en este orden fijo:
+Frase 1 — Lo que se sabe: qué dolores concretos ha expresado el prospect a lo largo del deal
+(procesos manuales, errores, tiempo perdido, falta de visibilidad, etc.)
+Frase 2 — Estado: si el pain está completamente identificado y vinculado a un impacto de negocio
+real, confirmarlo explícitamente. Si no, indicar qué falta por descubrir o profundizar.
+Sin títulos, sin bullets, solo las 2 frases como texto corrido. Máximo 35 palabras por frase.
+Basarse únicamente en evidencia explícita del contexto del deal, no inferir nada no mencionado.
+
+I_score: Número entero del 1 al 10. Evalúa en orden:
+¿Se ha identificado algún dolor concreto del prospect en alguna comunicación del deal? Si no → score máximo 3.
+¿El dolor está cuantificado en términos de impacto real para el negocio? Si no → score máximo 5.
+¿El prospect ha reconocido ese dolor en alguna comunicación? Si no → score máximo 7.
+¿El dolor está vinculado directamente a la solución que ofrece Factorial y el prospect lo ha confirmado? Si no → score máximo 9. Si sí → score 10.
+Solo devolver el número, sin explicación.
+
+C_accumulate: Genera exactamente 2 frases en este orden fijo:
+Frase 1 — Lo que se sabe: quién es el Champion identificado dentro del prospect, qué rol tiene,
+y qué evidencias hay de que está vendiendo Factorial internamente (defensa activa, acceso a
+información interna, influencia real, etc.)
+Frase 2 — Estado: si el Champion está completamente validado y activo, confirmarlo explícitamente.
+Si no, indicar qué falta por confirmar o consolidar.
+Sin títulos, sin bullets, solo las 2 frases como texto corrido. Máximo 35 palabras por frase.
+Basarse únicamente en evidencia explícita del contexto del deal, no inferir nada no mencionado.
+
+C_score: Número entero del 1 al 10. Evalúa en orden:
+¿Se ha identificado un Champion dentro del prospect en alguna comunicación del deal? Si no → score máximo 3.
+¿El Champion tiene influencia real en el proceso de decisión del prospect? Si no → score máximo 5.
+¿Hay evidencias de que el Champion está vendiendo Factorial internamente? Si no → score máximo 7.
+¿El Champion tiene acceso directo al Economic Buyer y lo está movilizando activamente hacia el cierre? Si no → score máximo 9. Si sí → score 10.
+Solo devolver el número, sin explicación.
+
+objections: Lista de bullets con las objeciones activas del prospect que no han sido superadas
+a lo largo del deal. Una objeción por bullet, máximo 15 palabras por bullet.
+Solo objeciones que siguen sin resolver en el momento actual — no incluir las ya superadas.
+Si no hay objeciones activas, devolver el string:
+"No hay ninguna objeción activa por parte del prospect."
+
+buyer_signals: Lista de bullets con las señales de compra que ha mostrado el prospect a lo largo
+del deal. Una señal por bullet, máximo 15 palabras por bullet.
+Solo señales que siguen siendo relevantes y vigentes en el momento actual.
+Si no hay buyer signals identificadas, devolver el string:
+"No hay buyer signals identificadas."
+
+live_blockers: Lista de bullets con los blockers activos que están impidiendo o ralentizando el
+avance del deal en este momento. Un blocker por bullet, máximo 15 palabras por bullet.
+Solo blockers vigentes — no incluir los que ya han sido resueltos.
+Si no hay blockers activos, devolver lista vacía: []
+
+improvements: Genera exactamente 1 frase introductoria resumiendo el estado general de cómo se
+está llevando el deal, seguida de una lista de bullets con acciones concretas que el rep podría
+hacer para mejorar o avanzar el deal. Un bullet por acción, máximo 15 palabras por bullet.
+Basarse únicamente en gaps o oportunidades evidentes del contexto del deal.
+
+deal_strengths: Genera exactamente 1 frase introductoria resumiendo el estado general de los
+puntos fuertes del deal, seguida de una lista de bullets con las fortalezas concretas —
+cosas que el rep está haciendo bien, señales positivas del prospect, y factores que favorecen
+el cierre. Un bullet por fortaleza, máximo 15 palabras por bullet.
+Basarse únicamente en evidencias explícitas del contexto del deal.
+Si no hay fortalezas identificadas, devolver lista vacía: []
+
+next_step: El output más importante del análisis.
+
+Genera el contenido en este formato fijo, como string de texto plano (sin markdown, sin saltos de línea literales — usa \n para separar bloques dentro del JSON):
+
+QUIÉN Y QUÉ: [Nombre del rep o rol] + [acción concreta] + [cuándo exactamente] + [dirigido a quién del prospect, con nombre y cargo si están disponibles en el contexto].
+
+POR QUÉ AHORA: [Una frase explicando qué se desbloquea o consigue con esta acción, y por qué es la más prioritaria en este momento del deal por encima de cualquier otra].
+
+BLOQUE ACCIONABLE:
+— Si la acción es una call o reunión: genera bullets con el paso a paso exacto en este orden: (1) objetivo de la call, (2) cómo abrirla, (3) qué preguntar, (4) qué validar, (5) cómo cerrarla con un compromiso concreto.
+— Si la acción es un email: genera el email completo listo para enviar, con asunto, cuerpo y cierre. El email tiene que estar escrito exactamente como lo escribiría el responsable del next step — usando su tono, su estilo y su forma de relacionarse con el prospect, tal y como se evidencia en los emails y calls del contexto del deal. No es un email genérico, es su email.
+
+El output tiene que ser tan concreto que quien lo lea sepa exactamente qué hacer sin necesitar ninguna información adicional. El idioma del next_step debe coincidir con el idioma en que se han comunicado el rep y el prospect a lo largo del deal.
