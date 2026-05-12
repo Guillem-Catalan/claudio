@@ -98,13 +98,17 @@ def get_subteam(email: str) -> str | None:
     return None
 
 
-def get_role(email: str) -> str | None:
+def get_role(email: str, tags: list[str] | None = None) -> str | None:
     in_pbd = email in ALL_PBD_EMAILS
     in_pae = email in ALL_PAE_EMAILS
     if in_pbd and not in_pae:
         return "PBD"
     if in_pae and not in_pbd:
         return "PAE"
+    if in_pbd and in_pae:
+        if tags and any(t in PAE_TAGS for t in tags):
+            return "PAE"
+        return "PBD"
     return None
 
 

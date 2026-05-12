@@ -52,14 +52,14 @@ def _resolve_owner(
         if owner is None:
             owner = max(reps, key=lambda u: speaker_counts.get(u.get("name", ""), 0))
 
-        role = get_role(owner["email"])
+        role = get_role(owner["email"], tags)
         if role is None:
             if any(t in PBD_TAGS for t in tags):
                 role = "PBD"
             elif any(t in PAE_TAGS for t in tags):
                 role = "PAE"
             else:
-                role = "PAE"
+                role = "PBD"
         return owner, role
 
     targets = [u for u in users if u.get("email", "") in ALL_TARGET_EMAILS]

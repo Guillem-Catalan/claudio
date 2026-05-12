@@ -425,7 +425,7 @@ def run(deal_uuid: str, hs_deal_id: str):
             owner_email = owner_info.get("email", "")
             owner_name = owner_info.get("name", "")
 
-            rol = get_role(owner_email) if owner_email else None
+            rol = get_role(owner_email, tags) if owner_email else None
             if rol is None and tags:
                 if any(t in PBD_TAGS for t in tags):
                     rol = "PBD"
