@@ -2,6 +2,8 @@
 Generate a 2-page PDF demo brief from Claude's structured output.
 Page 1: Company overview, BANT, objections, pre-demo actions
 Page 2: Demo roadmap with numbered steps and strategy
+
+CSS uses table/float layouts for WeasyPrint compatibility.
 """
 
 from datetime import date
@@ -16,158 +18,151 @@ _MESES_CORTO = {
 _CSS = """\
 @page { size: A4; margin: 0; }
 
-:root {
-    --ink: #1a1a18;
-    --ink2: #5c5b57;
-    --ink3: #8e8d88;
-    --bg: #faf9f6;
-    --card: #fff;
-    --bdr: #e4e3de;
-    --bdr-l: #f0efe9;
-    --red: #c8102e;
-    --red-bg: #fdf0f0;
-    --red-tx: #9a0c22;
-    --grn: #1a7a4c;
-    --grn-bg: #edf7f1;
-    --amb: #a86400;
-    --amb-bg: #fef6e8;
-    --brand: #c8102e;
-    --ff: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    --fm: 'Courier New', Courier, monospace;
-}
-
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
-    font-family: var(--ff);
-    font-size: 12.5px;
-    line-height: 1.55;
-    color: var(--ink);
-    background: var(--bg);
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 11px;
+    line-height: 1.5;
+    color: #1a1a18;
+    background: #faf9f6;
     -webkit-font-smoothing: antialiased;
 }
-.page { background: var(--card); }
+.page { background: #fff; width: 100%; overflow: hidden; }
 .page-2 { page-break-before: always; }
 
-.hdr { padding: 28px 40px 0; }
-.hdr .brand { font-size: 13px; font-weight: 600; color: var(--brand); letter-spacing: .3px; }
-.hdr .type { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: var(--ink3); margin-top: 1px; }
-.hdr .name { font-size: 32px; font-weight: 700; letter-spacing: -.5px; margin-top: 2px; }
-.hdr .dates { text-align: right; font-size: 14px; font-weight: 500; line-height: 1.4; }
-.hdr .dates .sub { font-size: 10.5px; color: var(--ink3); font-weight: 400; }
-.hdr-row { display: flex; justify-content: space-between; align-items: flex-start; }
+/* ── HEADER ── */
+.hdr { padding: 24px 36px 0; }
+.hdr-row { overflow: hidden; }
+.hdr-left { float: left; max-width: 65%; }
+.hdr-right { float: right; text-align: right; }
+.hdr .brand { font-size: 12px; font-weight: 600; color: #c8102e; letter-spacing: .3px; }
+.hdr .type { font-size: 9px; text-transform: uppercase; letter-spacing: 2px; color: #8e8d88; margin-top: 1px; }
+.hdr .name { font-size: 26px; font-weight: 700; letter-spacing: -.5px; margin-top: 2px; color: #1a1a18; }
+.hdr .dates { font-size: 13px; font-weight: 500; line-height: 1.4; color: #1a1a18; }
+.hdr .dates .sub { font-size: 9.5px; color: #8e8d88; font-weight: 400; }
 
-.kpi { display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1.5px solid var(--ink); border-bottom: 1.5px solid var(--bdr); margin-top: 16px; }
-.kpi-item { padding: 10px 14px; }
-.kpi-lbl { font-size: 8px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--ink3); font-weight: 600; margin-bottom: 3px; }
-.kpi-val { font-size: 12px; font-weight: 500; letter-spacing: -.02em; color: var(--ink); }
-.kpi-val.red { color: var(--brand); }
+/* ── KPI BAR ── */
+.kpi { border-top: 1.5px solid #1a1a18; border-bottom: 1.5px solid #e4e3de; margin-top: 14px; }
+.kpi table { width: 100%; border-collapse: collapse; }
+.kpi td { padding: 8px 12px; vertical-align: top; width: 20%; }
+.kpi-lbl { font-size: 7px; text-transform: uppercase; letter-spacing: 1.5px; color: #8e8d88; font-weight: 600; margin-bottom: 2px; }
+.kpi-val { font-size: 11px; font-weight: 500; letter-spacing: -.02em; color: #1a1a18; }
+.kpi-val.red { color: #c8102e; }
 
-.body-grid { display: grid; grid-template-columns: 1fr 1fr; padding: 0 40px 40px; }
-.col { padding: 16px 18px; overflow: hidden; }
-.col:first-child { border-right: .5px solid var(--bdr); }
+/* ── BODY 2-COL ── */
+.body-grid { padding: 0 36px 30px; overflow: hidden; }
+.col-left { float: left; width: 48%; padding-right: 14px; border-right: .5px solid #e4e3de; }
+.col-right { float: right; width: 48%; padding-left: 14px; }
 
-.sec { margin-bottom: 14px; }
+/* ── SECTIONS ── */
+.sec { margin-bottom: 12px; }
 .sec-label {
-    font-family: var(--fm);
-    font-size: 8px; font-weight: 600; letter-spacing: .2em;
-    text-transform: uppercase; color: var(--brand);
-    margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 7px; font-weight: 600; letter-spacing: .2em;
+    text-transform: uppercase; color: #c8102e;
+    margin-bottom: 6px; padding-bottom: 3px;
+    border-bottom: 1px solid #f0efe9;
 }
-.sec-label::after { content: ''; flex: 1; height: 1px; background: var(--bdr-l); }
 
-.blist { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+/* ── BULLET LIST ── */
+.blist { list-style: none; padding: 0; }
 .blist li {
-    position: relative; padding-left: 14px;
-    font-size: 10.5px; line-height: 1.5; color: var(--ink2); font-weight: 300;
+    padding: 2px 0 2px 12px; position: relative;
+    font-size: 9.5px; line-height: 1.5; color: #5c5b57; font-weight: 300;
 }
 .blist li::before {
-    content: '\2014'; color: var(--brand); font-size: 10px;
-    position: absolute; left: 0; top: 0; line-height: 1.55;
+    content: '\\2014'; color: #c8102e; font-size: 9px;
+    position: absolute; left: 0; top: 2px;
 }
-.blist li strong { font-weight: 500; color: var(--ink); }
+.blist li strong { font-weight: 500; color: #1a1a18; }
 
-.status-grid { display: flex; flex-direction: column; gap: 4px; }
-.status-row {
-    display: grid; grid-template-columns: 70px 18px 1fr;
-    align-items: flex-start; gap: 6px;
-    padding: 6px 10px; background: var(--bg); border-radius: 5px;
-    font-size: 10px; line-height: 1.45;
+/* ── BANT STATUS ── */
+.status-grid table { width: 100%; border-collapse: separate; border-spacing: 0 3px; }
+.status-grid td { padding: 5px 8px; background: #faf9f6; font-size: 9px; line-height: 1.4; vertical-align: top; }
+.status-grid .sr-k {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 7px; font-weight: 600; letter-spacing: .12em;
+    text-transform: uppercase; color: #8e8d88; width: 60px;
 }
-.sr-k {
-    font-family: var(--fm); font-size: 8px; font-weight: 600;
-    letter-spacing: .12em; text-transform: uppercase; color: var(--ink3); padding-top: 2px;
-}
-.sr-dot { font-size: 11px; padding-top: 1px; }
-.sr-v { color: var(--ink2); font-weight: 300; }
-.sr-v strong { font-weight: 500; color: var(--ink); }
+.status-grid .sr-dot { width: 18px; font-size: 10px; text-align: center; }
+.status-grid .sr-v { color: #5c5b57; font-weight: 300; }
+.status-grid .sr-v strong { font-weight: 500; color: #1a1a18; }
 
+/* ── PAIN ALERT ── */
 .alert {
-    padding: 8px 12px; border-radius: 0 5px 5px 0; margin-bottom: 6px;
-    border-left: 3px solid var(--amb); background: var(--amb-bg);
-    font-size: 10.5px; line-height: 1.5; color: var(--ink2); font-weight: 300;
+    padding: 7px 10px; margin-bottom: 5px;
+    border-left: 3px solid #c8102e; background: #fdf0f0;
+    font-size: 9.5px; line-height: 1.5; color: #5c5b57; font-weight: 300;
 }
-.alert.red { border-color: var(--brand); background: var(--red-bg); }
 .alert-title {
-    font-size: 8px; font-weight: 700; letter-spacing: .14em;
-    text-transform: uppercase; color: var(--amb); margin-bottom: 4px;
+    font-size: 7px; font-weight: 700; letter-spacing: .14em;
+    text-transform: uppercase; color: #c8102e; margin-bottom: 3px;
 }
-.alert.red .alert-title { color: var(--brand); }
-.alert strong { font-weight: 500; color: var(--ink); }
+.alert strong { font-weight: 500; color: #1a1a18; }
 
-.obj-list { display: flex; flex-direction: column; gap: 5px; }
-.obj { padding: 7px 10px; border: 1px solid var(--bdr); border-radius: 5px; font-size: 10px; line-height: 1.45; }
-.obj-q { font-weight: 500; color: var(--ink); margin-bottom: 2px; font-size: 10.5px; }
-.obj-a { color: var(--ink2); font-weight: 300; }
-.obj-a strong { font-weight: 500; color: var(--ink); }
+/* ── OBJECTIONS ── */
+.obj { padding: 6px 8px; border: 1px solid #e4e3de; margin-bottom: 4px; font-size: 9px; line-height: 1.4; }
+.obj-q { font-weight: 500; color: #1a1a18; margin-bottom: 2px; font-size: 9.5px; }
+.obj-a { color: #5c5b57; font-weight: 300; }
 
+/* ── FOOTER ── */
 .pfoot {
-    padding: 8px 40px; border-top: 1px solid var(--bdr-l);
-    display: flex; justify-content: space-between;
-    font-size: 8.5px; color: var(--ink3); letter-spacing: .04em;
+    padding: 6px 36px; border-top: 1px solid #f0efe9;
+    overflow: hidden; font-size: 8px; color: #8e8d88; letter-spacing: .04em;
 }
+.pfoot-left { float: left; }
+.pfoot-right { float: right; }
 
-.p2-head {
-    padding: 20px 40px 16px; border-bottom: 1px solid var(--bdr);
-    display: flex; justify-content: space-between; align-items: flex-end;
-}
+/* ── PAGE 2 HEADER ── */
+.p2-head { padding: 18px 36px 14px; border-bottom: 1px solid #e4e3de; overflow: hidden; }
+.p2h-left { float: left; }
+.p2h-right { float: right; }
 .p2h-label {
-    font-family: var(--fm); font-size: 8px; font-weight: 600;
-    letter-spacing: .2em; text-transform: uppercase; color: var(--brand); margin-bottom: 5px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 7px; font-weight: 600; letter-spacing: .2em;
+    text-transform: uppercase; color: #c8102e; margin-bottom: 4px;
 }
-.p2h-title { font-size: 22px; font-weight: 700; letter-spacing: -.04em; color: var(--ink); line-height: 1; }
-.p2h-sub { font-size: 11px; color: var(--ink3); font-weight: 300; margin-top: 4px; }
+.p2h-title { font-size: 20px; font-weight: 700; letter-spacing: -.04em; color: #1a1a18; line-height: 1; }
+.p2h-sub { font-size: 10px; color: #8e8d88; font-weight: 300; margin-top: 3px; }
 .p2h-badge {
-    background: var(--red-bg); border: 1px solid #ffccd4; border-radius: 20px;
-    padding: 5px 14px; font-size: 10px; font-weight: 500; color: var(--brand);
+    background: #fdf0f0; border: 1px solid #ffccd4;
+    padding: 4px 12px; font-size: 9px; font-weight: 500; color: #c8102e;
+    display: inline-block; margin-top: 8px;
 }
 
+/* ── STRATEGY BANNER ── */
 .strategy-banner {
-    margin: 14px 40px 0; background: var(--ink); border-radius: 7px;
-    padding: 12px 18px; font-size: 11px; color: rgba(255,255,255,.7); line-height: 1.55;
+    margin: 12px 36px 0; background: #1a1a18;
+    padding: 10px 16px; font-size: 10px; color: rgba(255,255,255,.7); line-height: 1.55;
 }
 .strategy-banner strong { color: #fff; font-weight: 500; }
 
-.roadmap { padding: 16px 40px 40px; }
-.step { display: grid; grid-template-columns: 40px 1fr; position: relative; }
-.step:not(:last-child) .step-line {
-    position: absolute; top: 40px; left: 19px; width: 2px;
-    height: calc(100%); background: var(--bdr);
-}
+/* ── ROADMAP STEPS ── */
+.roadmap { padding: 14px 36px 30px; }
+.step { overflow: hidden; position: relative; padding-bottom: 6px; }
+.step-left { float: left; width: 36px; position: relative; }
 .step-num {
-    width: 32px; height: 32px; border-radius: 50%;
-    background: var(--ink); color: #fff;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 13px; font-weight: 500; position: relative; z-index: 1;
-    margin-top: 3px; flex-shrink: 0;
+    width: 28px; height: 28px;
+    background: #1a1a18; color: #fff;
+    text-align: center; line-height: 28px;
+    font-size: 12px; font-weight: 500;
+    border-radius: 50%; margin-top: 2px;
 }
-.step.key .step-num { background: var(--brand); }
-.step-body { padding: 2px 0 20px 16px; }
-.step-title { font-size: 13.5px; font-weight: 600; letter-spacing: -.02em; color: var(--ink); margin-bottom: 4px; }
-.step-desc { font-size: 10.5px; color: var(--ink2); line-height: 1.55; font-weight: 300; margin-bottom: 6px; }
-.step-desc strong { font-weight: 500; color: var(--ink); }
-.chips { display: flex; flex-wrap: wrap; gap: 4px; }
-.chip { font-size: 9px; font-weight: 500; background: var(--bg); color: var(--ink2); border-radius: 20px; padding: 3px 10px; }
-.chip.red { background: var(--red-bg); color: var(--brand); }
+.step.key .step-num { background: #c8102e; }
+.step-line {
+    position: absolute; top: 34px; left: 13px;
+    width: 2px; bottom: 0; background: #e4e3de;
+}
+.step-body { margin-left: 44px; padding-bottom: 12px; }
+.step-title { font-size: 12px; font-weight: 600; letter-spacing: -.02em; color: #1a1a18; margin-bottom: 3px; }
+.step-desc { font-size: 9.5px; color: #5c5b57; line-height: 1.55; font-weight: 300; margin-bottom: 5px; }
+.step-desc strong { font-weight: 500; color: #1a1a18; }
+.chip {
+    display: inline-block; font-size: 8px; font-weight: 500;
+    background: #faf9f6; color: #5c5b57;
+    padding: 2px 8px; margin-right: 3px; margin-bottom: 2px;
+}
+.chip.red { background: #fdf0f0; color: #c8102e; }
 """
 
 
@@ -183,16 +178,6 @@ def _blist(items: list[str]) -> str:
     ) + "</ul>"
 
 
-def _status_row(key: str, emoji: str, text: str) -> str:
-    return (
-        f'<div class="status-row">'
-        f'<span class="sr-k">{_esc(key)}</span>'
-        f'<span class="sr-dot">{emoji}</span>'
-        f'<span class="sr-v">{_esc(text)}</span>'
-        f'</div>'
-    )
-
-
 def _render_bant(bant: dict) -> str:
     rows = ""
     for key in ("budget", "authority", "need", "timeline"):
@@ -200,8 +185,14 @@ def _render_bant(bant: dict) -> str:
         emoji = pillar.get("emoji", "❓")
         text = pillar.get("text", "Sin información")
         label = {"budget": "Budget", "authority": "Authority", "need": "Need", "timeline": "Timeline"}[key]
-        rows += _status_row(label, emoji, text)
-    return f'<div class="status-grid">{rows}</div>'
+        rows += (
+            f'<tr>'
+            f'<td class="sr-k">{_esc(label)}</td>'
+            f'<td class="sr-dot">{emoji}</td>'
+            f'<td class="sr-v">{_esc(text)}</td>'
+            f'</tr>'
+        )
+    return f'<div class="status-grid"><table>{rows}</table></div>'
 
 
 def _render_objeciones(objs: list[dict]) -> str:
@@ -222,7 +213,7 @@ def _render_pain_principal(pain: dict) -> str:
     titulo = pain.get("titulo", "PAIN PRINCIPAL")
     texto = pain.get("texto", "Sin evidencia")
     return (
-        f'<div class="alert red">'
+        f'<div class="alert">'
         f'<div class="alert-title">{_esc(titulo)}</div>'
         f'{_esc(texto)}'
         f'</div>'
@@ -232,9 +223,9 @@ def _render_pain_principal(pain: dict) -> str:
 def _render_step(num: int, step: dict, is_last: bool) -> str:
     is_key = step.get("key", False)
     cls = "step key" if is_key else "step"
-    line = "" if is_last else '<div class="step-line"></div>'
     titulo = _esc(step.get("titulo", f"Paso {num}"))
     desc = _esc(step.get("desc", ""))
+    line = "" if is_last else '<div class="step-line"></div>'
 
     chips_html = ""
     for c in (step.get("chips") or []):
@@ -246,11 +237,11 @@ def _render_step(num: int, step: dict, is_last: bool) -> str:
 
     return (
         f'<div class="{cls}">'
-        f'<div><div class="step-num">{num}</div>{line}</div>'
+        f'<div class="step-left"><div class="step-num">{num}</div>{line}</div>'
         f'<div class="step-body">'
         f'<div class="step-title">{titulo}</div>'
         f'<div class="step-desc">{desc}</div>'
-        f'<div class="chips">{chips_html}</div>'
+        f'<div>{chips_html}</div>'
         f'</div></div>'
     )
 
@@ -290,7 +281,7 @@ def generate_pdf(
     c_title = _esc(contact.get("jobtitle", ""))
     c_email = _esc(contact.get("email", ""))
     c_phone = contact.get("phone", "")
-    contact_line = f"{c_name}"
+    contact_line = c_name
     if c_title:
         contact_line += f" &middot; {c_title}"
     if c_email:
@@ -308,28 +299,32 @@ def generate_pdf(
     page1 = f'''<div class="page">
   <div class="hdr">
     <div class="hdr-row">
-      <div>
+      <div class="hdr-left">
         <div class="brand">Factorial</div>
         <div class="type">Demo Brief</div>
         <div class="name">{esc_company}</div>
       </div>
-      <div class="dates">
-        {esc_date_long}<br>
-        <span class="sub">{fecha_sub}</span>
+      <div class="hdr-right">
+        <div class="dates">
+          {esc_date_long}<br>
+          <span class="sub">{fecha_sub}</span>
+        </div>
       </div>
     </div>
   </div>
 
-  <div class="kpi">
-    <div class="kpi-item"><div class="kpi-lbl">MRR</div><div class="kpi-val red">{esc_amount}</div></div>
-    <div class="kpi-item"><div class="kpi-lbl">PEPM</div><div class="kpi-val">{pepm}</div></div>
-    <div class="kpi-item"><div class="kpi-lbl">Empleados</div><div class="kpi-val">{empleados}</div></div>
-    <div class="kpi-item"><div class="kpi-lbl">Partner</div><div class="kpi-val">{esc_partner}</div></div>
-    <div class="kpi-item"><div class="kpi-lbl">Solución</div><div class="kpi-val">{solucion}</div></div>
-  </div>
+  <div class="kpi"><table>
+    <tr>
+      <td><div class="kpi-lbl">MRR</div><div class="kpi-val red">{esc_amount}</div></td>
+      <td><div class="kpi-lbl">PEPM</div><div class="kpi-val">{pepm}</div></td>
+      <td><div class="kpi-lbl">Empleados</div><div class="kpi-val">{empleados}</div></td>
+      <td><div class="kpi-lbl">Partner</div><div class="kpi-val">{esc_partner}</div></td>
+      <td><div class="kpi-lbl">Solución</div><div class="kpi-val">{solucion}</div></td>
+    </tr>
+  </table></div>
 
   <div class="body-grid">
-    <div class="col">
+    <div class="col-left">
       <div class="sec">
         <div class="sec-label">Cliente</div>
         {cliente_html}
@@ -345,14 +340,14 @@ def generate_pdf(
       </div>
     </div>
 
-    <div class="col">
+    <div class="col-right">
       <div class="sec">
         <div class="sec-label">BANT</div>
         {bant_html}
       </div>
       <div class="sec">
         <div class="sec-label">Objeciones y riesgos</div>
-        <div class="obj-list">{objeciones_html}</div>
+        {objeciones_html}
       </div>
       <div class="sec">
         <div class="sec-label">Acciones críticas pre-demo</div>
@@ -362,19 +357,21 @@ def generate_pdf(
   </div>
 
   <div class="pfoot">
-    <span>{esc_company} &middot; Demo Brief &middot; Factorial</span>
-    <span>Página 01 / 02</span>
+    <span class="pfoot-left">{esc_company} &middot; Demo Brief &middot; Factorial</span>
+    <span class="pfoot-right">Página 01 / 02</span>
   </div>
 </div>'''
 
     page2 = f'''<div class="page page-2">
   <div class="p2-head">
-    <div>
+    <div class="p2h-left">
       <div class="p2h-label">Roadmap de la demo</div>
       <div class="p2h-title">Cómo conducir la conversación</div>
       <div class="p2h-sub">Por dónde tirar paso a paso &middot; tenlo delante durante la demo</div>
     </div>
-    <div class="p2h-badge">{esc_date_short}</div>
+    <div class="p2h-right">
+      <span class="p2h-badge">{esc_date_short}</span>
+    </div>
   </div>
 
   <div class="strategy-banner">
@@ -386,8 +383,8 @@ def generate_pdf(
   </div>
 
   <div class="pfoot">
-    <span>{esc_company} &middot; Demo Brief &middot; Factorial</span>
-    <span>Página 02 / 02</span>
+    <span class="pfoot-left">{esc_company} &middot; Demo Brief &middot; Factorial</span>
+    <span class="pfoot-right">Página 02 / 02</span>
   </div>
 </div>'''
 
