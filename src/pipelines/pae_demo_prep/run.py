@@ -93,8 +93,9 @@ def run(deal_uuid: str):
     print(f"1. Building context for deal {deal_uuid} ...")
     deal_data, context = build_context(deal_uuid)
 
+    import os
     pae_name = deal_data.get("pae") or ""
-    channel = PAE_CHANNELS.get(pae_name)
+    channel = os.environ.get("PAE_CHANNEL_OVERRIDE") or PAE_CHANNELS.get(pae_name)
     if not channel:
         print(f"   No Slack channel for PAE '{pae_name}' — skipping")
         return
