@@ -1,6 +1,6 @@
 """
 Build full deal context for PAE demo preparation.
-Reads pre-built deal_context from deals table.
+Reads pre-built deal_context from deals table (already includes atlas).
 """
 
 from src.db.client import supabase
@@ -11,7 +11,7 @@ def build_context(deal_uuid: str) -> tuple[dict, str]:
 
     deal = (
         supabase.table("deals")
-        .select("*, atlas:atlas_id(company_name, company_context, deal_history, contacts_map, company_info, industry, company_size, country)")
+        .select("*, atlas:atlas_id(company_name, partner)")
         .eq("id", deal_uuid)
         .maybe_single()
         .execute()
@@ -20,28 +20,15 @@ def build_context(deal_uuid: str) -> tuple[dict, str]:
         raise ValueError(f"Deal {deal_uuid} not found")
 
     deal_data = deal.data
-    atlas = deal_data.get("atlas") or {}
     deal_context = deal_data.get("deal_context") or ""
 
-    parts = []
-
-    parts.append(f"## DEAL — {atlas.get('company_name') or deal_data.get('deal_name', '?')}")
-    parts.append(f"Deal: {deal_data.get('deal_name', '?')} | Amount: {deal_data.get('amount') or '?'} | Stage: {deal_data.get('deal_stage', '?')}")
-    parts.append(f"PBD: {deal_data.get('pbd', '?')} | PAE: {deal_data.get('pae', '?')}")
-    parts.append(f"Contacts: {deal_data.get('contacts_info') or 'N/A'}")
-
-    if atlas.get("company_context"):
-        parts += ["", "--- COMPANY HISTORY (ATLAS) ---", "", atlas["company_context"]]
-
-    if atlas.get("deal_history"):
-        parts += ["", "--- PRIOR DEALS ---", "", atlas["deal_history"]]
-
-    if atlas.get("contacts_map"):
-        parts += ["", "--- CONTACTS MAP ---", "", atlas["contacts_map"]]
-
-    if deal_context:
-        parts += ["", "--- DEAL TIMELINE ---", "", deal_context]
-    else:
-        parts += ["", "--- DEAL TIMELINE ---", "", "No interactions recorded."]
+    parts = [
+        f"## DEAL — {deal_data.get('deal_name', '?')}",
+        f"Amount: {deal_data.get('amount') or '?'} | Stage: {deal_data.get('deal_stage', '?')}",
+        f"PBD: {deal_data.get('pbd', '?')} | PAE: {deal_data.get('pae', '?')}",
+        f"Contacts: {deal_data.get('contacts_info') or 'N/A'}",
+        "",
+        deal_context or "No interactions recorded.",
+    ]
 
     return deal_data, "\n".join(parts)
