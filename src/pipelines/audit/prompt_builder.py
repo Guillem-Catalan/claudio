@@ -52,12 +52,12 @@ def _resolve_company_name(crm_id: str | None) -> str:
     try:
         result = (
             supabase.table("atlas")
-            .select("name")
+            .select("company_name")
             .eq("crm_id", crm_id)
             .maybe_single()
             .execute()
         )
-        return result.data["name"] if result.data else "Unknown"
+        return result.data["company_name"] if result.data else "Unknown"
     except Exception:
         return "Unknown"
 
