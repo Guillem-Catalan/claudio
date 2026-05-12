@@ -20,6 +20,19 @@ from src.pipelines.pae_demo_prep.slack import send_demo_brief
 
 _PROMPTS_DIR = Path(__file__).resolve().parent.parent.parent / "prompts"
 
+PAE_CHANNELS = {
+    "Alejandro Soto Velasco": "C0B36Q1EX9T",
+    "Carlos Sanchez": "C0B33QJLF8B",
+    "David Clemente": "C0B33QDE4KD",
+    "Jose Donis": "C0B24A51PNE",
+    "Joan Lorenzo Galles": "C0B2UMVT5NK",
+    "Mireia Serrano": "C0B384853M4",
+    "Nerea Urien Meizoso": "C0B2UMRUV2T",
+    "Pol Bartolomé": "C0B33Q2T7FV",
+    "Roberto Morán": "C0B36RD537X",
+    "Xavier Fortuny": "C0B1CNJTPMZ",
+}
+
 
 def _load_system_prompt() -> str:
     return (_PROMPTS_DIR / "pae_demo_prep.txt").read_text(encoding="utf-8")
@@ -52,6 +65,8 @@ def _meeting_time(deal_data: dict) -> str:
         return "hora por confirmar"
     try:
         dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        if dt.hour == 0 and dt.minute == 0:
+            return "hora por confirmar"
         madrid = dt.astimezone(ZoneInfo("Europe/Madrid"))
         return madrid.strftime("%H:%M %Z")
     except Exception:
@@ -78,6 +93,12 @@ def run(deal_uuid: str):
     print(f"1. Building context for deal {deal_uuid} ...")
     deal_data, context = build_context(deal_uuid)
 
+    pae_name = deal_data.get("pae") or ""
+    channel = PAE_CHANNELS.get(pae_name)
+    if not channel:
+        print(f"   No Slack channel for PAE '{pae_name}' — skipping")
+        return
+
     company = (deal_data.get("atlas") or {}).get("company_name") or deal_data.get("deal_name") or "?"
     contact = _extract_contact(deal_data)
     demo_time = _meeting_time(deal_data)
@@ -87,6 +108,7 @@ def run(deal_uuid: str):
     partner = _partner_name(deal_data)
 
     print(f"   Company: {company}")
+    print(f"   PAE: {pae_name} → {channel}")
     print(f"   Contact: {contact['name']} ({contact['jobtitle']})")
     print(f"   Demo: {demo_date} {demo_time}")
 
@@ -116,6 +138,7 @@ def run(deal_uuid: str):
         amount_str=amount_str,
         partner=partner,
         contact=contact,
+        channel=channel,
     )
 
-    print(f"   Done: demo brief for {company}")
+    print(f"   Done: demo brief for {company} → {pae_name}")

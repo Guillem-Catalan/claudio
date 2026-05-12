@@ -7,7 +7,6 @@ import os
 import requests
 
 SLACK_BOT_TOKEN = os.environ.get("SLACK_BOT_TOKEN", "")
-SLACK_CHANNEL = os.environ.get("PAE_SLACK_CHANNEL", "")
 
 
 def _headers():
@@ -63,7 +62,6 @@ def send_demo_brief(
     contact: dict,
     channel: str | None = None,
 ) -> bool:
-    channel = channel or SLACK_CHANNEL
     if not channel:
         print("  No Slack channel configured — skipping")
         return False
