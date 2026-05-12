@@ -7,7 +7,8 @@ from src.db.client import supabase
 from src.pipelines.atlas.run import generate
 
 BATCH = 500
-WORKERS = 4
+WORKERS = 2
+MAX_RETRIES = 2
 
 
 def _ensure_stubs() -> int:
@@ -105,14 +106,20 @@ def _pending_atlas_ids() -> list[dict]:
 
 def _process_one(idx_and_row: tuple[int, dict, int]) -> tuple[bool, str]:
     i, row, total = idx_and_row
-    try:
-        if i % 50 == 0:
-            print(f"[{i}/{total}] generating atlas for {row['crm_id']}")
-        generate(atlas_id=row["id"], crm_id=row["crm_id"])
-        return True, row["crm_id"]
-    except Exception as e:
-        print(f"  ERROR on {row['crm_id']}: {e}")
-        return False, row["crm_id"]
+    if i % 50 == 0:
+        print(f"[{i}/{total}] generating atlas for {row['crm_id']}")
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            generate(atlas_id=row["id"], crm_id=row["crm_id"])
+            return True, row["crm_id"]
+        except Exception as e:
+            if attempt < MAX_RETRIES:
+                wait = 5 * (2 ** attempt)
+                print(f"  RETRY {attempt + 1}/{MAX_RETRIES} on {row['crm_id']}: {e} — waiting {wait}s")
+                time.sleep(wait)
+            else:
+                print(f"  ERROR on {row['crm_id']}: {e}")
+                return False, row["crm_id"]
 
 
 def main():

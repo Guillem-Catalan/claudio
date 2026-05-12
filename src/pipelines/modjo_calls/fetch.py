@@ -106,7 +106,7 @@ def normalize(raw: dict) -> dict | None:
         "call_id": str(raw["callId"]),
         "titulo": raw.get("title", ""),
         "fecha": raw.get("startDate"),
-        "duracion_segundos": raw.get("duration", 0),
+        "duracion_segundos": int(raw.get("duration", 0)),
         "owner_email": owner_email,
         "owner_nombre": owner.get("name", ""),
         "rol": role,

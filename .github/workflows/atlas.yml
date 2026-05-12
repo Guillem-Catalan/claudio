@@ -31,5 +31,6 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           AZURE_CLAUDE_ENDPOINT: ${{ secrets.AZURE_CLAUDE_ENDPOINT }}
           AZURE_CLAUDE_API_KEY: ${{ secrets.AZURE_CLAUDE_API_KEY }}
+          AZURE_CLAUDE_DEPLOYMENT: ${{ secrets.AZURE_CLAUDE_DEPLOYMENT }}
           HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
         run: python -m scripts.atlas "${{ inputs.atlas_id }}" "${{ inputs.crm_id }}"

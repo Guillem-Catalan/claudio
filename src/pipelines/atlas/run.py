@@ -11,6 +11,7 @@ Steps:
 """
 
 import json
+import re
 from datetime import datetime, timezone
 
 from src.db.client import supabase
@@ -71,7 +72,11 @@ def generate(atlas_id: str, crm_id: str):
     raw_response = claude.analyze(system_prompt, user_prompt)
 
     print("7. Parsing response ...")
-    parsed = json.loads(raw_response)
+    text = re.sub(r"^```(?:json)?\s*", "", raw_response)
+    text = re.sub(r"\s*```$", "", text).strip()
+    if not text:
+        raise ValueError(f"Empty response from Claude (raw length={len(raw_response)})")
+    parsed = json.loads(text)
     deal_history = parsed.get("deal_history", "")
     contacts_map = parsed.get("contacts_map", "")
     company_context = parsed.get("company_context", "")
