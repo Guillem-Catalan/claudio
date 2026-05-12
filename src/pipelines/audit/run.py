@@ -1,6 +1,6 @@
 from src.db.client import supabase
 from src.integrations.claude import analyze
-from src.pipelines.audit.context import get_deal_context
+from src.pipelines.audit.context import get_deal_context, append_audit_to_context
 from src.pipelines.audit.prompt_builder import build
 from src.pipelines.audit.parser import parse
 
@@ -53,5 +53,9 @@ def _audit(call: dict) -> dict | None:
 
     supabase.table(table).upsert(row, on_conflict="call_ref").execute()
     print(f"  Written to {table}")
+
+    if call.get("deal_id"):
+        print(f"  Appending audit result to deal_context ...")
+        append_audit_to_context(call["deal_id"], call, fields)
 
     return row

@@ -2,6 +2,7 @@
 Sync HubSpot calls for a single deal to Supabase.
 Matches calls with existing Modjo records, parses tags from body,
 and creates new rows for calls not already tracked.
+Calls without transcript or without rol are appended to deal_context only.
 """
 
 import re
@@ -123,6 +124,39 @@ def _parse_date(raw: str) -> str | None:
     return raw.replace("Z", "+00:00") if "T" in raw else None
 
 
+def _format_date(raw: str | None) -> str:
+    if not raw:
+        return "?"
+    return raw[:10] if len(raw) >= 10 else raw
+
+
+def _append_calls_to_context(deal_uuid: str, context_entries: list[str]):
+    if not context_entries:
+        return
+
+    deal = (
+        supabase.table("deals")
+        .select("deal_context")
+        .eq("id", deal_uuid)
+        .maybe_single()
+        .execute()
+    )
+    if not deal.data:
+        return
+
+    current = deal.data.get("deal_context") or ""
+    new_block = "\n\n".join(context_entries)
+
+    if current:
+        updated = current + "\n\n" + new_block
+    else:
+        updated = new_block
+
+    supabase.table("deals").update(
+        {"deal_context": updated}
+    ).eq("id", deal_uuid).execute()
+
+
 def run(deal_uuid: str, hs_deal_id: str):
     print(f"1. Fetching call associations for deal {hs_deal_id} ...")
     hs_call_ids = _fetch_call_ids_for_deal(hs_deal_id)
@@ -163,6 +197,7 @@ def run(deal_uuid: str, hs_deal_id: str):
     print("5. Processing calls ...")
     updates = []
     inserts = []
+    context_entries = []
 
     for obj in call_objects:
         p = obj.get("properties", {})
@@ -190,6 +225,10 @@ def run(deal_uuid: str, hs_deal_id: str):
 
         duration_ms = p.get("hs_call_duration")
         duration_s = int(int(duration_ms) / 1000) if duration_ms else None
+        duration_min = round(duration_s / 60) if duration_s else 0
+
+        fecha = _parse_date(p.get("hs_timestamp"))
+        fecha_display = _format_date(fecha)
 
         if modjo_id and modjo_id in modjo_map:
             updates.append({
@@ -201,27 +240,39 @@ def run(deal_uuid: str, hs_deal_id: str):
                 "tags": tags if tags else None,
             })
         else:
-            call_id = modjo_id if modjo_id else f"hs_{hs_id}"
-            inserts.append({
-                "call_id": call_id,
-                "hs_call_id": hs_id,
-                "deal_id": deal_uuid,
-                "hs_deal_id": hs_deal_id,
-                "crm_id": crm_id,
-                "titulo": p.get("hs_call_title") or "",
-                "fecha": _parse_date(p.get("hs_timestamp")),
-                "owner_email": owner_email or None,
-                "owner_nombre": owner_name or None,
-                "rol": rol,
-                "tags": tags if tags else [],
-                "team": "Partners" if rol else None,
-                "duracion_segundos": duration_s,
-                "transcript": body_clean[:50000] if body_clean else None,
-                "subteam": sub,
-                "source": "modjo" if modjo_id else "hubspot",
-            })
+            call_id_val = modjo_id if modjo_id else f"hs_{hs_id}"
+            transcript = body_clean[:50000] if body_clean else None
+            has_real_transcript = transcript and len(transcript) >= 200
 
-    print(f"   {len(updates)} Modjo calls to link, {len(inserts)} new calls to insert")
+            if has_real_transcript and rol:
+                inserts.append({
+                    "call_id": call_id_val,
+                    "hs_call_id": hs_id,
+                    "deal_id": deal_uuid,
+                    "hs_deal_id": hs_deal_id,
+                    "crm_id": crm_id,
+                    "titulo": p.get("hs_call_title") or "",
+                    "fecha": fecha,
+                    "owner_email": owner_email or None,
+                    "owner_nombre": owner_name or None,
+                    "rol": rol,
+                    "tags": tags if tags else [],
+                    "team": "Partners" if rol else None,
+                    "duracion_segundos": duration_s,
+                    "transcript": transcript,
+                    "subteam": sub,
+                    "source": "modjo" if modjo_id else "hubspot",
+                })
+            else:
+                title = p.get("hs_call_title") or "—"
+                rep_display = owner_name or owner_email or "?"
+                if has_real_transcript:
+                    entry = f"[{fecha_display}] CALL [hs:{hs_id}] — {rep_display} ({duration_min}min) — {title}\n  {body_clean[:500]}"
+                else:
+                    entry = f"[{fecha_display}] CALL [hs:{hs_id}] — {rep_display} ({duration_min}min) — {title}\n  (sin transcripción)"
+                context_entries.append(entry)
+
+    print(f"   {len(updates)} Modjo calls to link, {len(inserts)} auditable calls to insert, {len(context_entries)} calls to context only")
 
     if updates:
         for upd in updates:
@@ -238,6 +289,10 @@ def run(deal_uuid: str, hs_deal_id: str):
         )
         print(f"   {len(result.data)} calls inserted")
     else:
-        print("   No new calls to insert")
+        print("   No new auditable calls to insert")
+
+    if context_entries:
+        print(f"   Appending {len(context_entries)} non-auditable calls to deal_context ...")
+        _append_calls_to_context(deal_uuid, context_entries)
 
     print(f"   HubSpot API requests: {hubspot.total_requests()}")

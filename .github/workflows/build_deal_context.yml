@@ -1,4 +1,4 @@
-name: Sync Notes
+name: Build Deal Context
 
 on:
   workflow_dispatch:
@@ -11,9 +11,14 @@ on:
         description: "HubSpot deal ID"
         required: true
         type: string
+      context_type:
+        description: "Type of context to build: emails, notes, or all"
+        required: false
+        type: string
+        default: "all"
 
 jobs:
-  sync:
+  build:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -25,9 +30,9 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - name: Sync notes for deal
+      - name: Build deal context
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
-        run: python -m scripts.sync_notes "${{ inputs.deal_uuid }}" "${{ inputs.hs_deal_id }}"
+        run: python -m scripts.build_deal_context "${{ inputs.deal_uuid }}" "${{ inputs.hs_deal_id }}" "${{ inputs.context_type }}"
