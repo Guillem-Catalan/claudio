@@ -17,40 +17,24 @@ def _headers():
 
 
 def _upload_pdf(pdf_bytes: bytes, filename: str, channel: str) -> str | None:
-    """Upload PDF to Slack, return permalink or None."""
-    auth_header = {"Authorization": f"Bearer {SLACK_BOT_TOKEN}"}
-
+    """Upload PDF to Slack via legacy files.upload, return permalink or None."""
     r = requests.post(
-        "https://slack.com/api/files.getUploadURLExternal",
-        headers=auth_header,
-        data={"filename": filename, "length": len(pdf_bytes)},
+        "https://slack.com/api/files.upload",
+        headers={"Authorization": f"Bearer {SLACK_BOT_TOKEN}"},
+        data={
+            "channels": channel,
+            "filename": filename,
+            "filetype": "pdf",
+            "title": filename,
+        },
+        files={"file": (filename, pdf_bytes, "application/pdf")},
     )
-    meta = r.json()
-    if not meta.get("ok"):
-        print(f"  Upload URL failed: {meta.get('error')}")
-        return None
-
-    r2 = requests.put(
-        meta["upload_url"],
-        data=pdf_bytes,
-        headers={"Content-Type": "application/pdf"},
-    )
-    if r2.status_code not in (200, 201):
-        print(f"  PDF PUT failed: {r2.status_code}")
-        return None
-
-    r3 = requests.post(
-        "https://slack.com/api/files.completeUploadExternal",
-        headers=auth_header,
-        json={"files": [{"id": meta["file_id"]}], "channel_id": channel},
-    )
-    result = r3.json()
+    result = r.json()
     if not result.get("ok"):
-        print(f"  Complete upload failed: {result.get('error')}")
+        print(f"  Upload failed: {result.get('error')}")
         return None
 
-    files_info = result.get("files", [])
-    return files_info[0].get("permalink", "") if files_info else None
+    return result.get("file", {}).get("permalink")
 
 
 def send_demo_brief(
