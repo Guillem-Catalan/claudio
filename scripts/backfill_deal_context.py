@@ -1,13 +1,13 @@
 """
 Temporary: build deal_context for all deals that don't have one yet.
-Fetches emails + notes from HubSpot and writes formatted context.
+Fetches emails, notes, and calls from HubSpot, sorts chronologically,
+and writes formatted context.
 """
 
-import sys
 import time
 
 from src.db.client import supabase
-from src.pipelines.build_deal_context.run import run
+from src.pipelines.sync_deal_context.run import run
 
 
 def main():
@@ -39,7 +39,7 @@ def main():
 
         print(f"\n[{i}/{len(deals)}] {deal_name} ({hs_deal_id})")
         try:
-            run(deal_uuid=deal_uuid, hs_deal_id=hs_deal_id, context_type="all")
+            run(deal_uuid=deal_uuid, hs_deal_id=hs_deal_id)
         except Exception as e:
             print(f"   ERROR: {e}")
             time.sleep(2)

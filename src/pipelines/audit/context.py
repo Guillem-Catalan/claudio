@@ -42,18 +42,6 @@ def get_deal_context(deal_uuid: str | None, call_date: str, role: str) -> str:
 
 
 def append_audit_to_context(deal_uuid: str, call: dict, audit_fields: dict):
-    deal = (
-        supabase.table("deals")
-        .select("deal_context")
-        .eq("id", deal_uuid)
-        .maybe_single()
-        .execute()
-    )
-    if not deal.data:
-        return
-
-    current = deal.data.get("deal_context") or ""
-
     fecha = (call.get("fecha") or "?")[:10]
     rol = call.get("rol") or "?"
     tags = call.get("tags") or []
@@ -113,11 +101,7 @@ def append_audit_to_context(deal_uuid: str, call: dict, audit_fields: dict):
 
     entry = "\n".join(parts)
 
-    if current:
-        updated = current + "\n\n" + entry
-    else:
-        updated = entry
-
-    supabase.table("deals").update(
-        {"deal_context": updated}
-    ).eq("id", deal_uuid).execute()
+    supabase.rpc(
+        "append_deal_context",
+        {"p_deal_id": deal_uuid, "p_text": entry},
+    ).execute()

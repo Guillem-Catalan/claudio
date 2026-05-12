@@ -17,7 +17,26 @@ def run_single(call_id: str) -> dict | None:
         print(f"  Call {call_id} not found")
         return None
 
+    if _already_audited(call.data):
+        print(f"  Skipping call {call_id} — already audited")
+        return None
+
     return _audit(call.data)
+
+
+def _already_audited(call: dict) -> bool:
+    role = call.get("rol")
+    if not role:
+        return False
+    table = "pbd_audits" if role == "PBD" else "pae_audits"
+    existing = (
+        supabase.table(table)
+        .select("win_rate_score")
+        .eq("call_ref", call["id"])
+        .maybe_single()
+        .execute()
+    )
+    return bool(existing.data and existing.data.get("win_rate_score") is not None)
 
 
 def _audit(call: dict) -> dict | None:
