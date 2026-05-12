@@ -4,17 +4,67 @@ You will receive the full context of a deal that has a demo scheduled for tomorr
 
 The context includes: company history (atlas), all PBD calls with BANT audit data, emails, notes, and contacts.
 
-OUTPUT — return a single JSON object with these fields. Each field is a string in Spanish. Be specific, grounded in the data, never generic.
+OUTPUT — return a single JSON object with the exact structure below. All text fields in Spanish. Be specific, grounded in the data, never generic.
 
 {
-  "company_overview": "Who is the client: company name, industry, size, country, what they do. 2-3 sentences max.",
-  "deal_history": "Prior deals with this company (if any from atlas). What happened, why they were won/lost. If no prior deals, say so.",
-  "pain_points": "Specific pain points identified during PBD calls. Quote evidence from transcripts/audits. If none found, flag it as a gap.",
-  "bant_status": "One line per pillar:\n- Budget: status + evidence\n- Authority: status + evidence\n- Need: status + evidence\n- Timing: status + evidence\nUse the cumulative BANT state provided.",
-  "objections": "Objections raised during PBD calls and emails. For each: what was said, how it was handled (or not), and the recommended angle for the demo.",
-  "buying_signals": "Positive signals detected: interest shown, questions asked, urgency expressed, internal champions identified.",
-  "contacts_key": "Who will likely be in the demo: name, role, influence level. Based on contacts info and email/call history.",
-  "demo_strategy": "How to approach this demo: what to open with, which pain to lead with, what to avoid, what product areas to emphasize, how to close. Be specific to THIS prospect — no generic advice."
+  "pepm": "€X.XX" or null,
+  "empleados": "XXX" or null,
+  "solucion": "Product/solution mentioned" or null,
+
+  "cliente": [
+    "Sector, industry and what the company does",
+    "Company size, employee count if known",
+    "Key decision-makers identified",
+    "Relationship with Factorial (new vs returning)",
+    "Any notable context from atlas/history"
+  ],
+
+  "situacion": [
+    "Current HR/payroll solution they use",
+    "Why they're evaluating Factorial now",
+    "Where they are in the buying process",
+    "Key timeline pressures or deadlines"
+  ],
+
+  "pain_principal": {
+    "titulo": "SHORT TITLE IN CAPS — the #1 pain to lead with",
+    "texto": "Evidence-based detail: what was said, by whom, impact on their business"
+  },
+
+  "pains_secundarios": [
+    "Secondary pain with evidence",
+    "Another pain with evidence",
+    "Third pain if available"
+  ],
+
+  "bant": {
+    "budget": {"emoji": "✅ or ⚠️ or ❌", "text": "Status + evidence from calls/emails"},
+    "authority": {"emoji": "✅ or ⚠️ or ❌", "text": "Who has power, who's attending"},
+    "need": {"emoji": "✅ or ⚠️ or ❌", "text": "Validated need + evidence"},
+    "timeline": {"emoji": "✅ or ⚠️ or ❌", "text": "Urgency level + dates mentioned"}
+  },
+
+  "objeciones": [
+    {"pregunta": "The objection or risk", "respuesta": "Recommended angle for the PAE"},
+    {"pregunta": "Second objection", "respuesta": "How to handle it"},
+    {"pregunta": "Third objection or risk", "respuesta": "Suggested approach"}
+  ],
+
+  "acciones_criticas": [
+    "What to do/check BEFORE the demo starts",
+    "Key preparation action #2",
+    "Key preparation action #3"
+  ],
+
+  "estrategia": "One paragraph: overall demo strategy — what to open with, which pain to lead with, what product areas to emphasize, how to close. Be specific to THIS prospect.",
+
+  "steps": [
+    {"titulo": "Step title", "desc": "What to do and say. Be specific.", "chips": [{"text": "Topic", "key": true}, {"text": "Topic", "key": false}], "key": true},
+    {"titulo": "Step 2", "desc": "...", "chips": [{"text": "...", "key": false}, {"text": "...", "key": false}], "key": false},
+    {"titulo": "Step 3", "desc": "...", "chips": [{"text": "...", "key": false}, {"text": "...", "key": false}], "key": false},
+    {"titulo": "Step 4", "desc": "...", "chips": [{"text": "...", "key": true}, {"text": "...", "key": false}], "key": true},
+    {"titulo": "Step 5", "desc": "...", "chips": [{"text": "...", "key": false}, {"text": "...", "key": false}], "key": false}
+  ]
 }
 
 RULES:
@@ -23,4 +73,13 @@ RULES:
 - Ground every statement in evidence from the context
 - If information is missing, say explicitly what's unknown and what the PAE should probe for
 - Never invent data — if the context doesn't mention it, say "no hay evidencia"
+- "cliente" array: 3-5 items
+- "situacion" array: 3-4 items
+- "pains_secundarios": 2-4 items
+- "objeciones": 2-3 items
+- "acciones_criticas": exactly 3 items
+- "steps": exactly 5 items, mark 1-2 as "key": true (the most critical moments)
+- BANT emojis: use ONLY one of ✅ (confirmed), ⚠️ (partial/unclear), ❌ (missing)
+- Chips: 2 per step, mark the most important one as "key": true
+- pepm/empleados/solucion: extract from context if mentioned, null if not available
 - Return ONLY the JSON. No text before or after. No markdown fences.

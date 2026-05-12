@@ -7,8 +7,9 @@ PDF from HTML template, and sends to the PAE's Slack channel.
 """
 
 import json
+import os
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from zoneinfo import ZoneInfo
 from pathlib import Path
 
@@ -19,6 +20,20 @@ from src.pipelines.pae_demo_prep.pdf import generate_pdf
 from src.pipelines.pae_demo_prep.slack import send_demo_brief
 
 _PROMPTS_DIR = Path(__file__).resolve().parent.parent.parent / "prompts"
+
+_MESES = {
+    1: "enero", 2: "febrero", 3: "marzo", 4: "abril",
+    5: "mayo", 6: "junio", 7: "julio", 8: "agosto",
+    9: "septiembre", 10: "octubre", 11: "noviembre", 12: "diciembre",
+}
+_MESES_CORTO = {
+    1: "ene", 2: "feb", 3: "mar", 4: "abr", 5: "may", 6: "jun",
+    7: "jul", 8: "ago", 9: "sep", 10: "oct", 11: "nov", 12: "dic",
+}
+_DIAS = {
+    0: "Lunes", 1: "Martes", 2: "Miércoles", 3: "Jueves",
+    4: "Viernes", 5: "Sábado", 6: "Domingo",
+}
 
 PAE_CHANNELS = {
     "Alejandro Soto Velasco": "C0B36Q1EX9T",
@@ -73,15 +88,28 @@ def _meeting_time(deal_data: dict) -> str:
         return raw[:16]
 
 
-def _meeting_date(deal_data: dict) -> str:
+def _meeting_date_long(deal_data: dict) -> str:
     raw = deal_data.get("hs_next_meeting_start_time") or deal_data.get("first_meeting_at") or ""
     if not raw:
         return "fecha por confirmar"
     try:
         dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
-        return dt.strftime("%d/%m/%Y")
+        dia = _DIAS[dt.weekday()]
+        mes = _MESES[dt.month]
+        return f"{dia}, {dt.day} de {mes} {dt.year}"
     except Exception:
         return raw[:10]
+
+
+def _meeting_date_short(deal_data: dict) -> str:
+    raw = deal_data.get("hs_next_meeting_start_time") or deal_data.get("first_meeting_at") or ""
+    if not raw:
+        return "—"
+    try:
+        dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        return f"{dt.day} {_MESES_CORTO[dt.month]}"
+    except Exception:
+        return raw[:5]
 
 
 def _partner_name(deal_data: dict) -> str:
@@ -95,7 +123,6 @@ def run(deal_uuid: str):
     print(f"1. Building context for deal {deal_uuid} ...")
     deal_data, context = build_context(deal_uuid)
 
-    import os
     pae_name = deal_data.get("pae") or ""
     channel = os.environ.get("PAE_CHANNEL_OVERRIDE") or PAE_CHANNELS.get(pae_name)
     if not channel:
@@ -105,7 +132,8 @@ def run(deal_uuid: str):
     company = (deal_data.get("atlas") or {}).get("company_name") or deal_data.get("deal_name") or "?"
     contact = _extract_contact(deal_data)
     demo_time = _meeting_time(deal_data)
-    demo_date = _meeting_date(deal_data)
+    demo_date_long = _meeting_date_long(deal_data)
+    demo_date_short = _meeting_date_short(deal_data)
     amount = deal_data.get("amount")
     amount_str = f"€{float(amount):.0f} MRR" if amount else "MRR desconocido"
     partner = _partner_name(deal_data)
@@ -113,7 +141,7 @@ def run(deal_uuid: str):
     print(f"   Company: {company}")
     print(f"   PAE: {pae_name} → {channel}")
     print(f"   Contact: {contact['name']} ({contact['jobtitle']})")
-    print(f"   Demo: {demo_date} {demo_time}")
+    print(f"   Demo: {demo_date_long} {demo_time}")
 
     print("2. Calling Claude ...")
     system_prompt = _load_system_prompt()
@@ -125,7 +153,8 @@ def run(deal_uuid: str):
     pdf_bytes = generate_pdf(
         brief=brief,
         company=company,
-        demo_date=demo_date,
+        demo_date_long=demo_date_long,
+        demo_date_short=demo_date_short,
         demo_time=demo_time,
         amount_str=amount_str,
         partner=partner,
