@@ -290,38 +290,8 @@ def _insert_and_audit(deal_uuid: str, call_data: dict) -> bool:
 
 
 def _all_calls_audited(deal_uuid: str) -> bool:
-    calls_result = (
-        supabase.table("calls")
-        .select("id, rol")
-        .eq("deal_id", deal_uuid)
-        .not_.is_("rol", "null")
-        .execute()
-    )
-    auditable = calls_result.data or []
-    if not auditable:
-        return True
-
-    call_ids = [c["id"] for c in auditable]
-
-    pbd_result = (
-        supabase.table("pbd_audits")
-        .select("call_ref")
-        .in_("call_ref", call_ids)
-        .not_.is_("win_rate_score", "null")
-        .execute()
-    )
-    pae_result = (
-        supabase.table("pae_audits")
-        .select("call_ref")
-        .in_("call_ref", call_ids)
-        .not_.is_("win_rate_score", "null")
-        .execute()
-    )
-
-    audited = {r["call_ref"] for r in (pbd_result.data or [])} | {
-        r["call_ref"] for r in (pae_result.data or [])
-    }
-    return all(c["id"] in audited for c in auditable)
+    result = supabase.rpc("check_calls_ready", {"p_deal_id": deal_uuid}).execute()
+    return bool(result.data)
 
 
 # ── Main pipeline ────────────────────────────────────────────────────────
