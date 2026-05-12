@@ -203,6 +203,39 @@ def _build_new_entries(
     return entries
 
 
+def _build_atlas_header(deal_uuid: str) -> str:
+    deal = (
+        supabase.table("deals")
+        .select("atlas_id, atlas:atlas_id(company_name, company_context, deal_history, contacts_map)")
+        .eq("id", deal_uuid)
+        .maybe_single()
+        .execute()
+    )
+    if not deal.data:
+        return ""
+
+    atlas = deal.data.get("atlas") or {}
+    parts = []
+
+    company_name = atlas.get("company_name") or ""
+    if company_name:
+        parts.append(f"=== ATLAS: {company_name} ===")
+
+    if atlas.get("company_context"):
+        parts.append(atlas["company_context"])
+
+    if atlas.get("deal_history"):
+        parts += ["", "--- PRIOR DEALS ---", atlas["deal_history"]]
+
+    if atlas.get("contacts_map"):
+        parts += ["", "--- CONTACTS MAP ---", atlas["contacts_map"]]
+
+    if parts:
+        parts.append("\n=== INTERACCIONES ===")
+
+    return "\n".join(parts)
+
+
 def run(deal_uuid: str, hs_deal_id: str, context_type: str = "all"):
     print(f"1. Reading current deal_context for deal {deal_uuid} ...")
     deal_result = (
@@ -217,6 +250,14 @@ def run(deal_uuid: str, hs_deal_id: str, context_type: str = "all"):
         return
 
     current_context = deal_result.data.get("deal_context") or ""
+
+    # First time building context: prepend atlas header
+    if not current_context.strip():
+        atlas_header = _build_atlas_header(deal_uuid)
+        if atlas_header:
+            current_context = atlas_header
+            print(f"   Atlas header added ({len(atlas_header)} chars)")
+
     existing_ids = _existing_engagement_ids(current_context)
     print(f"   Current context: {len(current_context)} chars, {len(existing_ids)} tracked IDs")
 
