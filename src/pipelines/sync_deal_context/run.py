@@ -270,7 +270,11 @@ def _flush_context(deal_uuid: str, entries: list[str]):
 def _insert_and_audit(deal_uuid: str, call_data: dict) -> bool:
     call_id = call_data["call_id"]
 
-    supabase.table("calls").upsert(call_data, on_conflict="call_id").execute()
+    try:
+        supabase.table("calls").upsert(call_data, on_conflict="call_id").execute()
+    except Exception as e:
+        print(f"      INSERT FAILED for {call_id}: {e}")
+        return False
 
     from src.pipelines.audit.run import run_single
 
