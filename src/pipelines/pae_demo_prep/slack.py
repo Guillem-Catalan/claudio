@@ -4,59 +4,25 @@ Send PAE demo brief to Slack: intro message + PDF attachment.
 
 import os
 
-import requests
+from slack_sdk import WebClient
 
 SLACK_BOT_TOKEN = os.environ.get("SLACK_BOT_TOKEN", "")
-
-
-def _headers():
-    return {
-        "Authorization": f"Bearer {SLACK_BOT_TOKEN}",
-        "Content-Type": "application/json",
-    }
+_client = WebClient(token=SLACK_BOT_TOKEN)
 
 
 def _upload_pdf(pdf_bytes: bytes, filename: str, channel: str) -> str | None:
-    """Upload PDF to Slack via getUploadURLExternal + completeUploadExternal."""
-    r = requests.post(
-        "https://slack.com/api/files.getUploadURLExternal",
-        headers=_headers(),
-        json={"filename": filename, "length": len(pdf_bytes)},
-    )
-    data = r.json()
-    if not data.get("ok"):
-        print(f"  getUploadURLExternal failed: {data.get('error')}")
+    """Upload PDF to Slack via slack_sdk files_upload_v2."""
+    try:
+        r = _client.files_upload_v2(
+            channel=channel,
+            content=pdf_bytes,
+            filename=filename,
+            title=filename,
+        )
+        return r.get("file", {}).get("permalink")
+    except Exception as e:
+        print(f"  Upload failed: {e}")
         return None
-
-    upload_url = data["upload_url"]
-    file_id = data["file_id"]
-
-    r = requests.put(
-        upload_url,
-        data=pdf_bytes,
-        headers={"Content-Type": "application/pdf"},
-    )
-    if r.status_code != 200:
-        print(f"  PUT upload failed: {r.status_code} {r.text[:200]}")
-        return None
-
-    r = requests.post(
-        "https://slack.com/api/files.completeUploadExternal",
-        headers=_headers(),
-        json={
-            "files": [{"id": file_id, "title": filename}],
-            "channel_id": channel,
-        },
-    )
-    result = r.json()
-    if not result.get("ok"):
-        print(f"  completeUploadExternal failed: {result.get('error')}")
-        return None
-
-    files = result.get("files", [])
-    if files:
-        return files[0].get("permalink")
-    return None
 
 
 def send_demo_brief(
@@ -87,15 +53,10 @@ def send_demo_brief(
     if permalink:
         text += f"\n{permalink}"
 
-    r = requests.post(
-        "https://slack.com/api/chat.postMessage",
-        headers=_headers(),
-        json={"channel": channel, "text": text, "unfurl_links": True},
-    )
-    data = r.json()
-    if data.get("ok"):
+    try:
+        _client.chat_postMessage(channel=channel, text=text, unfurl_links=True)
         print(f"  Slack: sent to {channel}")
         return True
-
-    print(f"  Slack error: {data.get('error')}")
-    return False
+    except Exception as e:
+        print(f"  Slack error: {e}")
+        return False
