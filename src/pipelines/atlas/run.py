@@ -33,14 +33,17 @@ from src.pipelines.atlas.prompt_builder import (
 )
 
 
-def generate(atlas_id: str, crm_id: str):
+def generate(atlas_id: str, crm_id: str, owners: dict[str, str] | None = None):
     print(f"1. Fetching company {crm_id} from HubSpot ...")
     company = fetch_company(crm_id)
     company_name = company.get("name") or ""
     print(f"   Company: {company_name}")
 
-    print("2. Fetching owners ...")
-    owners = fetch_owners()
+    if owners is None:
+        print("2. Fetching owners ...")
+        owners = fetch_owners()
+    else:
+        print("2. Owners (cached)")
 
     print("3. Fetching deals for this company ...")
     deal_ids = fetch_deal_ids(crm_id)

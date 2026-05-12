@@ -5,9 +5,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from src.db.client import supabase
 from src.pipelines.atlas.run import generate
+from src.pipelines.atlas.hubspot_fetcher import fetch_owners
 
 BATCH = 500
-WORKERS = 2
+WORKERS = 8
 MAX_RETRIES = 2
 
 
@@ -100,13 +101,16 @@ def _pending_atlas_ids() -> list[dict]:
     return rows
 
 
+_OWNERS: dict[str, str] = {}
+
+
 def _process_one(idx_and_row: tuple[int, dict, int]) -> tuple[bool, str]:
     i, row, total = idx_and_row
     if i % 50 == 0:
         print(f"[{i}/{total}] generating atlas for {row['crm_id']}")
     for attempt in range(MAX_RETRIES + 1):
         try:
-            generate(atlas_id=row["id"], crm_id=row["crm_id"])
+            generate(atlas_id=row["id"], crm_id=row["crm_id"], owners=_OWNERS)
             return True, row["crm_id"]
         except Exception as e:
             if attempt < MAX_RETRIES:
@@ -119,11 +123,17 @@ def _process_one(idx_and_row: tuple[int, dict, int]) -> tuple[bool, str]:
 
 
 def main():
+    global _OWNERS
+
     print("1. Ensuring atlas stubs exist ...")
     created = _ensure_stubs()
     print(f"   {created} new stubs\n")
 
-    print("2. Loading pending atlas rows ...")
+    print("2. Fetching HubSpot owners (one-time) ...")
+    _OWNERS = fetch_owners()
+    print(f"   {len(_OWNERS)} owners cached\n")
+
+    print("3. Loading pending atlas rows ...")
     pending = _pending_atlas_ids()
     print(f"   {len(pending)} to generate\n")
 
