@@ -23,8 +23,9 @@ BEGIN
     FROM deals
     WHERE deal_stage = 'Demo Booked'
       AND first_meeting_at = tomorrow
-      AND dist_demo_booked_exited IS NULL
+      AND (dist_demo_booked_exited IS NULL OR dist_demo_booked_exited < dist_demo_booked_entered)
       AND pae IS NOT NULL
+      AND pae != ''
   LOOP
     PERFORM net.http_post(
       url := 'https://api.github.com/repos/guillemcatalan/claudio/actions/workflows/pae_demo_prep.yml/dispatches',
