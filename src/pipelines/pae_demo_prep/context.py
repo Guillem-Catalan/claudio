@@ -13,7 +13,7 @@ def build_context(deal_uuid: str) -> tuple[dict, str]:
 
     deal = (
         supabase.table("deals")
-        .select("*, atlas:atlas_id(company_name, partner)")
+        .select("*, atlas:atlas_id(company_name)")
         .eq("id", deal_uuid)
         .maybe_single()
         .execute()

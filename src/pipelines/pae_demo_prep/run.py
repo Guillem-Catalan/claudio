@@ -85,8 +85,10 @@ def _meeting_date(deal_data: dict) -> str:
 
 
 def _partner_name(deal_data: dict) -> str:
-    atlas = deal_data.get("atlas") or {}
-    return atlas.get("partner") or "Santander"
+    name = deal_data.get("deal_name") or ""
+    if "from " in name:
+        return name.split("from ")[-1].strip()
+    return "Santander"
 
 
 def run(deal_uuid: str):
