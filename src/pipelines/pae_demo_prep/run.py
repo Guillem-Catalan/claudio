@@ -9,6 +9,7 @@ PDF from HTML template, and sends to the PAE's Slack channel.
 import json
 import re
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 from src.db.client import supabase
@@ -51,8 +52,8 @@ def _meeting_time(deal_data: dict) -> str:
         return "hora por confirmar"
     try:
         dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
-        cest = dt + timedelta(hours=2)
-        return cest.strftime("%H:%M CEST")
+        madrid = dt.astimezone(ZoneInfo("Europe/Madrid"))
+        return madrid.strftime("%H:%M %Z")
     except Exception:
         return raw[:16]
 
