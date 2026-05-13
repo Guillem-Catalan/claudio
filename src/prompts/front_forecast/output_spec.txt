@@ -1,0 +1,89 @@
+=== OUTPUT SPEC ===
+
+Responde únicamente con un JSON con la siguiente estructura:
+{"deal_killer": false, "deal_killer_value": null, "bs": 0.0, "lb": 0.0}
+
+Sin prose, sin markdown, solo el objeto JSON.
+
+PASO 1 — Deal-killer check (SOLO situaciones irreversibles)
+
+deal_killer: true ÚNICAMENTE cuando el deal está muerto sin vuelta atrás:
+- El prospect ha elegido explícitamente a un competidor
+- Rechazo definitivo del EB o dirección (no es timing, es un no)
+- El contacto principal ha abandonado la empresa sin sustituto identificado
+- El prospect ha comunicado explícitamente que no van a avanzar
+
+En estos casos: deal_killer: true, deal_killer_value: entero entre 0 y 2
+
+EN TODOS LOS DEMÁS CASOS: deal_killer: false
+Silencio temporal, deal pospuesto, blockers técnicos, IT pendiente, legal abierto, partner bloqueando — todo eso se gestiona via lb, no via deal-killer.
+
+PASO 2 — Clasificar bs y lb (solo si deal_killer: false)
+
+─────────────────────────────────────────────
+bs — BUYER SIGNALS
+Elige el nivel más alto aplicable y devuelve ese valor exacto.
+─────────────────────────────────────────────
+
+bs: 2.0 — Señal excepcional. Algunos ejemplos pueden ser (ten en cuenta más casos):
+  • Pide borrador de contrato, propuesta formal o pricing detallado para presentar internamente
+  • EB o Dirección participa en reunión, mailing o da luz verde
+  • Prospect confirma por escrito que va con Factorial
+  • Trae al legal advisor o a compras a la call
+  Ejemplos reales: "Paula confirmó decisión interna de avanzar con MVP y pidió propuesta formal con pricing" | "Vanessa trajo al legal advisor de Aviapartner a la call de pricing" | "Óscar ofreció pausar decisión si el precio encaja" | "Pidió propuesta con todos los módulos: méteme todo porque voy a necesitar todo"
+
+bs: 1.5 — Señal fuerte + señal débil simultáneas
+
+bs: 1.0 — Señal fuerte sola. Algunos ejemplos pueden ser (ten en cuenta más casos):
+  • Involucra nuevos stakeholders internos sin que el rep lo pida
+  • Comparte información interna (nombre EB, procesos, estructura, inventario)
+  • Propone o agenda fechas concretas por iniciativa propia
+  • Pone deadline interno para tomar la decisión
+  • Pide ajuste de propuesta o negocia condiciones
+  • Hace advocacy interna activa (presenta a dirección, prepara deck interno)
+  Ejemplos reales: "Antonio se comprometió a enviar inventario de dispositivos como next step" | "Paola pidió la grabación de la demo para enviársela a Jaime directamente" | "Izaskun retrasó la reunión con el CEO para esperar la propuesta de Factorial" | "Alejandro preparó documentación interna de codificación para compartir con Factorial"
+
+bs: 0.5 — Solo señales débiles. Algunos ejemplos pueden ser (ten en cuenta más casos):
+  • Responde emails con preguntas funcionales o técnicas
+  • Asiste a demos sin compromisos explícitos
+  • Menciona cualquier intención de avanzar
+  • Pide información "para no perderlo de vista"
+  Ejemplos reales: "Isma dijo literalmente 'lo necesito en realidad' pero no hay next step ni acceso a EB" | "Interés genuino: me gusta, no te digo que en un tiempo" | "Aceptó agendar follow up de 45 minutos"
+
+bs: 0.0 — Sin señales de compra activas
+
+─────────────────────────────────────────────
+lb — LIVE BLOCKERS
+Toma el peor blocker activo y devuelve ese valor exacto.
+─────────────────────────────────────────────
+
+lb: -2.0 — Blocker estructural grave. Algunos ejemplos pueden ser (ten en cuenta más casos):
+  • Tercero con poder de veto sin recursos ni timeline confirmados (IT central, casa matriz, fondo de inversión, grupo corporativo)
+  • Canal intermediario (partner, reseller) bloqueando el acceso al prospect
+  • Requisito técnico crítico sin viabilidad confirmada por producto (funcionalidad que Factorial no tiene)
+  • Champion principal dejó la empresa sin sucesor identificado
+  • Presupuestos cerrados para el año sin partida existente para este proyecto
+  • Deal congelado indefinidamente sin fecha ni señal de retorno
+  Ejemplos reales: "IT central de casa matriz alemana no ha confirmado recursos ni timeline" | "Brian deja la empresa en días sin sucesor" | "Factorial no tiene módulo de nómina, bloqueador estructural" | "Presupuestos 2026 cerrados — no existe partida para este proyecto" | "Deal en pausa indefinida, sin fecha de re-engagement" | "Fondo de inversión con poder de veto, sin persona identificada"
+
+lb: -1.5 — Dos o más blockers críticos simultáneos
+  Ejemplos reales: "EB no identificado + competidor activo con propuesta" | "proceso de decisión no mapeado + funcionalidad clave sin fecha confirmada" | "sin acceso a EB + legal con puntos abiertos"
+
+lb: -1.0 — Blocker crítico. Algunos ejemplos pueden ser (ten en cuenta más casos):
+  • EB no identificado o sin acceso directo
+  • Proceso de decisión sin mapear
+  • Funcionalidad clave en desarrollo sin fecha confirmada de entrega
+  • Competidor activo con propuesta encima de la mesa
+  • Legal o procurement con puntos contractuales abiertos
+  • Deal pospuesto sin fecha definida (prospect dijo "cuando podamos", "más adelante", freeze de presupuesto sin fecha)
+  Ejemplos reales: "Economic buyer no identificado por nombre ni contactado" | "Decision process completamente sin mapear — no se sabe quién aprueba ni cuándo" | "Competidores activos en evaluación" | "Cola de implantación de Odoo bloquea cualquier timeline de decisión" | "Gloria respondió 'os contactaremos cuando decidamos' — deal en standby sin fecha"
+
+lb: -0.5 — Blocker menor (cualquiera de estos):
+  • Stakeholder secundario que aún no ha visto el producto
+  • Ajuste de precio o alcance pendiente sin urgencia
+  • Duda sobre funcionalidad no crítica que el rep puede resolver en el siguiente touchpoint
+  • Deal pospuesto con fecha concreta definida (prospect confirma fecha de retorno)
+  • Contacto clave de vacaciones o baja temporal con fecha de vuelta conocida
+  Ejemplos reales: "Nacho (CFO) de vacaciones, sin fecha confirmada de vuelta pero contexto activo" | "Dirección exige segundo presupuesto — proceso en curso" | "Objeción de conciliación con tarjetas pendiente de respuesta"
+
+lb: 0.0 — Sin blockers activos
