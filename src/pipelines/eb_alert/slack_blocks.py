@@ -11,6 +11,7 @@ COLORS = {
 PARTNER_CONFIG = {
     "Santander": {"emoji": ":Santander:", "lead_email": "roberto.moran@factorial.co"},
     "Telefonica": {"emoji": ":telefonica:", "lead_email": "carlos.sanchez@factorial.co"},
+    "Telefónica": {"emoji": ":telefonica:", "lead_email": "carlos.sanchez@factorial.co"},
 }
 
 HEADERS = {
@@ -96,8 +97,10 @@ def build_blocks(
     coaching: str,
     slack_user_id: str | None = None,
     ae_email: str | None = None,
+    ae_name: str | None = None,
     lead_slack_user_id: str | None = None,
     lead_email: str | None = None,
+    lead_name: str | None = None,
 ) -> dict:
     color = COLORS[classification]
     partner_cfg = PARTNER_CONFIG.get(partner_name, {})
@@ -108,6 +111,8 @@ def build_blocks(
         owner_part = f"<@{slack_user_id}>"
     elif ae_email:
         owner_part = ae_email
+    elif ae_name:
+        owner_part = ae_name
     else:
         owner_part = "AE unknown"
 
@@ -115,6 +120,8 @@ def build_blocks(
         lead_part = f"  ·  *Lead:* <@{lead_slack_user_id}>"
     elif lead_email:
         lead_part = f"  ·  *Lead:* {lead_email}"
+    elif lead_name:
+        lead_part = f"  ·  *Lead:* {lead_name}"
     else:
         lead_part = ""
 

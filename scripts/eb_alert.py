@@ -176,12 +176,28 @@ def _resolve_partner(deal: dict) -> str:
     return ""
 
 
-def _get_partner_team(pae_email: str | None) -> str:
-    """Determine partner team from PAE email domain patterns."""
-    if not pae_email:
+def _resolve_rep_email(deal_uuid: str, rol: str) -> str | None:
+    """Look up owner_email from calls table for a given role."""
+    resp = (
+        supabase.table("calls")
+        .select("owner_email")
+        .eq("deal_id", deal_uuid)
+        .eq("rol", rol)
+        .not_.is_("owner_email", "null")
+        .limit(1)
+        .execute()
+    )
+    if resp.data:
+        return resp.data[0].get("owner_email")
+    return None
+
+
+def _get_partner_team(email: str | None) -> str:
+    """Determine partner team from rep email."""
+    if not email:
         return ""
     from src.config import get_subteam
-    return get_subteam(pae_email) or ""
+    return get_subteam(email) or ""
 
 
 def main():
@@ -207,9 +223,16 @@ def main():
     hs_deal_id = deal["deal_id"]
     print(f"   Deal: {deal_name}")
 
+    # Resolve PAE/PBD emails from calls table
+    ae_email = _resolve_rep_email(args.deal_uuid, "PAE")
+    pbd_email = _resolve_rep_email(args.deal_uuid, "PBD")
+    ae_name = deal.get("pae") or ""
+    pbd_name = deal.get("pbd") or ""
+    print(f"   PAE: {ae_email or ae_name or '—'}, PBD: {pbd_email or pbd_name or '—'}")
+
     # Resolve partner
     partner_name = _resolve_partner(deal)
-    partner_team = _get_partner_team(deal.get("pae"))
+    partner_team = _get_partner_team(ae_email) or _get_partner_team(pbd_email)
     print(f"   Partner: {partner_name or '—'}, Team: {partner_team or '—'}")
 
     # Slack client
@@ -280,24 +303,9 @@ def main():
     print(f"   EB: {result.eb_name} ({result.eb_role})")
 
     # Resolve AE Slack mention
-    ae_email = None
     ae_slack_id = None
-    if deal.get("pae"):
-        # Try to find email from pae name
-        pae_name = deal["pae"]
-        # Look up in calls table for owner_email
-        call_resp = (
-            supabase.table("calls")
-            .select("owner_email")
-            .eq("deal_id", args.deal_uuid)
-            .not_.is_("owner_email", "null")
-            .limit(1)
-            .execute()
-        )
-        if call_resp.data:
-            ae_email = call_resp.data[0].get("owner_email")
-            if ae_email:
-                ae_slack_id = slack.lookup_user_by_email(ae_email)
+    if ae_email:
+        ae_slack_id = slack.lookup_user_by_email(ae_email)
 
     # Calculate days in stage
     now_ms = int(time.time() * 1000)
@@ -351,8 +359,10 @@ def main():
         coaching=coaching,
         slack_user_id=ae_slack_id,
         ae_email=ae_email,
+        ae_name=ae_name,
         lead_slack_user_id=lead_slack_ids.get(partner_team),
         lead_email=partner_cfg.get("lead_email"),
+        lead_name=pbd_name,
     )
 
     # Post to Slack
