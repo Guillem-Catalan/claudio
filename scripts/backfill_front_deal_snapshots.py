@@ -55,6 +55,15 @@ def _to_num(val) -> float | None:
         return None
 
 
+def _to_int(val) -> int | None:
+    if val is None:
+        return None
+    try:
+        return int(float(val))
+    except (ValueError, TypeError):
+        return None
+
+
 def _map_record(f: dict, deal_map: dict[str, str]) -> dict | None:
     hs_deal_id = str(f.get("Deal_id", "")).strip()
     snapshot_date = f.get("Snapshot_date", "")
@@ -67,7 +76,7 @@ def _map_record(f: dict, deal_map: dict[str, str]) -> dict | None:
         "snapshot_date": snapshot_date,
         "deal_name": f.get("Deal_Name"),
         "crm_id": f.get("crm_id"),
-        "deal_age": _to_num(f.get("deal_age")),
+        "deal_age": _to_int(f.get("deal_age")),
         "stage": f.get("Stage"),
         "mrr": _to_num(f.get("MRR")),
         "hs_forecast_category": f.get("HS_forecast_category"),
