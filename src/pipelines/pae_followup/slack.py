@@ -1,5 +1,6 @@
 """
-Send PAE follow-up brief to Slack: single message with intro text + PDF.
+Send PAE follow-up reports to Slack.
+Routes to PAE channel (active/stalled) or TL channel (closed).
 """
 
 import os
@@ -10,29 +11,56 @@ from slack_sdk import WebClient
 SLACK_BOT_TOKEN = os.environ.get("SLACK_BOT_TOKEN", "")
 _client = WebClient(token=SLACK_BOT_TOKEN)
 
+_STRATEGY_EMOJI = {
+    "active": ":calendar:",
+    "stalled": ":hourglass_flowing_sand:",
+    "closed": ":bar_chart:",
+}
 
-def send_followup_brief(
+_STRATEGY_LABEL = {
+    "active": "Follow-up Brief",
+    "stalled": "Re-engagement Plan",
+    "closed": "Close Report",
+}
+
+
+def send_report(
     pdf_bytes: bytes,
     company: str,
     demo_date_short: str,
     amount_str: str,
     partner: str,
     contact: dict,
-    channel: str | None = None,
+    channel: str,
+    report_label: str,
+    strategy: str,
+    subtype: str,
+    pae_name: str,
 ) -> bool:
     if not channel:
         print("  No Slack channel configured — skipping")
         return False
 
-    intro = (
-        f":calendar: Follow-up — {company} · demo {demo_date_short}\n"
-        f"Contacto: {contact.get('name', '?')} · {contact.get('jobtitle', '')} · {contact.get('email', '')}"
-    )
-    if contact.get("phone"):
-        intro += f" · {contact['phone']}"
-    intro += f"\nDeal: {amount_str} | Partner: {partner}"
+    emoji = _STRATEGY_EMOJI.get(strategy, ":memo:")
+    label = _STRATEGY_LABEL.get(strategy, "Report")
 
-    filename = f"followup-brief-{company.lower().replace(' ', '-')}.pdf"
+    intro = f"{emoji} {label} — {company} · demo {demo_date_short}\n"
+
+    if strategy == "closed":
+        intro += f"PAE: {pae_name} · Resultado: {report_label}\n"
+    else:
+        intro += (
+            f"Contacto: {contact.get('name', '?')} · "
+            f"{contact.get('jobtitle', '')} · {contact.get('email', '')}"
+        )
+        if contact.get("phone"):
+            intro += f" · {contact['phone']}"
+        intro += "\n"
+
+    intro += f"Deal: {amount_str} | Partner: {partner} | Tipo: {subtype}"
+
+    slug = company.lower().replace(" ", "-")
+    filename = f"{strategy}-{subtype}-{slug}.pdf"
 
     try:
         resp = _client.files_getUploadURLExternal(
@@ -50,7 +78,7 @@ def send_followup_brief(
             initial_comment=intro,
         )
 
-        print(f"  Slack: sent to {channel}")
+        print(f"  Slack: sent {strategy}/{subtype} to {channel}")
         return True
     except Exception as e:
         print(f"  Slack error: {e}")

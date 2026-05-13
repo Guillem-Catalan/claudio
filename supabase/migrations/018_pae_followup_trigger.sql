@@ -1,15 +1,21 @@
--- Trigger: dispatch pae_followup.yml when a PAE Demo call is audited.
+-- Trigger: mark pae_followup_pending when a PAE Demo call is audited.
 -- Fires when win_rate_score transitions from NULL to NOT NULL
 -- and the associated call has tag 'Partners - PAE Demo'.
+-- Does NOT dispatch the workflow directly — the follow-up fires
+-- after front_deal_snapshots is generated (see migration 019).
 
-CREATE OR REPLACE FUNCTION dispatch_pae_followup()
+-- Add the pending flag to deal_confirmations
+ALTER TABLE deal_confirmations
+    ADD COLUMN IF NOT EXISTS pae_followup_pending BOOLEAN DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS pae_followup_call_ref UUID;
+
+CREATE OR REPLACE FUNCTION mark_pae_followup_pending()
 RETURNS TRIGGER AS $$
 DECLARE
     _tags TEXT[];
-    _pat  TEXT;
-    _repo TEXT;
+    _deal_id UUID;
 BEGIN
-    SELECT tags INTO _tags
+    SELECT tags, deal_id INTO _tags, _deal_id
     FROM calls
     WHERE id = NEW.call_ref;
 
@@ -17,38 +23,24 @@ BEGIN
         RETURN NEW;
     END IF;
 
-    SELECT decrypted_secret INTO _pat
-    FROM vault.decrypted_secrets
-    WHERE name = 'github_pat';
-
-    IF _pat IS NULL THEN
-        RAISE WARNING 'github_pat not found in vault';
+    IF _deal_id IS NULL THEN
         RETURN NEW;
     END IF;
 
-    _repo := current_setting('app.settings.github_repo', true);
-    IF _repo IS NULL OR _repo = '' THEN
-        _repo := 'guillemcatalan/claudio';
-    END IF;
-
-    PERFORM net.http_post(
-        url     := 'https://api.github.com/repos/' || _repo || '/actions/workflows/pae_followup.yml/dispatches',
-        headers := jsonb_build_object(
-            'Authorization', 'Bearer ' || _pat,
-            'Accept', 'application/vnd.github+json'
-        ),
-        body    := jsonb_build_object(
-            'ref', 'main',
-            'inputs', jsonb_build_object('call_ref', NEW.call_ref::text)
-        )
-    );
+    UPDATE deal_confirmations
+    SET pae_followup_pending = TRUE,
+        pae_followup_call_ref = NEW.call_ref,
+        updated_at = NOW()
+    WHERE deal_id = _deal_id;
 
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_pae_followup ON pae_audits;
+
 CREATE TRIGGER trg_pae_followup
     AFTER UPDATE ON pae_audits
     FOR EACH ROW
     WHEN (OLD.win_rate_score IS NULL AND NEW.win_rate_score IS NOT NULL)
-    EXECUTE FUNCTION dispatch_pae_followup();
+    EXECUTE FUNCTION mark_pae_followup_pending();

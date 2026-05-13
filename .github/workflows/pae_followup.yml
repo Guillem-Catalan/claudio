@@ -38,4 +38,5 @@ jobs:
           HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           PAE_CHANNEL_OVERRIDE: ${{ inputs.channel_override }}
+          TL_CHANNEL: ${{ secrets.TL_CHANNEL }}
         run: python -u -m scripts.pae_followup "${{ inputs.call_ref }}"

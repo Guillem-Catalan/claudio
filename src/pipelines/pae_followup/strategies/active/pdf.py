@@ -1,5 +1,5 @@
 """
-Generate a 2-page follow-up PDF from Claude's structured output.
+Generate a 2-page follow-up PDF for active deals.
 Page 1: One-pager analysis (resumen, temas, tono, error, señales, MEDDIC, objeciones, probabilidad)
 Page 2: Next step — dynamic layout based on type (email / llamada / reunión)
 
@@ -25,7 +25,7 @@ body {
 .tbl { display: table; width: 100%; }
 .tbl-cell { display: table-cell; vertical-align: top; }
 
-/* ── HEADER ── */
+/* -- HEADER -- */
 .hdr { padding: 28px 40px 0; }
 .hdr-left { width: 65%; }
 .hdr-right { text-align: right; vertical-align: top; }
@@ -35,7 +35,7 @@ body {
 .dates { font-size: 14px; font-weight: 500; line-height: 1.4; }
 .dates .sub { font-size: 10.5px; color: #8e8d88; font-weight: 400; }
 
-/* ── KPI BAR ── */
+/* -- KPI BAR -- */
 .kpi { border-top: 1.5px solid #1a1a18; border-bottom: 1.5px solid #e4e3de; margin-top: 16px; }
 .kpi table { width: 100%; border-collapse: collapse; }
 .kpi td { padding: 10px 14px; vertical-align: top; width: 20%; }
@@ -44,12 +44,12 @@ body {
 .kpi-val.red { color: #c8102e; }
 .kpi-val.amb { color: #a86400; }
 
-/* ── BODY 2-COL ── */
+/* -- BODY 2-COL -- */
 .body-grid { padding: 0 40px 40px; }
 .col-l { width: 50%; padding-right: 32px; padding-top: 24px; border-right: .5px solid #e4e3de; overflow: hidden; }
 .col-r { width: 50%; padding-left: 32px; padding-top: 24px; overflow: hidden; }
 
-/* ── SECTION TITLES ── */
+/* -- SECTION TITLES -- */
 .stit {
     font-family: 'Courier New', Courier, monospace;
     font-size: 9px; font-weight: 500; text-transform: uppercase;
@@ -58,13 +58,13 @@ body {
 }
 .stit-first { margin-top: 0; }
 
-/* ── BULLET ITEMS ── */
+/* -- BULLET ITEMS -- */
 .bi-table { width: 100%; border-collapse: collapse; }
 .bi-table td { font-size: 11.5px; line-height: 1.6; color: #5c5b57; padding: 3px 0; vertical-align: top; }
 .bi-dash { width: 14px; color: #8e8d88; }
 .bi-table b { color: #1a1a18; font-weight: 600; }
 
-/* ── MEDDIC ── */
+/* -- MEDDIC -- */
 .meddic-table { width: 100%; border-collapse: collapse; }
 .meddic-table tr { border-bottom: .5px solid #f0efe9; }
 .meddic-table tr:last-child { border-bottom: none; }
@@ -78,7 +78,7 @@ body {
 .meddic-txt { font-size: 11px; line-height: 1.6; color: #5c5b57; }
 .meddic-txt b { color: #1a1a18; font-weight: 600; }
 
-/* ── HIGHLIGHT BOX ── */
+/* -- HIGHLIGHT BOX -- */
 .hbox {
     border-left: 3px solid #c8102e; background: #fdf0f0;
     padding: 12px 16px; margin-top: 12px;
@@ -90,7 +90,7 @@ body {
 .hbox p { font-size: 11px; line-height: 1.6; color: #5c5b57; }
 .hbox p b { color: #1a1a18; font-weight: 600; }
 
-/* ── SIGNALS ── */
+/* -- SIGNALS -- */
 .sig-table { width: 100%; border-collapse: collapse; }
 .sig-table td { padding: 5px 0; vertical-align: top; }
 .sig-tag-cell { width: 55px; padding-right: 6px; }
@@ -103,20 +103,20 @@ body {
 .sig-txt { font-size: 11px; line-height: 1.6; color: #5c5b57; }
 .sig-txt b { color: #1a1a18; font-weight: 600; }
 
-/* ── OBJECTIONS ── */
+/* -- OBJECTIONS -- */
 .obj-card { background: #faf9f6; padding: 12px 16px; margin-top: 10px; }
 .obj-q { font-size: 11.5px; font-weight: 600; color: #1a1a18; margin-bottom: 6px; }
 .obj-a { font-size: 10.5px; line-height: 1.6; color: #5c5b57; }
 .obj-a b { color: #1a1a18; font-weight: 500; }
 
-/* ── PROBABILITY ── */
+/* -- PROBABILITY -- */
 .prob { background: #fdf0f0; padding: 16px 20px; margin-top: 16px; }
 .prob-num { font-size: 36px; font-weight: 700; color: #c8102e; line-height: 1; width: 70px; }
 .prob-num small { font-size: 16px; }
 .prob-txt { font-size: 11px; line-height: 1.6; color: #5c5b57; }
 .prob-txt b { color: #1a1a18; font-weight: 600; }
 
-/* ── PAGE 2 HEADER ── */
+/* -- PAGE 2 HEADER -- */
 .p2-head { padding: 18px 32px 14px; border-bottom: 1px solid #e4e3de; }
 .p2h-left { width: 75%; }
 .p2h-right { text-align: right; vertical-align: bottom; }
@@ -125,7 +125,7 @@ body {
 .p2h-sub { font-size: 11px; color: #8e8d88; font-weight: 300; margin-top: 4px; }
 .p2h-badge { background: #fdf0f0; border: 1px solid #ffccd4; padding: 5px 12px; font-size: 10px; font-weight: 500; color: #c8102e; }
 
-/* ── EMAIL MOCK ── */
+/* -- EMAIL MOCK -- */
 .email-wrap { padding: 14px 32px 0; }
 .mail-window { border: 1px solid #dddde8; overflow: hidden; }
 .mail-bar { background: #f5f5f8; border-bottom: 1px solid #dddde8; padding: 7px 14px; }
@@ -145,7 +145,7 @@ body {
 .mail-body ul { list-style: none; margin: 0 0 8px; padding: 0; }
 .mail-body li { font-size: 11px; line-height: 1.6; color: #2a2a3c; font-weight: 300; padding-left: 14px; }
 
-/* ── CALL/MEETING SECTIONS ── */
+/* -- CALL/MEETING SECTIONS -- */
 .p2-body { padding: 20px 32px; }
 .p2-stit {
     font-family: 'Courier New', Courier, monospace;
@@ -165,7 +165,7 @@ body {
 .p2-obj-handle { font-size: 10.5px; color: #5c5b57; margin-top: 2px; }
 .p2-time { width: 55px; font-size: 10px; font-weight: 600; color: #c8102e; letter-spacing: .5px; }
 
-/* ── NOTE BLOCKS ── */
+/* -- NOTE BLOCKS -- */
 .note-block { margin: 10px 32px 0; padding: 9px 14px; font-size: 10.5px; line-height: 1.5; font-weight: 300; }
 .note-block.blue { background: #f0f7ff; border-left: 3px solid #3b82f6; color: #1e3a5f; }
 .note-block.red { background: #fdf0f0; border-left: 3px solid #c8102e; color: #3a1a22; }
@@ -467,17 +467,14 @@ def _render_page2_reunion(brief, company, pae_name, contact) -> str:
 </div>'''
 
 
-def generate_pdf(
-    brief: dict,
-    company: str,
-    demo_datetime: str,
-    next_step: str,
-    amount_str: str,
-    partner: str,
-    pae_name: str,
-    contact: dict | None = None,
-) -> bytes:
-    contact = contact or {"name": "?", "email": "", "jobtitle": "", "phone": ""}
+def generate_pdf(brief: dict, data: dict) -> bytes:
+    company = data["company"]
+    demo_datetime = data["demo_datetime"]
+    next_step = brief.get("next_step") or "pendiente"
+    amount_str = data["amount_str"]
+    partner = data["partner"]
+    pae_name = data["pae_name"]
+    contact = data.get("contact") or {"name": "?", "email": "", "jobtitle": "", "phone": ""}
 
     page1 = _render_page1(brief, company, demo_datetime, next_step, amount_str, partner)
 
