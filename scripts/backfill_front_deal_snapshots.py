@@ -115,16 +115,18 @@ def main():
     deal_map = _load_deal_map()
     print(f"   {len(deal_map)} deals mapped")
 
-    print("3. Mapping records ...")
-    rows = []
+    print("3. Mapping and deduplicating ...")
+    seen: dict[tuple[str, str], dict] = {}
     skipped = 0
     for rec in records:
         mapped = _map_record(rec["fields"], deal_map)
         if mapped:
-            rows.append(mapped)
+            key = (mapped["hs_deal_id"], mapped["snapshot_date"])
+            seen[key] = mapped
         else:
             skipped += 1
-    print(f"   {len(rows)} to upsert, {skipped} skipped (no deal_id or date)")
+    rows = list(seen.values())
+    print(f"   {len(rows)} unique to upsert, {skipped} skipped, {len(records) - len(rows) - skipped} duplicates removed")
 
     print("4. Upserting to Supabase ...")
     ok = 0
