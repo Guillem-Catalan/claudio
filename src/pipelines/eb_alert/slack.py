@@ -5,7 +5,7 @@ import os
 from slack_sdk import WebClient
 
 SLACK_BOT_TOKEN = os.environ.get("SLACK_BOT_TOKEN", "")
-EB_ALERT_CHANNEL = "C0B1VPPG1F1"
+EB_ALERT_CHANNEL = "C0ATY3V8CN4"
 
 _client = WebClient(token=SLACK_BOT_TOKEN)
 
