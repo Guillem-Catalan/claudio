@@ -1,8 +1,8 @@
 """
-Classify a deal into strategy (active / stalled / closed) and subtype.
+Classify a deal into strategy (active / stalled / closed) and detect needs.
 
 Level 1: deterministic — based on deal_stage.
-Level 2: Claude classifier — determines subtype from audit + front_deals context.
+Level 2: Claude classifier — detects which modules are needed from audit + front_deals.
 """
 
 import json
@@ -49,7 +49,12 @@ def _parse_response(raw: str) -> dict:
 
 def classify(data: dict) -> dict:
     """
-    Returns {"strategy": str, "subtype": str, "is_won": bool, "reasoning": str}.
+    Returns {
+        "strategy": "active" | "stalled" | "closed",
+        "is_won": bool,
+        "needs": ["objections", "roi_pricing", ...],
+        "reasoning": str,
+    }
     """
     deal = data["deal"]
     deal_stage = deal.get("deal_stage") or ""
@@ -57,12 +62,19 @@ def classify(data: dict) -> dict:
     strategy = _level1(deal_stage)
     is_won = _is_won(deal_stage)
 
+    if strategy == "closed":
+        return {
+            "strategy": "closed",
+            "is_won": is_won,
+            "needs": [],
+            "reasoning": f"Deal closed: {deal_stage}",
+        }
+
     system_prompt = _load_classifier_prompt()
 
     user_prompt = (
         f"deal_stage: {deal_stage}\n"
-        f"strategy: {strategy}\n"
-        f"is_won: {is_won}\n\n"
+        f"strategy: {strategy}\n\n"
     )
 
     pae_audit = data.get("pae_audit") or {}
@@ -91,14 +103,16 @@ def classify(data: dict) -> dict:
             if val:
                 user_prompt += f"  {key}: {val}\n"
 
-    deal_context = data.get("deal_context") or ""
-    if deal_context:
-        user_prompt += f"\nDEAL CONTEXT (truncated):\n{deal_context[:3000]}\n"
-
     raw = analyze(system_prompt, user_prompt, max_tokens=500)
     result = _parse_response(raw)
 
-    result["strategy"] = strategy
-    result["is_won"] = is_won
+    needs = result.get("needs", [])
+    if strategy == "stalled" and "reengagement" not in needs:
+        needs.append("reengagement")
 
-    return result
+    return {
+        "strategy": strategy,
+        "is_won": is_won,
+        "needs": needs,
+        "reasoning": result.get("reasoning", ""),
+    }
