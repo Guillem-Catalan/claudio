@@ -18,6 +18,7 @@ from src.integrations import hubspot
 from src.pipelines.audit.prompt_builder import build
 from src.pipelines.audit.parser import parse
 from src.pipelines.audit.context import INSTRUCTIONS, NO_CONTEXT
+from src.pipelines.sync_deal_context.run import run as run_deal_context
 from src.pipelines.sync_deal_context.run import (
     EMAIL_PROPS,
     NOTE_PROPS,
@@ -266,6 +267,10 @@ def main():
         if any(s.lower() in stage.lower() for s in ("closed", "lost", "won", "nurturing")):
             continue
 
+        deal_name = (deal.get("deal_name") or "").lower()
+        if "session" in deal_name:
+            continue
+
         transcript = call.get("transcript") or ""
         if len(transcript) < 200:
             continue
@@ -413,13 +418,65 @@ def main():
                 error_count += 1
                 time.sleep(5)
 
-    # Summary
+    # Summary phase 1
     elapsed = time.monotonic() - start_time
     print(f"\n{'=' * 60}")
-    print(f"Done in {elapsed / 60:.1f} min")
+    print(f"Phase 1 done in {elapsed / 60:.1f} min")
     print(f"Audited: {audit_count}")
     print(f"Errors: {error_count}")
     print(f"HubSpot API requests: {hubspot.total_requests()}")
+
+    # ── Phase 2: Deal Context ──────────────────────────────────────────
+
+    print(f"\n{'=' * 60}")
+    print("=== PHASE 2: Deal Context (all open non-onboarding deals) ===\n")
+
+    offset = 0
+    dc_deals: list[dict] = []
+    while True:
+        result = (
+            supabase.table("deals")
+            .select("id, deal_id, deal_name, deal_stage")
+            .or_("deal_context.is.null,deal_context.eq.")
+            .order("deal_id")
+            .range(offset, offset + 999)
+            .execute()
+        )
+        rows = result.data or []
+        for d in rows:
+            stage = (d.get("deal_stage") or "").lower()
+            name = (d.get("deal_name") or "").lower()
+            if any(s in stage for s in ("closed", "lost", "won", "nurturing")):
+                continue
+            if "session" in name:
+                continue
+            dc_deals.append(d)
+        if len(rows) < 1000:
+            break
+        offset += 1000
+
+    print(f"{len(dc_deals)} deals to build context for\n")
+
+    dc_count = 0
+    dc_errors = 0
+
+    for i, deal in enumerate(dc_deals, 1):
+        deal_name = deal.get("deal_name") or "?"
+        print(f"\n[{i}/{len(dc_deals)}] {deal_name}")
+        try:
+            run_deal_context(deal_uuid=deal["id"], hs_deal_id=deal["deal_id"])
+            dc_count += 1
+        except Exception as e:
+            print(f"   ERROR: {e}")
+            dc_errors += 1
+            time.sleep(2)
+
+    total_elapsed = time.monotonic() - start_time
+    print(f"\n{'=' * 60}")
+    print(f"Phase 2 done. Total elapsed: {total_elapsed / 60:.1f} min")
+    print(f"Deal contexts built: {dc_count}")
+    print(f"Deal context errors: {dc_errors}")
+    print(f"Total HubSpot API requests: {hubspot.total_requests()}")
 
 
 if __name__ == "__main__":
