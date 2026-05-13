@@ -32,4 +32,5 @@ jobs:
           AZURE_CLAUDE_API_KEY: ${{ secrets.AZURE_CLAUDE_API_KEY }}
           AZURE_CLAUDE_DEPLOYMENT: ${{ secrets.AZURE_CLAUDE_DEPLOYMENT }}
           HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
-        run: python -m scripts.eb_alert --deal-uuid "${{ inputs.deal_uuid }}" --deal-id "${{ inputs.deal_id }}"
+          SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
+        run: python -u -m scripts.eb_alert --deal-uuid "${{ inputs.deal_uuid }}" --deal-id "${{ inputs.deal_id }}"

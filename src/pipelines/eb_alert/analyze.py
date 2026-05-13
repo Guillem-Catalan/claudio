@@ -1,4 +1,4 @@
-"""Generate EB assessment inline when no snapshot exists."""
+"""Generate e_accumulate inline when no snapshot exists."""
 
 import json
 
@@ -33,7 +33,7 @@ de avanzar? Si no → score máximo 9. Si sí → score 10.
 Dentro de cada tramo, ajusta según cantidad y solidez de evidencias. Solo devolver el número."""
 
 
-def generate_eb_assessment(deal_context: str, deal: dict) -> tuple[str, int | None]:
+def generate_eb_from_context(deal_context: str, deal: dict) -> tuple[str, int | None]:
     user_prompt = (
         f"Deal: {deal.get('deal_name', '?')}\n"
         f"Stage: {deal.get('deal_stage', '?')}\n"

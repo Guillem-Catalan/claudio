@@ -1,10 +1,30 @@
-"""Send EB alert when a deal enters Pricing and Packaging."""
+"""
+EB Alert — triggered when a deal enters Pricing and Packaging.
+
+Flow:
+1. Load deal from Supabase
+2. Load e_accumulate from front_deal_snapshots
+3. If missing → build deal_context on-the-fly → generate e_accumulate with Claude
+4. Classify EB (haiku) → 3 levels
+5. Generate coaching paragraph (sonnet)
+6. Post to Slack with exact Block Kit format
+"""
 
 import argparse
+import os
+import time
+from datetime import datetime, timezone
 
 from src.db.client import supabase
-from src.pipelines.eb_alert.analyze import generate_eb_assessment
-from src.pipelines.eb_alert.slack import send_eb_alert
+from src.pipelines.eb_alert.analyze import generate_eb_from_context
+from src.pipelines.eb_alert.classifier import classify_eb
+from src.pipelines.eb_alert.coaching import generate_coaching
+from src.pipelines.eb_alert.slack import SlackClient
+from src.pipelines.eb_alert.slack_blocks import (
+    PARTNER_CONFIG,
+    build_blocks,
+    build_missing_frontdeal_blocks,
+)
 from src.pipelines.sync_deal_context.run import (
     EMAIL_PROPS,
     NOTE_PROPS,
@@ -17,6 +37,8 @@ from src.pipelines.sync_deal_context.run import (
     _format_call_context,
     _format_date,
 )
+
+SLACK_CHANNEL_ID = os.environ.get("SLACK_CHANNEL_ID", "C0B1VPPG1F1")
 
 
 def _build_deal_context(deal_uuid: str, hs_deal_id: str) -> str:
@@ -118,7 +140,6 @@ def _build_deal_context(deal_uuid: str, hs_deal_id: str) -> str:
 
 
 def _get_or_build_deal_context(deal_uuid: str, hs_deal_id: str) -> str:
-    """Read deal_context from DB; if empty, build on-the-fly."""
     result = (
         supabase.table("deals")
         .select("deal_context")
@@ -137,6 +158,32 @@ def _get_or_build_deal_context(deal_uuid: str, hs_deal_id: str) -> str:
     return ctx
 
 
+def _resolve_partner(deal: dict) -> str:
+    """Resolve partner name from atlas or deal fields."""
+    if deal.get("atlas_id"):
+        try:
+            atlas_resp = (
+                supabase.table("atlas")
+                .select("company_name")
+                .eq("id", deal["atlas_id"])
+                .single()
+                .execute()
+            )
+            if atlas_resp.data:
+                return atlas_resp.data["company_name"]
+        except Exception:
+            pass
+    return ""
+
+
+def _get_partner_team(pae_email: str | None) -> str:
+    """Determine partner team from PAE email domain patterns."""
+    if not pae_email:
+        return ""
+    from src.config import get_subteam
+    return get_subteam(pae_email) or ""
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--deal-uuid", required=True)
@@ -146,7 +193,7 @@ def main():
     print(f"1. Loading deal {args.deal_uuid} ...")
     deal = (
         supabase.table("deals")
-        .select("deal_name, amount, pae, pbd, close_date, deal_id, deal_stage, atlas_id")
+        .select("deal_name, amount, pae, pbd, close_date, deal_id, deal_stage, atlas_id, sales_pricing_and_packaging_entered")
         .eq("id", args.deal_uuid)
         .single()
         .execute()
@@ -156,8 +203,26 @@ def main():
         print(f"   Deal not found: {args.deal_uuid}")
         return
 
-    print(f"   Deal: {deal['deal_name']}")
+    deal_name = deal["deal_name"]
+    hs_deal_id = deal["deal_id"]
+    print(f"   Deal: {deal_name}")
 
+    # Resolve partner
+    partner_name = _resolve_partner(deal)
+    partner_team = _get_partner_team(deal.get("pae"))
+    print(f"   Partner: {partner_name or '—'}, Team: {partner_team or '—'}")
+
+    # Slack client
+    slack = SlackClient()
+
+    # Resolve lead Slack IDs
+    lead_slack_ids: dict[str, str | None] = {}
+    for partner, cfg in PARTNER_CONFIG.items():
+        lead_email = cfg.get("lead_email")
+        if lead_email:
+            lead_slack_ids[partner] = slack.lookup_user_by_email(lead_email)
+
+    # Load e_accumulate from snapshot
     print("2. Loading latest snapshot ...")
     snapshot_resp = (
         supabase.table("front_deal_snapshots")
@@ -168,51 +233,138 @@ def main():
         .execute()
     )
     snapshot = snapshot_resp.data[0] if snapshot_resp.data else None
-    eb_text = snapshot["e_accumulate"] if snapshot else None
-    eb_score = snapshot["e_score"] if snapshot else None
-    print(f"   EB score: {eb_score}, has text: {bool(eb_text)}")
+    e_accumulate = snapshot["e_accumulate"] if snapshot else None
+    e_score = snapshot["e_score"] if snapshot else None
+    print(f"   EB score: {e_score}, has text: {bool(e_accumulate)}")
 
-    if not eb_text:
-        print("3. No EB data in snapshot — generating inline ...")
+    # Fallback: generate e_accumulate inline
+    if not e_accumulate:
+        print("3. No e_accumulate — generating inline ...")
         deal_context = _get_or_build_deal_context(args.deal_uuid, args.deal_id)
         if deal_context:
             try:
-                eb_text, eb_score = generate_eb_assessment(deal_context, deal)
-                print(f"   Generated: score={eb_score}, text={eb_text[:80]}...")
+                e_accumulate, e_score = generate_eb_from_context(deal_context, deal)
+                print(f"   Generated: score={e_score}")
             except Exception as e:
                 print(f"   Claude error: {e}")
-                eb_text = "Error generating EB assessment"
-                eb_score = None
-        else:
-            eb_text = "No deal context available — no calls, emails, or notes found for this deal."
+                e_accumulate = None
+                e_score = None
 
-    partner = None
-    if deal.get("atlas_id"):
-        print("4. Resolving partner ...")
-        atlas_resp = (
-            supabase.table("atlas")
-            .select("company_name")
-            .eq("id", deal["atlas_id"])
-            .single()
+    # If still no e_accumulate after fallback → missing front_deal alert
+    if not e_accumulate:
+        print("4. No EB data available — sending missing front_deal alert ...")
+        partner_cfg = PARTNER_CONFIG.get(partner_team, {})
+        payload = build_missing_frontdeal_blocks(
+            deal_id=hs_deal_id,
+            deal_name=deal_name,
+            partner_name=partner_team,
+            lead_slack_user_id=lead_slack_ids.get(partner_team),
+            lead_email=partner_cfg.get("lead_email"),
+        )
+        try:
+            ts = slack.post_message(SLACK_CHANNEL_ID, payload)
+            print(f"   Sent missing front_deal alert (ts={ts})")
+        except Exception as e:
+            print(f"   Slack error: {e}")
+        return
+
+    # Classify EB
+    print("4. Classifying EB ...")
+    try:
+        result = classify_eb(e_accumulate)
+    except Exception as e:
+        print(f"   Classifier error: {e}")
+        return
+
+    print(f"   Classification: {result.classification}")
+    print(f"   EB: {result.eb_name} ({result.eb_role})")
+
+    # Resolve AE Slack mention
+    ae_email = None
+    ae_slack_id = None
+    if deal.get("pae"):
+        # Try to find email from pae name
+        pae_name = deal["pae"]
+        # Look up in calls table for owner_email
+        call_resp = (
+            supabase.table("calls")
+            .select("owner_email")
+            .eq("deal_id", args.deal_uuid)
+            .not_.is_("owner_email", "null")
+            .limit(1)
             .execute()
         )
-        if atlas_resp.data:
-            partner = atlas_resp.data["company_name"]
-            print(f"   Partner: {partner}")
+        if call_resp.data:
+            ae_email = call_resp.data[0].get("owner_email")
+            if ae_email:
+                ae_slack_id = slack.lookup_user_by_email(ae_email)
 
-    print("5. Sending Slack alert ...")
-    ok = send_eb_alert(
-        deal_name=deal["deal_name"],
-        deal_id=deal["deal_id"],
-        pae=deal.get("pae"),
-        pbd=deal.get("pbd"),
-        amount=deal.get("amount"),
-        close_date=str(deal["close_date"]) if deal.get("close_date") else None,
-        partner=partner,
-        eb_status_text=eb_text,
-        eb_score=eb_score,
+    # Calculate days in stage
+    now_ms = int(time.time() * 1000)
+    entered_at = deal.get("sales_pricing_and_packaging_entered") or deal.get("close_date") or ""
+    try:
+        if entered_at:
+            from datetime import datetime as _dt
+            entered_dt = _dt.fromisoformat(str(entered_at).replace("Z", "+00:00"))
+            days_in_stage = round((time.time() - entered_dt.timestamp()) / 86400, 1)
+        else:
+            days_in_stage = 0
+    except (ValueError, TypeError):
+        days_in_stage = 0
+
+    amount_raw = deal.get("amount")
+    amount_str = f"€{float(amount_raw):,.0f}" if amount_raw else "N/A"
+
+    # Generate coaching
+    print("5. Generating coaching ...")
+    try:
+        coaching = generate_coaching(
+            classification=result.classification,
+            deal_name=deal_name,
+            amount=amount_str,
+            days_in_stage=str(days_in_stage),
+            e_accumulate=e_accumulate,
+            eb_name=result.eb_name,
+            eb_role=result.eb_role,
+            evidence=result.evidence,
+            gap=result.gap,
+        )
+        print(f"   Coaching: {coaching[:80]}...")
+    except Exception as e:
+        print(f"   Coaching error: {e}")
+        coaching = f"*EB Status*\n{result.evidence}. {result.gap}"
+
+    # Build Slack payload
+    partner_cfg = PARTNER_CONFIG.get(partner_team, {})
+    payload = build_blocks(
+        classification=result.classification,
+        deal_id=hs_deal_id,
+        deal_name=deal_name,
+        amount=amount_str,
+        closedate=str(deal.get("close_date") or ""),
+        partner_name=partner_team,
+        e_score=e_score,
+        eb_name=result.eb_name,
+        eb_role=result.eb_role,
+        e_accumulate=e_accumulate,
+        gap=result.gap,
+        coaching=coaching,
+        slack_user_id=ae_slack_id,
+        ae_email=ae_email,
+        lead_slack_user_id=lead_slack_ids.get(partner_team),
+        lead_email=partner_cfg.get("lead_email"),
     )
-    print(f"\nDone: {'sent' if ok else 'FAILED'}")
+
+    # Post to Slack
+    print("6. Posting to Slack ...")
+    try:
+        ts = slack.post_message(SLACK_CHANNEL_ID, payload)
+        print(f"   Sent (ts={ts})")
+    except Exception as e:
+        print(f"   Slack error: {e}")
+        return
+
+    print(f"\nDone: {result.classification}")
 
 
 if __name__ == "__main__":
