@@ -38,7 +38,7 @@ from src.pipelines.sync_deal_context.run import (
     _format_date,
 )
 
-SLACK_CHANNEL_ID = os.environ.get("SLACK_CHANNEL_ID", "C0ATY3V8CN4")
+SLACK_CHANNEL_ID = os.environ.get("SLACK_CHANNEL_ID") or "C0ATY3V8CN4"
 
 
 def _build_deal_context(deal_uuid: str, hs_deal_id: str) -> str:
