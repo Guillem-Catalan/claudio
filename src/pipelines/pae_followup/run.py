@@ -9,7 +9,7 @@ follow-up plan, renders PDF, and sends to the PAE's Slack channel.
 import json
 import os
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -80,16 +80,6 @@ def _demo_datetime_label(fecha: str) -> str:
         return f"Demo · {fecha[:10]}"
 
 
-def _followup_datetime_label(fecha: str) -> str:
-    if not fecha:
-        return "Email follow-up"
-    try:
-        dt = datetime.fromisoformat(fecha.replace("Z", "+00:00"))
-        fu = dt + timedelta(days=2)
-        return f"Email follow-up · {fu.day} {_MESES_CORTO[fu.month]} 09:00"
-    except Exception:
-        return "Email follow-up"
-
 
 def run(call_ref: str):
     print(f"1. Loading call {call_ref} ...")
@@ -126,7 +116,6 @@ def run(call_ref: str):
     fecha = call_data.get("fecha") or ""
     demo_date_short = _demo_date_short(fecha)
     demo_datetime = _demo_datetime_label(fecha)
-    followup_datetime = _followup_datetime_label(fecha)
     amount = deal_data.get("amount")
     amount_str = f"€{float(amount):.0f} MRR" if amount else "MRR desconocido"
     partner = _partner_name(deal_data)
@@ -142,29 +131,25 @@ def run(call_ref: str):
         f"[PRE-COMPUTED — use exactly]\n"
         f"company: {company}\n"
         f"demo_datetime: {demo_datetime}\n"
-        f"followup_datetime: {followup_datetime}\n"
         f"mrr: {amount_str}\n"
         f"partner: {partner}\n"
         f"pae: {pae_name}\n"
-        f"prospect.name: {contact['name']}\n"
-        f"prospect.role: {contact['jobtitle']}\n"
-        f"prospect.email: {contact['email']}\n"
-        f"prospect.phone: {contact['phone']}\n"
         f"\nDEAL CONTEXT:\n{context_text}"
     )
-    raw_response = analyze(system_prompt, user_prompt, max_tokens=4000)
+    raw_response = analyze(system_prompt, user_prompt, max_tokens=8000)
     brief = _parse_response(raw_response)
+
+    next_step = brief.get("next_step") or "pendiente de definir"
+    print(f"   Next step: {next_step}")
 
     print("4. Generating PDF ...")
     pdf_bytes = generate_pdf(
         brief=brief,
         company=company,
         demo_datetime=demo_datetime,
-        followup_datetime=followup_datetime,
-        demo_date_short=demo_date_short,
+        next_step=next_step,
         amount_str=amount_str,
         partner=partner,
-        contact=contact,
         pae_name=pae_name,
     )
     print(f"   PDF: {len(pdf_bytes)} bytes")
