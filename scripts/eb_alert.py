@@ -176,19 +176,20 @@ def _resolve_partner(deal: dict) -> str:
     return ""
 
 
-def _resolve_rep_email(deal_uuid: str, rol: str) -> str | None:
+def _resolve_rep_email(deal_uuid: str, hs_deal_id: str, rol: str) -> str | None:
     """Look up owner_email from calls table for a given role."""
-    resp = (
-        supabase.table("calls")
-        .select("owner_email")
-        .eq("deal_id", deal_uuid)
-        .eq("rol", rol)
-        .not_.is_("owner_email", "null")
-        .limit(1)
-        .execute()
-    )
-    if resp.data:
-        return resp.data[0].get("owner_email")
+    for col, val in [("deal_id", deal_uuid), ("hs_deal_id", hs_deal_id)]:
+        resp = (
+            supabase.table("calls")
+            .select("owner_email")
+            .eq(col, val)
+            .eq("rol", rol)
+            .not_.is_("owner_email", "null")
+            .limit(1)
+            .execute()
+        )
+        if resp.data:
+            return resp.data[0].get("owner_email")
     return None
 
 
@@ -224,8 +225,8 @@ def main():
     print(f"   Deal: {deal_name}")
 
     # Resolve PAE/PBD emails from calls table
-    ae_email = _resolve_rep_email(args.deal_uuid, "PAE")
-    pbd_email = _resolve_rep_email(args.deal_uuid, "PBD")
+    ae_email = _resolve_rep_email(args.deal_uuid, hs_deal_id, "PAE")
+    pbd_email = _resolve_rep_email(args.deal_uuid, hs_deal_id, "PBD")
     ae_name = deal.get("pae") or ""
     pbd_name = deal.get("pbd") or ""
     print(f"   PAE: {ae_email or ae_name or '—'}, PBD: {pbd_email or pbd_name or '—'}")
