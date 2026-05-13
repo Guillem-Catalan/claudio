@@ -191,13 +191,13 @@ def main():
         print("4. Resolving partner ...")
         atlas_resp = (
             supabase.table("atlas")
-            .select("name")
+            .select("company_name")
             .eq("id", deal["atlas_id"])
             .single()
             .execute()
         )
         if atlas_resp.data:
-            partner = atlas_resp.data["name"]
+            partner = atlas_resp.data["company_name"]
             print(f"   Partner: {partner}")
 
     print("5. Sending Slack alert ...")
