@@ -5,15 +5,15 @@
 CREATE OR REPLACE FUNCTION dispatch_pae_followup()
 RETURNS TRIGGER AS $$
 DECLARE
-    _tag  TEXT;
+    _tags TEXT[];
     _pat  TEXT;
     _repo TEXT;
 BEGIN
-    SELECT tag INTO _tag
+    SELECT tags INTO _tags
     FROM calls
     WHERE id = NEW.call_ref;
 
-    IF _tag IS DISTINCT FROM 'Partners - PAE Demo' THEN
+    IF _tags IS NULL OR NOT ('Partners - PAE Demo' = ANY(_tags)) THEN
         RETURN NEW;
     END IF;
 

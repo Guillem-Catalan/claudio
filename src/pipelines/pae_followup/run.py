@@ -16,6 +16,7 @@ from zoneinfo import ZoneInfo
 from src.db.client import supabase
 from src.integrations.claude import analyze
 from src.pipelines.pae_demo_prep.run import PAE_CHANNELS
+from src.pipelines.pae_followup.context import build_context
 from src.pipelines.pae_followup.pdf import generate_pdf
 from src.pipelines.pae_followup.slack import send_followup_brief
 
@@ -109,23 +110,8 @@ def run(call_ref: str):
         print(f"   No deal_id on call — skipping")
         return
 
-    print(f"2. Loading deal {deal_id} ...")
-    deal = (
-        supabase.table("deals")
-        .select("*, atlas:atlas_id(company_name)")
-        .eq("id", deal_id)
-        .maybe_single()
-        .execute()
-    )
-    if not deal.data:
-        print(f"   Deal not found — skipping")
-        return
-
-    deal_data = deal.data
-    deal_context = deal_data.get("deal_context") or ""
-    if not deal_context.strip():
-        print(f"   deal_context empty — skipping (no context to analyze)")
-        return
+    print(f"2. Building context for deal {deal_id} ...")
+    deal_data, context_text = build_context(deal_id)
 
     pae_name = deal_data.get("pae") or call_data.get("owner_nombre") or ""
     channel = os.environ.get("PAE_CHANNEL_OVERRIDE") or PAE_CHANNELS.get(pae_name)
@@ -152,15 +138,6 @@ def run(call_ref: str):
     print("3. Calling Claude ...")
     system_prompt = _load_system_prompt()
 
-    context_block = "\n".join([
-        f"## DEAL — {deal_data.get('deal_name', '?')}",
-        f"Amount: {deal_data.get('amount') or '?'} | Stage: {deal_data.get('deal_stage', '?')}",
-        f"PBD: {deal_data.get('pbd', '?')} | PAE: {pae_name}",
-        f"Contacts: {deal_data.get('contacts_info') or 'N/A'}",
-        "",
-        deal_context,
-    ])
-
     user_prompt = (
         f"[PRE-COMPUTED — use exactly]\n"
         f"company: {company}\n"
@@ -173,7 +150,7 @@ def run(call_ref: str):
         f"prospect.role: {contact['jobtitle']}\n"
         f"prospect.email: {contact['email']}\n"
         f"prospect.phone: {contact['phone']}\n"
-        f"\nDEAL CONTEXT:\n{context_block}"
+        f"\nDEAL CONTEXT:\n{context_text}"
     )
     raw_response = analyze(system_prompt, user_prompt, max_tokens=4000)
     brief = _parse_response(raw_response)
