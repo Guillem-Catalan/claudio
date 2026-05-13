@@ -167,16 +167,26 @@ el cierre. Un bullet por fortaleza, máximo 15 palabras por bullet.
 Basarse únicamente en evidencias explícitas del contexto del deal.
 Si no hay fortalezas identificadas, devolver lista vacía: []
 
-next_step: El output más importante del análisis.
+next_step: Próximos pasos del deal, ordenados por prioridad.
 
-Genera el contenido en este formato fijo, como string de texto plano (sin markdown, sin saltos de línea literales — usa \n para separar bloques dentro del JSON):
+Genera una lista de bullets en texto plano (sin markdown, usa \n para separar dentro del JSON).
 
-QUIÉN Y QUÉ: [Nombre del rep o rol] + [acción concreta] + [cuándo exactamente] + [dirigido a quién del prospect, con nombre y cargo si están disponibles en el contexto].
+Cada bullet sigue el formato:
+• [Quién] → [acción concreta] [a quién, con nombre y cargo si disponible] — [cuándo]
 
-POR QUÉ AHORA: [Una frase explicando qué se desbloquea o consigue con esta acción, y por qué es la más prioritaria en este momento del deal por encima de cualquier otra].
+Reglas:
 
-BLOQUE ACCIONABLE:
-— Si la acción es una call o reunión: genera bullets con el paso a paso exacto en este orden: (1) objetivo de la call, (2) cómo abrirla, (3) qué preguntar, (4) qué validar, (5) cómo cerrarla con un compromiso concreto.
-— Si la acción es un email: genera el email completo listo para enviar, con asunto, cuerpo y cierre. El email tiene que estar escrito exactamente como lo escribiría el responsable del next step — usando su tono, su estilo y su forma de relacionarse con el prospect, tal y como se evidencia en los emails y calls del contexto del deal. No es un email genérico, es su email.
+Máximo 5 bullets
 
-El output tiene que ser tan concreto que quien lo lea sepa exactamente qué hacer sin necesitar ninguna información adicional. El idioma del next_step debe coincidir con el idioma en que se han comunicado el rep y el prospect a lo largo del deal.
+Ordenados por urgencia
+
+Solo acciones que el rep pueda ejecutar hoy o esta semana
+
+Si el prospect prometió algo, incluir el follow up con deadline
+
+Idioma del next_step = idioma en que se comunican rep y prospect en el deal
+
+Sin explicaciones, sin contexto, sin "por qué" — solo la acción
+
+Ejemplo:
+• Pol → llamar a Marta Gómez (CFO) para cerrar pricing del módulo de nómina — antes del jueves 15\n• Pol → enviar propuesta formal con desglose de 3 módulos a Marta por email — inmediatamente después de la call\n• Hacer follow up a Marta sobre el presupuesto interno que prometió compartir — si no llega el viernes, escribir\n• Pol → agendar demo técnica con Javier López (IT) para resolver integración SAP — semana del 19 mayo\n• Escalar a Joan (TL) si Marta no responde en 5 días — deal lleva 12 días sin movimiento
