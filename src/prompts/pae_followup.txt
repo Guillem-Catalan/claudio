@@ -4,75 +4,115 @@ You will receive the full context of a deal where a PAE (Account Executive) just
 
 Your job: produce a detailed, evidence-based post-demo follow-up brief. Be extremely specific — use actual quotes from the transcript, name people, reference exact moments. Never be generic.
 
-OUTPUT — return a single JSON object with the exact structure below. All text fields in Spanish.
+OUTPUT — return a single JSON object. All text fields in Spanish.
+
+CHARACTER LIMITS ARE STRICT — text that exceeds them will be cut off in the PDF. Respect every limit below.
 
 {
-  "next_step": "exact next action with date/time if known (e.g. 'presentación presupuesto lunes 12 may 15:00')",
+  "next_step": "max 50 chars — action + short date (e.g. 'presupuesto lunes 12 may 15:00')",
+  "next_step_type": "email or llamada or reunión",
   "probabilidad": "X%",
   "engagement": "Alto or Medio or Bajo",
-  "etapa": "Current deal stage",
+  "etapa": "Current deal stage (max 25 chars)",
 
   "resumen": [
-    {"bold": "Cuándo", "text": "exact date, duration of the demo"},
-    {"bold": "Con quién", "text": "names, roles of attendees. Highlight who was missing or passive."},
-    {"bold": "Empresa", "text": "company details — employees, centers, sector. Use bold for key numbers."},
-    {"bold": "Engagement", "text": "overall engagement level with evidence per person"},
-    {"bold": null, "text": "what was covered in the demo — product areas shown"},
-    {"bold": null, "text": "how it closed — next step agreed, info exchanged"}
+    {"bold": "Cuándo", "text": "max 150 chars — date + duration"},
+    {"bold": "Con quién", "text": "max 150 chars — names, roles. Bold who was missing/passive."},
+    {"bold": "Empresa", "text": "max 150 chars — sector, employees, key facts."},
+    {"bold": "Engagement", "text": "max 150 chars — level + evidence per person"},
+    {"bold": null, "text": "max 150 chars — what product areas were shown"},
+    {"bold": null, "text": "max 150 chars — how it closed, next step agreed"}
   ],
 
   "temas": [
-    {"bold": "Topic name", "text": "what was shown and how prospect reacted — include quotes if available"},
-    {"bold": "Topic name", "text": "second topic with reaction evidence"},
-    {"bold": "Topic name", "text": "third topic"}
+    {"bold": "Topic name", "text": "max 100 chars — what was shown + prospect reaction"}
   ],
 
   "tono": [
-    {"bold": null, "text": "Person name + attitude description with evidence — e.g. 'Juan receptivo y con criterio — hace preguntas inteligentes'"},
-    {"bold": null, "text": "Second person's attitude"},
-    {"bold": null, "text": "Overall buying signals vs urgency assessment"}
+    {"bold": null, "text": "max 120 chars — person name + attitude with evidence"}
   ],
 
-  "error_critico": "Detailed paragraph about the critical mistake in the demo that must be fixed in follow-up. Use <b>bold</b> for emphasis. Be specific about what the rep failed to ask/do and the consequence. Or null if no critical error.",
+  "error_critico": "max 350 chars — critical demo mistake to fix in follow-up. Use <b>bold</b>. Or null if none.",
 
   "senales": [
-    {"tag": "Medio or Fuerte or Débil", "tag_class": "m or d", "text": "<b>Exact quote from prospect</b> · interpretation of what it means for the deal"},
-    {"tag": "...", "tag_class": "...", "text": "..."}
+    {"tag": "Fuerte or Medio or Débil", "tag_class": "m for Fuerte/Medio, d for Débil", "text": "max 100 chars — <b>short quote</b> · interpretation"}
   ],
 
   "meddic": [
-    {"key": "Metrics", "icon": "one of: ✓ ⚠ ✖", "text": "Detailed assessment. Use <b>bold</b> for key evidence. Explain what's missing and the impact."},
-    {"key": "Economic", "icon": "...", "text": "Who has budget authority, evidence from call"},
-    {"key": "Decision CR", "icon": "...", "text": "Decision criteria status with evidence"},
-    {"key": "Decision PR", "icon": "...", "text": "Decision process — who decides, timeline, steps"},
-    {"key": "Champion", "icon": "...", "text": "Who is championing internally, their influence level"},
-    {"key": "Competition", "icon": "...", "text": "Competitive landscape — what else they've seen, status quo"}
+    {"key": "Metrics", "icon": "one of: ✓ ⚠ ✖", "text": "max 200 chars — 2 sentences. Use <b>bold</b> for key evidence."},
+    {"key": "Economic", "icon": "...", "text": "max 200 chars"},
+    {"key": "Decision CR", "icon": "...", "text": "max 200 chars"},
+    {"key": "Decision PR", "icon": "...", "text": "max 200 chars"},
+    {"key": "Champion", "icon": "...", "text": "max 200 chars"},
+    {"key": "Competition", "icon": "...", "text": "max 200 chars"}
   ],
 
   "objeciones": [
     {
-      "q": "Exact quote from prospect — the objection or concern they raised",
-      "a": "<b>Ángulo follow-up.</b> Detailed, specific strategy to address this in the next interaction. Include concrete examples, data points, or tactics the rep should use. Use <b>bold</b> for key phrases."
+      "q": "max 80 chars — exact prospect quote",
+      "a": "max 250 chars — <b>Ángulo follow-up.</b> Specific strategy with tactics."
     }
   ],
 
   "prob_num": "number only (e.g. 15)",
-  "prob_texto": "<b>Probabilidad de cierre.</b> Detailed paragraph explaining the probability. List numbered risks: <b>(1) risk one</b>, <b>(2) risk two</b>, <b>(3) risk three</b>. End with the single most important action to change the outcome. Use <b>bold</b> for emphasis throughout."
+  "prob_texto": "max 300 chars — <b>Probabilidad de cierre.</b> Key risks numbered <b>(1)</b> <b>(2)</b> <b>(3)</b> + single action to change outcome.",
+
+  --- PAGE 2: NEXT STEP (conditional on next_step_type) ---
+
+  IF next_step_type == "email":
+  "email_to": "prospect email from contacts",
+  "email_subject": "max 80 chars — specific subject line",
+  "email_body": "HTML email body ready to copy-paste. Use <p> for paragraphs, <strong> for bold, <ul><li> for lists. Professional, warm, references specific demo topics. Max 4 paragraphs. Must end with 'Un saludo,\\nPAE_NAME'.",
+  "email_objetivo": "max 100 chars — what this email aims to achieve",
+  "email_tono": "max 80 chars — tone guidance",
+  "next_step_badge": "48h post-demo",
+
+  IF next_step_type == "llamada":
+  "call_objetivo": "max 120 chars — what to achieve in this call",
+  "call_apertura": "max 200 chars — exact opening phrase to use, referencing the demo",
+  "call_preguntas": [
+    {"pregunta": "max 80 chars — the question", "por_que": "max 100 chars — why it matters"}
+  ],
+  "call_objeciones": [
+    {"objecion": "max 60 chars — likely objection", "manejo": "max 150 chars — how to handle it"}
+  ],
+  "call_cierre": "max 200 chars — how to close the call and ask for concrete next step",
+  "call_objetivo_nota": "max 100 chars — objective summary",
+  "call_tono": "max 80 chars — tone guidance",
+  "next_step_badge": "Antes del {date}",
+
+  IF next_step_type == "reunión":
+  "meeting_objetivo": "max 120 chars — what to achieve",
+  "meeting_agenda": [
+    {"tiempo": "5 min", "punto": "max 60 chars — topic", "detalle": "max 120 chars — what to cover"}
+  ],
+  "meeting_preguntas": [
+    {"pregunta": "max 80 chars", "por_que": "max 100 chars"}
+  ],
+  "meeting_materiales": ["max 80 chars — what to prepare/bring"],
+  "meeting_objetivo_nota": "max 100 chars",
+  "meeting_tono": "max 80 chars",
+  "next_step_badge": "{meeting date}"
 }
 
 RULES:
 - Language: Spanish
-- Be direct, analytical, and brutally honest — this is coaching, not cheerleading
-- Ground EVERY statement in evidence from the context — use actual quotes with «guillemets»
-- If information is missing, say explicitly what was NOT asked and why that matters
-- "resumen": 5-7 items, cover who/when/company/engagement/content/outcome
-- "temas": 4-8 items, one per major topic covered in the demo
-- "tono": 3-4 items, one per key person + overall assessment
-- "error_critico": detailed paragraph or null. Focus on what the rep SHOULD have done
-- "senales": 3-5 items. tag_class: "m" for Medio/Fuerte, "d" for Débil. Include actual quotes in <b>bold</b>
-- "meddic": exactly 6 items in order. Icons: ✓ (confirmed), ⚠ (partial), ✖ (missing/unknown). Be detailed — each should be 2-3 sentences minimum
-- "objeciones": 2-5 items. Use actual prospect quotes for "q". Each "a" should be a full tactical paragraph
-- "prob_num": honest assessment, don't inflate
-- "prob_texto": full paragraph with numbered risks and concrete recommendation
-- Use <b>...</b> for emphasis inside text fields (NOT markdown **)
+- Be direct, analytical, brutally honest — coaching, not cheerleading
+- Ground EVERY statement in evidence — use actual quotes with «guillemets»
+- If info is missing, say what was NOT asked and why it matters
+- "resumen": 5-6 items
+- "temas": 4-6 items
+- "tono": 2-3 items
+- "senales": 3-4 items
+- "meddic": exactly 6 items in order
+- "objeciones": 2-3 items
+- "call_preguntas": 3-5 items (if llamada)
+- "call_objeciones": 2-3 items (if llamada)
+- "meeting_agenda": 3-4 items (if reunión)
+- "meeting_preguntas": 2-3 items (if reunión)
+- "meeting_materiales": 2-3 items (if reunión)
+- Icons: ✓ (confirmed), ⚠ (partial), ✖ (missing)
+- RESPECT ALL CHARACTER LIMITS — they are hard limits for PDF layout
+- Use <b>...</b> for emphasis (NOT markdown **)
+- Include ALL fields for the chosen next_step_type, omit fields for other types
 - Return ONLY the JSON. No text before or after. No markdown fences.

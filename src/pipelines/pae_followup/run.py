@@ -140,7 +140,8 @@ def run(call_ref: str):
     brief = _parse_response(raw_response)
 
     next_step = brief.get("next_step") or "pendiente de definir"
-    print(f"   Next step: {next_step}")
+    step_type = brief.get("next_step_type", "email")
+    print(f"   Next step: {next_step} (type={step_type})")
 
     print("4. Generating PDF ...")
     pdf_bytes = generate_pdf(
@@ -151,6 +152,7 @@ def run(call_ref: str):
         amount_str=amount_str,
         partner=partner,
         pae_name=pae_name,
+        contact=contact,
     )
     print(f"   PDF: {len(pdf_bytes)} bytes")
 
