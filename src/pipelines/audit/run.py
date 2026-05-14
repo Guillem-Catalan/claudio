@@ -77,4 +77,17 @@ def _audit(call: dict) -> dict | None:
         print(f"  Appending audit result to deal_context ...")
         append_audit_to_context(call["deal_id"], call, fields)
 
+    if role == "PAE" and _is_demo_call(call):
+        try:
+            from src.pipelines.demo_evaluation.run import run as run_demo_eval
+            print(f"  Demo detected — running demo evaluation ...")
+            run_demo_eval(call, row, deal_context)
+        except Exception as e:
+            print(f"  Demo evaluation error: {e}")
+
     return row
+
+
+def _is_demo_call(call: dict) -> bool:
+    tags = call.get("tags") or []
+    return "Partners - PAE Demo" in tags

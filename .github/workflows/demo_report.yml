@@ -1,0 +1,17 @@
+name: Demo Report
+
+on:
+  workflow_dispatch:
+    inputs:
+      audit_demo_id:
+        description: "audit_demos row ID"
+        required: true
+        type: string
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "PDF generation pending — audit_demo_id=${{ inputs.audit_demo_id }}"
