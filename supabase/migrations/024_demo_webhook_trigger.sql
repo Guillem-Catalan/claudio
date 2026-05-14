@@ -48,9 +48,9 @@ $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS trg_demo_webhook_flag ON pae_audits;
 
 CREATE TRIGGER trg_demo_webhook_flag
-    AFTER UPDATE ON pae_audits
+    AFTER INSERT OR UPDATE ON pae_audits
     FOR EACH ROW
-    WHEN (OLD.win_rate_score IS NULL AND NEW.win_rate_score IS NOT NULL)
+    WHEN (NEW.win_rate_score IS NOT NULL)
     EXECUTE FUNCTION mark_demo_webhook_pending();
 
 -- ── Step 3: POST webhook after front_deal_snapshots INSERT ──────────────────
