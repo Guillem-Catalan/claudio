@@ -6,22 +6,23 @@ from src.pipelines.audit.parser import parse
 
 
 def run_single(call_id: str) -> dict | None:
-    call = (
+    resp = (
         supabase.table("calls")
         .select("*")
         .eq("call_id", call_id)
-        .maybe_single()
+        .limit(1)
         .execute()
     )
-    if not call.data:
+    if not resp.data:
         print(f"  Call {call_id} not found")
         return None
 
-    if _already_audited(call.data):
+    call = resp.data[0]
+    if _already_audited(call):
         print(f"  Skipping call {call_id} — already audited")
         return None
 
-    return _audit(call.data)
+    return _audit(call)
 
 
 def _already_audited(call: dict) -> bool:
@@ -29,14 +30,16 @@ def _already_audited(call: dict) -> bool:
     if not role:
         return False
     table = "pbd_audits" if role == "PBD" else "pae_audits"
-    existing = (
+    resp = (
         supabase.table(table)
         .select("win_rate_score")
         .eq("call_ref", call["id"])
-        .maybe_single()
+        .limit(1)
         .execute()
     )
-    return bool(existing.data and existing.data.get("win_rate_score") is not None)
+    if not resp.data:
+        return False
+    return resp.data[0].get("win_rate_score") is not None
 
 
 def _audit(call: dict) -> dict | None:
