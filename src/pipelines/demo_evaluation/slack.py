@@ -1,4 +1,4 @@
-"""Send demo evaluation PDF to Slack."""
+"""Send weekly demo coaching PDF or no-demos notice to Slack."""
 
 import os
 
@@ -11,18 +11,18 @@ _client = WebClient(token=SLACK_BOT_TOKEN)
 
 def send_demo_report(
     pdf_bytes: bytes,
-    company: str,
-    pae: str,
-    partner: str,
-    amount_str: str,
+    pae_name: str,
+    week_range: str,
+    demo_count: int,
+    mrr_total: str,
     channel: str,
 ) -> bool:
     intro = (
-        f":bar_chart: Demo Evaluation — {company}\n"
-        f"PAE: {pae} · Partner: {partner} · {amount_str}"
+        f":bar_chart: *Weekly Demo Coaching — {pae_name}*\n"
+        f"Semana {week_range} · {demo_count} demos · {mrr_total}"
     )
 
-    filename = f"demo-eval-{company.lower().replace(' ', '-')}.pdf"
+    filename = f"demo-coaching-{pae_name.lower().replace(' ', '-')}.pdf"
 
     try:
         resp = _client.files_getUploadURLExternal(
@@ -41,6 +41,20 @@ def send_demo_report(
         )
 
         print(f"  Slack: sent to {channel}")
+        return True
+    except Exception as e:
+        print(f"  Slack error: {e}")
+        return False
+
+
+def send_no_demos_notice(pae_name: str, week_range: str, channel: str) -> bool:
+    text = (
+        f":bar_chart: Weekly Demo Coaching — {pae_name}\n"
+        f"No se han registrado demos en la semana {week_range}."
+    )
+    try:
+        _client.chat_postMessage(channel=channel, text=text)
+        print(f"  Slack: no-demos notice sent to {channel}")
         return True
     except Exception as e:
         print(f"  Slack error: {e}")

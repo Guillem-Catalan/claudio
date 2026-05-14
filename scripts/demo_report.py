@@ -1,63 +1,26 @@
 """
-CLI: generate demo evaluation PDF and send to Slack.
+Weekly demo coaching report.
 
-Usage: python -m scripts.demo_report <audit_demo_id>
+Usage:
+  python -m scripts.demo_report                                      # all PAEs, previous week
+  python -m scripts.demo_report --pae-email xavier.fortuny@factorial.co
+  python -m scripts.demo_report --week-start 2026-05-05
 """
 
 import argparse
-import os
+from datetime import date
 
-from src.db.client import supabase
-from src.pipelines.demo_evaluation.pdf import generate_pdf
-from src.pipelines.demo_evaluation.slack import send_demo_report
-from src.config import PAE_CHANNELS
-
-SLACK_CHANNEL_ID = os.environ.get("SLACK_CHANNEL_ID") or "C0ATY3V8CN4"
+from src.pipelines.demo_evaluation.weekly_report import run_weekly
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("audit_demo_id")
+    parser.add_argument("--pae-email", help="Single PAE email (default: all Santander/Telefónica)")
+    parser.add_argument("--week-start", help="Monday of target week YYYY-MM-DD (default: previous week)")
     args = parser.parse_args()
 
-    print(f"1. Loading audit_demo {args.audit_demo_id} ...")
-    resp = (
-        supabase.table("audit_demos")
-        .select("*")
-        .eq("id", args.audit_demo_id)
-        .single()
-        .execute()
-    )
-    data = resp.data
-    if not data:
-        print(f"   Not found: {args.audit_demo_id}")
-        return
-
-    company = data.get("company_name") or "?"
-    pae = data.get("pae") or data.get("owner_name") or "?"
-    partner = data.get("partner") or "?"
-    amount = data.get("amount")
-    amount_str = f"€{float(amount):,.0f}" if amount else "—"
-
-    print(f"   Company: {company}, PAE: {pae}, Partner: {partner}")
-
-    print("2. Generating PDF ...")
-    pdf_bytes = generate_pdf(data)
-    print(f"   PDF: {len(pdf_bytes)} bytes")
-
-    channel = PAE_CHANNELS.get(pae) or SLACK_CHANNEL_ID
-    print(f"3. Sending to Slack ({channel}) ...")
-    send_demo_report(
-        pdf_bytes=pdf_bytes,
-        company=company,
-        pae=pae,
-        partner=partner,
-        amount_str=amount_str,
-        channel=channel,
-    )
-
-    supabase.table("audit_demos").update({"pdf_generated": True}).eq("id", args.audit_demo_id).execute()
-    print("   Done.")
+    ws = date.fromisoformat(args.week_start) if args.week_start else None
+    run_weekly(pae_email=args.pae_email, week_start=ws)
 
 
 if __name__ == "__main__":
