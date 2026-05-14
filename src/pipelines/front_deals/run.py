@@ -80,7 +80,15 @@ def _build_user_prompt(deal: dict, deal_context: str, prev: dict | None) -> str:
 def _parse_response(text: str) -> dict:
     text = re.sub(r"^```(?:json)?\s*", "", text)
     text = re.sub(r"\s*```$", "", text)
-    return json.loads(text.strip())
+    text = text.strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        start = text.find("{")
+        end = text.rfind("}")
+        if start != -1 and end != -1 and end > start:
+            return json.loads(text[start : end + 1])
+        raise
 
 
 def run(deal_uuid: str, hs_deal_id: str):

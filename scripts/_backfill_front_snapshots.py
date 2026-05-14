@@ -37,16 +37,22 @@ def _inc_error():
 
 def _process(idx: int, total: int, deal: dict) -> bool:
     deal_name = deal.get("deal_name") or "?"
-    try:
-        print(f"[{idx}/{total}] {deal_name}", flush=True)
-        run(deal_uuid=deal["id"], hs_deal_id=deal["deal_id"])
-        _inc_ok()
-        return True
-    except Exception as e:
-        print(f"   [{deal_name}] ERROR: {e}", flush=True)
-        _inc_error()
-        time.sleep(2)
-        return False
+    for attempt in range(2):
+        try:
+            label = f"[{idx}/{total}]" if attempt == 0 else f"[{idx}/{total}] RETRY"
+            print(f"{label} {deal_name}", flush=True)
+            run(deal_uuid=deal["id"], hs_deal_id=deal["deal_id"])
+            _inc_ok()
+            return True
+        except Exception as e:
+            if attempt == 0:
+                print(f"   [{deal_name}] ERROR (will retry): {e}", flush=True)
+                time.sleep(3)
+            else:
+                print(f"   [{deal_name}] ERROR (giving up): {e}", flush=True)
+                _inc_error()
+                return False
+    return False
 
 
 def main():
