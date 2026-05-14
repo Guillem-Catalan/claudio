@@ -59,7 +59,14 @@ def _resolve_company_name(crm_id: str | None) -> str:
         return "?"
 
 
+def _format_date(val) -> str:
+    return str(val)[:10] if val else "—"
+
+
 def _build_user_prompt(call: dict, deal: dict, deal_context: str) -> str:
+    amount = deal.get("amount")
+    amount_str = f"{float(amount):,.0f}€" if amount is not None else "?"
+
     lines = [
         "=== CONTEXTO DEL DEAL ===",
         "",
@@ -67,9 +74,18 @@ def _build_user_prompt(call: dict, deal: dict, deal_context: str) -> str:
         f"- Deal_Name: {deal.get('deal_name') or '?'}",
         f"- Deal_id: {deal.get('deal_id') or '?'}",
         f"- Stage: {deal.get('deal_stage') or '?'}",
-        f"- MRR: {deal.get('amount') or '?'}€",
+        f"- Forecast_Category: {deal.get('forecast_category') or '?'}",
+        f"- MRR: {amount_str}",
+        f"- Close_Date: {_format_date(deal.get('close_date'))}",
+        f"- Created: {_format_date(deal.get('createdate'))}",
+        f"- Deal_Age_Days: {deal.get('deal_age_days') or '?'}",
         f"- PBD: {deal.get('pbd') or 'Ninguno'}",
         f"- PAE: {deal.get('pae') or 'Ninguno'}",
+        f"- Contacts_Info: {deal.get('contacts_info') or '—'}",
+        f"- Rep_Next_Step: {deal.get('rep_next_step') or '—'}",
+        f"- Rep_Probability: {deal.get('rep_probability') or '?'}",
+        f"- Emails: {deal.get('numero_de_emails') or 0}, Calls: {deal.get('numero_de_calls') or 0}, Notes: {deal.get('numero_de_notas') or 0}",
+        f"- Last_Contacted: {_format_date(deal.get('last_contacted_hs'))}",
         "",
         "HISTORIAL COMPLETO DEL DEAL (incluye calls PBD, emails, audits previos, handover)",
         "",
@@ -105,12 +121,12 @@ def run(call: dict, pae_audit: dict, deal_context: str):
     if deal_uuid:
         resp = (
             supabase.table("deals")
-            .select("deal_name, deal_id, deal_stage, amount, pbd, pae, crm_id")
+            .select("*")
             .eq("id", deal_uuid)
-            .maybe_single()
+            .limit(1)
             .execute()
         )
-        deal_data = resp.data or {}
+        deal_data = resp.data[0] if resp.data else {}
 
     company_name = _resolve_company_name(deal_data.get("crm_id") or call.get("crm_id"))
     partner = get_subteam(call.get("owner_email") or "") or ""
@@ -131,10 +147,10 @@ def run(call: dict, pae_audit: dict, deal_context: str):
             supabase.table("pae_audits")
             .select("id")
             .eq("call_ref", call["id"])
-            .maybe_single()
+            .limit(1)
             .execute()
         )
-        pae_audit_id = existing.data["id"] if existing.data else None
+        pae_audit_id = existing.data[0]["id"] if existing.data else None
 
     try:
         mrr = float(deal_data.get("amount")) if deal_data.get("amount") is not None else None

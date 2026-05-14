@@ -81,12 +81,17 @@ def _audit(call: dict) -> dict | None:
         append_audit_to_context(call["deal_id"], call, fields)
 
     if role == "PAE" and _is_demo_call(call):
-        try:
-            from src.pipelines.demo_evaluation.run import run as run_demo_eval
-            print(f"  Demo detected — running demo evaluation ...")
-            run_demo_eval(call, row, deal_context)
-        except Exception as e:
-            print(f"  Demo evaluation error: {e}")
+        from src.config import get_subteam
+        team = get_subteam(call.get("owner_email") or "")
+        if team in ("Santander", "Telefónica"):
+            try:
+                from src.pipelines.demo_evaluation.run import run as run_demo_eval
+                print(f"  Demo detected ({team}) — running demo evaluation ...")
+                run_demo_eval(call, row, deal_context)
+            except Exception as e:
+                print(f"  Demo evaluation error: {e}")
+        else:
+            print(f"  Demo detected but team '{team or '?'}' not enabled — skipping demo eval")
 
     return row
 
