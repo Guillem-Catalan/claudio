@@ -97,14 +97,14 @@ def run(deal_uuid: str, hs_deal_id: str):
         supabase.table("deals")
         .select("*")
         .eq("id", deal_uuid)
-        .maybe_single()
+        .limit(1)
         .execute()
     )
     if not deal.data:
         print(f"   Deal {deal_uuid} not found — skipping.")
         return
 
-    d = deal.data
+    d = deal.data[0]
     deal_context = d.get("deal_context") or ""
 
     if not deal_context.strip():
@@ -120,10 +120,9 @@ def run(deal_uuid: str, hs_deal_id: str):
         .eq("hs_deal_id", hs_deal_id)
         .order("snapshot_date", desc=True)
         .limit(1)
-        .maybe_single()
         .execute()
     )
-    prev = prev_result.data if prev_result.data else None
+    prev = prev_result.data[0] if prev_result.data else None
     if prev:
         print(f"   Previous snapshot: {prev.get('snapshot_date')}")
     else:
