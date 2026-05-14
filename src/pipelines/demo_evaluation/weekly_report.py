@@ -122,7 +122,7 @@ def _find_demo_calls(pae_email: str, week_start: date, week_end: date) -> list[d
         .eq("owner_email", pae_email)
         .gte("fecha", week_start.isoformat())
         .lt("fecha", week_end.isoformat())
-        .contains("tags", '["Partners - PAE Demo"]')
+        .contains("tags", '{"Partners - PAE Demo"}')
         .order("fecha")
         .execute()
     )
@@ -181,18 +181,34 @@ def _run_fallback(demo_calls: list[dict]):
 
 
 def _fetch_deals(audit_rows: list[dict]) -> dict[str, dict]:
-    deal_refs = {r["deal_ref"] for r in audit_rows if r.get("deal_ref")}
     result = {}
-    for ref in deal_refs:
-        resp = (
-            supabase.table("deals")
-            .select("*")
-            .eq("id", ref)
-            .limit(1)
-            .execute()
-        )
-        if resp.data:
-            result[ref] = resp.data[0]
+    for r in audit_rows:
+        deal_ref = r.get("deal_ref")
+        if deal_ref and deal_ref not in result:
+            resp = (
+                supabase.table("deals")
+                .select("*")
+                .eq("id", deal_ref)
+                .limit(1)
+                .execute()
+            )
+            if resp.data:
+                result[deal_ref] = resp.data[0]
+                continue
+
+        hs_id = r.get("hs_deal_id")
+        if hs_id and not deal_ref:
+            resp = (
+                supabase.table("deals")
+                .select("*")
+                .eq("deal_id", hs_id)
+                .limit(1)
+                .execute()
+            )
+            if resp.data:
+                resolved_ref = resp.data[0]["id"]
+                result[resolved_ref] = resp.data[0]
+                r["deal_ref"] = resolved_ref
     return result
 
 

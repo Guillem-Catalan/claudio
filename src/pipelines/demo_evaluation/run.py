@@ -128,6 +128,18 @@ def run(call: dict, pae_audit: dict, deal_context: str):
         )
         deal_data = resp.data[0] if resp.data else {}
 
+    if not deal_data and call.get("hs_deal_id"):
+        resp = (
+            supabase.table("deals")
+            .select("*")
+            .eq("deal_id", call["hs_deal_id"])
+            .limit(1)
+            .execute()
+        )
+        if resp.data:
+            deal_data = resp.data[0]
+            deal_uuid = deal_data["id"]
+
     company_name = _resolve_company_name(deal_data.get("crm_id") or call.get("crm_id"))
     partner = get_subteam(call.get("owner_email") or "") or ""
 
