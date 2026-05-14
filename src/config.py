@@ -158,3 +158,16 @@ TAG_AUDIT_LEVEL = {
 }
 
 HANDOVER_TRIGGER_TAG = "91. Partners - PBD Demo Scheduled"
+
+PAE_CHANNELS = {
+    "Alejandro Soto Velasco": "C0B36Q1EX9T",
+    "Carlos Sanchez": "C0B33QJLF8B",
+    "David Clemente": "C0B33QDE4KD",
+    "Jose Donis": "C0B24A51PNE",
+    "Joan Lorenzo Galles": "C0B2UMVT5NK",
+    "Mireia Serrano": "C0B384853M4",
+    "Nerea Urien Meizoso": "C0B2UMRUV2T",
+    "Pol Bartolomé": "C0B33Q2T7FV",
+    "Roberto Morán": "C0B36RD537X",
+    "Xavier Fortuny": "C0B1CNJTPMZ",
+}

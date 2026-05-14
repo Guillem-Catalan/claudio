@@ -17,7 +17,7 @@ import re
 from pathlib import Path
 
 from src.integrations.claude import analyze
-from src.pipelines.pae_demo_prep.run import PAE_CHANNELS
+from src.config import PAE_CHANNELS
 from src.pipelines.pae_followup.classifier import classify
 from src.pipelines.pae_followup.context import load_full_context
 from src.pipelines.pae_followup.modules import CORE_MODULES, render_modules

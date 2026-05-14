@@ -10,7 +10,7 @@ import os
 from src.db.client import supabase
 from src.pipelines.demo_evaluation.pdf import generate_pdf
 from src.pipelines.demo_evaluation.slack import send_demo_report
-from src.pipelines.pae_demo_prep.run import PAE_CHANNELS
+from src.config import PAE_CHANNELS
 
 SLACK_CHANNEL_ID = os.environ.get("SLACK_CHANNEL_ID") or "C0ATY3V8CN4"
 
