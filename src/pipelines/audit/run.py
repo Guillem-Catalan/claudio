@@ -48,6 +48,18 @@ def _audit(call: dict) -> dict | None:
         print(f"  Skipping call {call['call_id']} — no role assigned")
         return None
 
+    if call.get("deal_id"):
+        deal_resp = (
+            supabase.table("deals")
+            .select("deal_name")
+            .eq("id", call["deal_id"])
+            .limit(1)
+            .execute()
+        )
+        if deal_resp.data and "session" in (deal_resp.data[0].get("deal_name") or "").lower():
+            print(f"  Skipping call {call['call_id']} — onboarding deal")
+            return None
+
     deal_context = get_deal_context(
         deal_uuid=call.get("deal_id"),
         call_date=call.get("fecha", ""),

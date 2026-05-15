@@ -203,4 +203,20 @@ def run(since: datetime | None = None):
     written = _upsert_calls(calls)
     print(f"   {written} calls upserted")
 
+    print("\n6. Auditing calls...")
+    from src.pipelines.audit.run import run_single
+
+    audited = 0
+    for call in calls:
+        if not call["rol"]:
+            continue
+        try:
+            result = run_single(call["call_id"])
+            if result:
+                audited += 1
+                print(f"   {call['call_id']}: win_rate={result.get('win_rate_score')}")
+        except Exception as e:
+            print(f"   {call['call_id']}: ERROR {e}")
+    print(f"   {audited} calls audited")
+
     return calls
