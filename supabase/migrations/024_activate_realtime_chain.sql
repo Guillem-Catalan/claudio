@@ -62,7 +62,62 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- ── 3. Disable audit dispatch triggers (inline auditing replaces them) ──────
+-- ── 3. dc_on_snapshot_ready: skip session deals ────────────────────────────
+
+CREATE OR REPLACE FUNCTION dc_on_snapshot_ready()
+RETURNS TRIGGER AS $$
+DECLARE
+    _pat  TEXT;
+    _repo TEXT;
+    _deal_name TEXT;
+BEGIN
+    IF NOT (NEW.calls_ready AND NEW.emails_ready AND NEW.notes_ready AND NEW.atlas_ready) THEN
+        RETURN NEW;
+    END IF;
+
+    IF NEW.front_deal_triggered_at IS NOT NULL THEN
+        RETURN NEW;
+    END IF;
+
+    SELECT LOWER(deal_name) INTO _deal_name FROM deals WHERE id = NEW.deal_id;
+    IF _deal_name LIKE '%session%' THEN
+        RETURN NEW;
+    END IF;
+
+    SELECT decrypted_secret INTO _pat
+    FROM vault.decrypted_secrets
+    WHERE name = 'github_pat';
+
+    _repo := current_setting('app.settings.github_repo', true);
+    IF _repo IS NULL OR _repo = '' THEN
+        _repo := 'guillemcatalan/claudio';
+    END IF;
+
+    PERFORM net.http_post(
+        url     := 'https://api.github.com/repos/' || _repo || '/actions/workflows/front_deals.yml/dispatches',
+        headers := jsonb_build_object(
+            'Authorization', 'Bearer ' || _pat,
+            'Accept', 'application/vnd.github+json'
+        ),
+        body    := jsonb_build_object(
+            'ref', 'main',
+            'inputs', jsonb_build_object(
+                'deal_uuid', NEW.deal_id::text,
+                'hs_deal_id', NEW.hs_deal_id
+            )
+        )
+    );
+
+    UPDATE deal_confirmations
+    SET front_deal_triggered_at = now()
+    WHERE id = NEW.id;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- ── 4. Disable audit dispatch triggers (inline auditing replaces them) ──────
 
 ALTER TABLE pbd_audits DISABLE TRIGGER trg_pbd_audit_stub_created;
 ALTER TABLE pae_audits DISABLE TRIGGER trg_pae_audit_stub_created;
