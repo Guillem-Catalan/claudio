@@ -182,7 +182,7 @@ def fetch_deal_properties(deal_ids: list[str], stages: dict[str, str]) -> list[d
                 "_owner_id": p.get("hubspot_owner_id") or "",
                 "_partner_name": p.get("partner_name") or "",
                 "first_meeting_at": _to_date(p.get("first_meeting_at")),
-                "hs_next_meeting_start_time": p.get("hs_next_meeting_start_time") or None,
+                "hs_next_meeting_start_time": _to_date(p.get("hs_next_meeting_start_time")),
             }
 
             for hs_prop, col in PIPELINE_DATE_MAP.items():
