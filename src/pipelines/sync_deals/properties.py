@@ -128,6 +128,14 @@ def fetch_owners() -> dict[str, dict]:
 def _to_date(val: str | None) -> str | None:
     if not val:
         return None
+    if val.isdigit():
+        ts = int(val)
+        if ts > 1e12:
+            ts = ts / 1000
+        try:
+            return datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%d")
+        except (ValueError, OSError):
+            return None
     return val[:10]
 
 
