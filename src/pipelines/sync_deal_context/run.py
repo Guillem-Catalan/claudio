@@ -301,7 +301,7 @@ def _all_calls_audited(deal_uuid: str) -> bool:
 # ── Main pipeline ────────────────────────────────────────────────────────
 
 
-def run(deal_uuid: str, hs_deal_id: str):
+def run(deal_uuid: str, hs_deal_id: str, *, owners: dict[str, dict] | None = None):
     print(f"1. Reading current state for deal {deal_uuid} ...")
     deal_result = (
         supabase.table("deals")
@@ -331,8 +331,11 @@ def run(deal_uuid: str, hs_deal_id: str):
         f"   Context: {len(current_context)} chars, {len(existing_hs_ids)} tracked IDs"
     )
 
-    print("2. Fetching owners ...")
-    owners = _fetch_owners()
+    if owners is None:
+        print("2. Fetching owners ...")
+        owners = _fetch_owners()
+    else:
+        print("2. Using cached owners ...")
 
     # ── Collect all new items with type tags ──────────────────────────
     # Each item: (date_sort, item_type, payload)

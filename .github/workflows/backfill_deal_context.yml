@@ -1,7 +1,18 @@
-name: "Backfill Deal Context (temporary)"
+name: "Backfill Deal Context"
 
 on:
   workflow_dispatch:
+    inputs:
+      offset:
+        description: "Skip first N deals (for resuming)"
+        required: false
+        default: "0"
+        type: string
+      limit:
+        description: "Max deals to process (0 = all)"
+        required: false
+        default: "0"
+        type: string
 
 jobs:
   backfill:
@@ -16,7 +27,7 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - name: Build deal_context for all deals
+      - name: Build deal_context for deals
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -24,4 +35,4 @@ jobs:
           AZURE_CLAUDE_ENDPOINT: ${{ secrets.AZURE_CLAUDE_ENDPOINT }}
           AZURE_CLAUDE_API_KEY: ${{ secrets.AZURE_CLAUDE_API_KEY }}
           AZURE_CLAUDE_DEPLOYMENT: ${{ secrets.AZURE_CLAUDE_DEPLOYMENT }}
-        run: python -m scripts.backfill_deal_context
+        run: python -m scripts.backfill_deal_context --offset ${{ inputs.offset }} --limit ${{ inputs.limit }}
