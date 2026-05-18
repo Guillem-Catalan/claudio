@@ -4,7 +4,7 @@ import json
 import re
 from datetime import date, timedelta
 
-from src.config import TEAMS, PAE_CHANNELS
+from src.config import TEAMS, PAE_CHANNELS, TEAM_LEAD_CHANNELS
 from src.db.client import supabase
 from src.integrations.claude import analyze
 from src.pipelines.demo_evaluation.weekly_prompt import build as build_prompt
@@ -55,6 +55,13 @@ def _resolve_pae_name(email: str) -> str:
     return email.split("@")[0].replace(".", " ").title()
 
 
+def _get_team(pae_email: str) -> str | None:
+    for team_name, team in TEAMS.items():
+        if pae_email in team.get("pae", set()):
+            return team_name
+    return None
+
+
 def _process_pae(pae_email: str, week_start: date, week_end: date):
     print(f"\n  --- {pae_email} ---")
 
@@ -68,7 +75,8 @@ def _process_pae(pae_email: str, week_start: date, week_end: date):
             audit_rows = _get_audit_demos(pae_email, week_start, week_end)
 
     pae_name = _resolve_pae_name(pae_email)
-    channel = PAE_CHANNELS.get(pae_name) or "C0ATY3V8CN4"
+    team = _get_team(pae_email)
+    channel = TEAM_LEAD_CHANNELS.get(team, PAE_CHANNELS.get(pae_name) or "C0ATY3V8CN4")
     week_range = f"{week_start.isoformat()} → {(week_end - timedelta(days=1)).isoformat()}"
 
     if not audit_rows:

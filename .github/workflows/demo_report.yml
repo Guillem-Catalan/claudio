@@ -1,6 +1,8 @@
 name: Demo Report
 
 on:
+  schedule:
+    - cron: "0 5 * * 1"  # Monday 7:00 AM Spain (UTC+2)
   workflow_dispatch:
     inputs:
       pae_email:

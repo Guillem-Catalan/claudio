@@ -171,3 +171,8 @@ PAE_CHANNELS = {
     "Roberto Morán": "C0B36RD537X",
     "Xavier Fortuny": "C0B1CNJTPMZ",
 }
+
+TEAM_LEAD_CHANNELS = {
+    "Santander": "C0B36RD537X",   # Roberto Morán
+    "Telefónica": "C0B33QJLF8B",  # Carlos Sanchez
+}
