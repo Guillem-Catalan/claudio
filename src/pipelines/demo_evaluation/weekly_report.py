@@ -93,7 +93,7 @@ def _process_pae(
     print(f"  {len(audit_rows)} demos found")
 
     deals_data = _fetch_deals(audit_rows)
-    pbd_names = _resolve_pbd_names(audit_rows)
+    pbd_names = _resolve_pbd_names(audit_rows, deals_data)
 
     print(f"  Generating Claude synthesis ...")
     synthesis = _generate_synthesis(pae_name, pae_email, week_start, week_end, audit_rows, deals_data)
@@ -226,7 +226,7 @@ def _fetch_deals(audit_rows: list[dict]) -> dict[str, dict]:
     return result
 
 
-def _resolve_pbd_names(audit_rows: list[dict]) -> dict[str, str]:
+def _resolve_pbd_names(audit_rows: list[dict], deals_data: dict[str, dict]) -> dict[str, str]:
     deal_refs = {r["deal_ref"] for r in audit_rows if r.get("deal_ref")}
     result = {}
     for ref in deal_refs:
@@ -248,12 +248,33 @@ def _resolve_pbd_names(audit_rows: list[dict]) -> dict[str, str]:
             .eq("deal_id", ref)
             .eq("rol", "PBD")
             .not_.is_("owner_nombre", "null")
-            .limit(1)
             .execute()
         )
         if resp.data:
-            result[ref] = resp.data[0]["owner_nombre"]
+            result[ref] = _most_frequent_name(resp.data, "owner_nombre")
+            continue
+
+        hs_deal_id = deals_data.get(ref, {}).get("deal_id")
+        if hs_deal_id:
+            resp = (
+                supabase.table("calls")
+                .select("owner_nombre")
+                .eq("hs_deal_id", hs_deal_id)
+                .eq("rol", "PBD")
+                .not_.is_("owner_nombre", "null")
+                .execute()
+            )
+            if resp.data:
+                result[ref] = _most_frequent_name(resp.data, "owner_nombre")
     return result
+
+
+def _most_frequent_name(rows: list[dict], field: str) -> str:
+    from collections import Counter
+    names = [r[field] for r in rows if r.get(field)]
+    if not names:
+        return ""
+    return Counter(names).most_common(1)[0][0]
 
 
 def _generate_synthesis(
