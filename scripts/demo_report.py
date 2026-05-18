@@ -17,10 +17,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--pae-email", help="Single PAE email (default: all Santander/Telefónica)")
     parser.add_argument("--week-start", help="Monday of target week YYYY-MM-DD (default: previous week)")
+    parser.add_argument("--channel", help="Override Slack channel ID (for testing)")
     args = parser.parse_args()
 
     ws = date.fromisoformat(args.week_start) if args.week_start else None
-    run_weekly(pae_email=args.pae_email, week_start=ws)
+    run_weekly(pae_email=args.pae_email, week_start=ws, channel_override=args.channel)
 
 
 if __name__ == "__main__":

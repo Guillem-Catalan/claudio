@@ -11,10 +11,11 @@ from src.pipelines.demo_evaluation.weekly_prompt import build as build_prompt
 from src.pipelines.demo_evaluation.pdf import generate_pdf
 from src.pipelines.demo_evaluation.slack import send_demo_report, send_no_demos_notice
 
-_BANT_PRIORITY = {"Confirmed": 3, "Partial": 2, "Missing": 1, "N/A": 0}
-
-
-def run_weekly(pae_email: str | None = None, week_start: date | None = None):
+def run_weekly(
+    pae_email: str | None = None,
+    week_start: date | None = None,
+    channel_override: str | None = None,
+):
     if not week_start:
         today = date.today()
         week_start = today - timedelta(days=today.weekday() + 7)
@@ -36,7 +37,7 @@ def run_weekly(pae_email: str | None = None, week_start: date | None = None):
 
     for email in sorted(pae_emails):
         try:
-            _process_pae(email, week_start, week_end)
+            _process_pae(email, week_start, week_end, channel_override)
         except Exception as e:
             print(f"  ERROR processing {email}: {e}")
 
@@ -62,7 +63,12 @@ def _get_team(pae_email: str) -> str | None:
     return None
 
 
-def _process_pae(pae_email: str, week_start: date, week_end: date):
+def _process_pae(
+    pae_email: str,
+    week_start: date,
+    week_end: date,
+    channel_override: str | None = None,
+):
     print(f"\n  --- {pae_email} ---")
 
     audit_rows = _get_audit_demos(pae_email, week_start, week_end)
@@ -76,7 +82,7 @@ def _process_pae(pae_email: str, week_start: date, week_end: date):
 
     pae_name = _resolve_pae_name(pae_email)
     team = _get_team(pae_email)
-    channel = TEAM_LEAD_CHANNELS.get(team, PAE_CHANNELS.get(pae_name) or "C0ATY3V8CN4")
+    channel = channel_override or TEAM_LEAD_CHANNELS.get(team, PAE_CHANNELS.get(pae_name) or "C0ATY3V8CN4")
     week_range = f"{week_start.isoformat()} → {(week_end - timedelta(days=1)).isoformat()}"
 
     if not audit_rows:
@@ -87,13 +93,13 @@ def _process_pae(pae_email: str, week_start: date, week_end: date):
     print(f"  {len(audit_rows)} demos found")
 
     deals_data = _fetch_deals(audit_rows)
-    bant_data = _fetch_bant(audit_rows)
+    pbd_names = _resolve_pbd_names(audit_rows)
 
     print(f"  Generating Claude synthesis ...")
-    synthesis = _generate_synthesis(pae_name, pae_email, week_start, week_end, audit_rows, deals_data, bant_data)
+    synthesis = _generate_synthesis(pae_name, pae_email, week_start, week_end, audit_rows, deals_data)
 
     print(f"  Generating PDF ...")
-    pdf_bytes = generate_pdf(pae_name, week_start, week_end, audit_rows, deals_data, bant_data, synthesis)
+    pdf_bytes = generate_pdf(pae_name, week_start, week_end, audit_rows, deals_data, pbd_names, synthesis)
     print(f"  PDF: {len(pdf_bytes)} bytes")
 
     print(f"  Sending to Slack ({channel}) ...")
@@ -220,35 +226,33 @@ def _fetch_deals(audit_rows: list[dict]) -> dict[str, dict]:
     return result
 
 
-def _fetch_bant(audit_rows: list[dict]) -> dict[str, dict]:
+def _resolve_pbd_names(audit_rows: list[dict]) -> dict[str, str]:
     deal_refs = {r["deal_ref"] for r in audit_rows if r.get("deal_ref")}
     result = {}
     for ref in deal_refs:
         resp = (
             supabase.table("pbd_audits")
-            .select("bant_budget_status, bant_authority_status, bant_need_status, bant_timing_status")
+            .select("owner_name")
             .eq("deal_ref", ref)
-            .not_.is_("bant_budget_status", "null")
-            .order("created_at", desc=True)
+            .not_.is_("owner_name", "null")
+            .limit(1)
             .execute()
         )
-        if not resp.data:
+        if resp.data:
+            result[ref] = resp.data[0]["owner_name"]
             continue
 
-        bant = {}
-        for pillar, col in [
-            ("budget", "bant_budget_status"),
-            ("authority", "bant_authority_status"),
-            ("need", "bant_need_status"),
-            ("timing", "bant_timing_status"),
-        ]:
-            best = "Missing"
-            for row in resp.data:
-                status = row.get(col)
-                if status and _BANT_PRIORITY.get(status, 0) > _BANT_PRIORITY.get(best, 0):
-                    best = status
-            bant[pillar] = best
-        result[ref] = bant
+        resp = (
+            supabase.table("calls")
+            .select("owner_nombre")
+            .eq("deal_id", ref)
+            .eq("rol", "PBD")
+            .not_.is_("owner_nombre", "null")
+            .limit(1)
+            .execute()
+        )
+        if resp.data:
+            result[ref] = resp.data[0]["owner_nombre"]
     return result
 
 
@@ -259,10 +263,9 @@ def _generate_synthesis(
     week_end: date,
     audit_rows: list[dict],
     deals_data: dict[str, dict],
-    bant_data: dict[str, dict],
 ) -> dict:
     system_prompt, user_prompt = build_prompt(
-        pae_name, pae_email, week_start, week_end, audit_rows, deals_data, bant_data
+        pae_name, pae_email, week_start, week_end, audit_rows, deals_data
     )
     response_text = analyze(system_prompt, user_prompt)
     text = re.sub(r"^```(?:json)?\s*", "", response_text.strip())

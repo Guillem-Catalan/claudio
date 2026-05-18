@@ -81,30 +81,38 @@ def _build_stage_pills(audit_rows: list[dict], deals_data: dict) -> str:
     return "\n      ".join(pills)
 
 
-def _build_deals_table(audit_rows: list[dict], deals_data: dict, bant_data: dict) -> str:
+def _build_deals_table(
+    audit_rows: list[dict],
+    deals_data: dict,
+    pbd_names: dict[str, str],
+    bant_per_deal: dict[str, dict],
+) -> str:
     rows_html = []
     for row in audit_rows:
         deal_ref = row.get("deal_ref")
         deal = deals_data.get(deal_ref, {}) if deal_ref else {}
-        deal_name = _esc(row.get("deal_name") or deal.get("deal_name") or "?")
+        deal_name = row.get("deal_name") or deal.get("deal_name") or "?"
+        deal_name_esc = _esc(deal_name)
         demo_date = _format_date_short(row.get("demo_date"))
         amount = row.get("amount") or deal.get("amount")
         mrr = f"€{float(amount):,.0f}" if amount is not None else "—"
         stage = deal.get("deal_stage") or row.get("deal_stage") or "?"
         stage_css = STAGE_CSS.get(stage, "s-nd")
         age = deal.get("deal_age_days") or "?"
-        pbd_name = _esc(deal.get("pbd") or row.get("pbd") or "—")
+        pbd_name = _esc(
+            deal.get("pbd") or pbd_names.get(deal_ref, "") or row.get("pbd") or "—"
+        )
 
-        bant = bant_data.get(deal_ref, {})
+        bant = bant_per_deal.get(deal_name, {})
         bant_pills = ""
         for letter, key in [("B", "budget"), ("A", "authority"), ("N", "need"), ("T", "timing")]:
-            status = bant.get(key, "Missing") if bant else None
-            css = BANT_CSS.get(status, "bt-n") if status else "bt-n"
+            status = bant.get(key, "Missing")
+            css = BANT_CSS.get(status, "bt-n")
             bant_pills += f'<span class="bt {css}">{letter}</span>'
 
         rows_html.append(
             f"<tr>"
-            f"<td>{deal_name}</td>"
+            f"<td>{deal_name_esc}</td>"
             f"<td>{demo_date}</td>"
             f'<td class="r">{mrr}</td>'
             f'<td><span class="stag {stage_css}">{_esc(stage)}</span></td>'
@@ -149,7 +157,11 @@ def _build_signals(synthesis: dict) -> str:
     items = []
     for s in signals:
         deal = _esc(s.get("deal", ""))
-        text = _esc(s.get("text", ""))
+        sig_list = s.get("signals") or []
+        if isinstance(sig_list, list):
+            text = "; ".join(_esc(sig) for sig in sig_list if sig)
+        else:
+            text = _esc(str(sig_list))
         items.append(f'<div class="sig-item"><b>{deal}:</b> {text}</div>')
     return "\n    ".join(items)
 
@@ -190,7 +202,7 @@ def generate_pdf(
     week_end: date,
     audit_rows: list[dict],
     deals_data: dict[str, dict],
-    bant_data: dict[str, dict],
+    pbd_names: dict[str, str],
     synthesis: dict,
 ) -> bytes:
     today = date.today()
@@ -200,8 +212,12 @@ def generate_pdf(
     mrr_total = sum(float(r.get("amount") or 0) for r in audit_rows)
     mrr_str = f"€{mrr_total:,.0f}" if mrr_total else "—"
 
+    bant_per_deal = {}
+    for item in (synthesis.get("bant_per_deal") or []):
+        bant_per_deal[item.get("deal", "")] = item
+
     stage_pills = _build_stage_pills(audit_rows, deals_data)
-    deals_table = _build_deals_table(audit_rows, deals_data, bant_data)
+    deals_table = _build_deals_table(audit_rows, deals_data, pbd_names, bant_per_deal)
     meddic_html = _build_meddic(synthesis)
     meddic_intro = _esc(synthesis.get("meddic_intro_note", ""))
     signals_html = _build_signals(synthesis)
@@ -288,7 +304,7 @@ body{{font-family:var(--ff);font-size:12.5px;line-height:1.5;color:var(--ink);ba
 <div style="margin-top:22px">
   <div class="stit">Demos de la semana · stage desde tabla Deals</div>
   <table class="dtbl">
-    <thead><tr><th>Deal</th><th>Demo</th><th class="r">MRR</th><th>Stage (Deals)</th><th class="r">Edad</th><th>PBD</th><th>BANT previo (PBD)</th></tr></thead>
+    <thead><tr><th>Deal</th><th>Demo</th><th class="r">MRR</th><th>Stage (Deals)</th><th class="r">Edad</th><th>PBD</th><th>BANT pre-demo</th></tr></thead>
     <tbody>
       {deals_table}
     </tbody>
@@ -329,7 +345,7 @@ body{{font-family:var(--ff);font-size:12.5px;line-height:1.5;color:var(--ink);ba
   <div class="note">{handover_note}</div>
 </div>
 
-<div class="foot">Generado por Claudio · Datos: Deals + audit_demos + PBD_Audit (BANT) · {fecha_envio}</div>
+<div class="foot">Generado por Claudio · Datos: Deals + audit_demos + deal_context · {fecha_envio}</div>
 
 </div>
 </body>

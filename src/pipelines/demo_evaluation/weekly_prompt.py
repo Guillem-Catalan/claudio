@@ -5,8 +5,9 @@ from datetime import date, timedelta
 SYSTEM_PROMPT = (
     "Eres un coach semanal de demos de ventas B2B SaaS para Factorial. "
     "Recibes las evaluaciones individuales de todas las demos que un PAE ha hecho "
-    "en una semana, junto con el BANT previo del PBD para cada deal. "
+    "en una semana, junto con el contexto previo de cada deal (emails, notas, calls PBD). "
     "Tu trabajo es sintetizar patrones, identificar fortalezas y gaps comunes, "
+    "evaluar el estado BANT de cada deal basándote en toda la comunicación previa, "
     "y dar coaching accionable.\n\n"
     "Responde SIEMPRE en español. Sé directo y concreto — nada de fluff."
 )
@@ -28,24 +29,40 @@ Devuelve un JSON con esta estructura exacta:
   "i_text": "Síntesis de Identify Pain. 2 frases max.",
   "c_status": "rojo|ámbar|verde",
   "c_text": "Síntesis de Champion. 2 frases max.",
-  "buyer_signals": [{"deal": "nombre del deal", "text": "señal concreta"}],
+  "bant_per_deal": [
+    {
+      "deal": "nombre exacto del deal",
+      "budget": "Confirmed|Partial|Missing",
+      "authority": "Confirmed|Partial|Missing",
+      "need": "Confirmed|Partial|Missing",
+      "timing": "Confirmed|Partial|Missing"
+    }
+  ],
+  "buyer_signals": [{"deal": "nombre del deal", "signals": ["señal concreta 1", "señal concreta 2"]}],
   "objections": [{"category": "categoría (precio, competencia, timing, etc.)", "text": "objeción concreta"}],
   "improvements": [{"title": "Título corto (3-5 palabras)", "text": "Descripción accionable. 1-2 frases."}],
-  "pbd_handover_note": "Valoración de la calidad del handover PBD → PAE basada en el BANT previo. 2-3 frases."
+  "pbd_handover_note": "Valoración de la calidad del handover PBD → PAE basada en el BANT previo y el contexto pre-demo. 2-3 frases."
 }
 
 Reglas:
 - status: "rojo" si hay gaps críticos repetidos, "ámbar" si hay progreso parcial, "verde" si la ejecución es buena
-- buyer_signals: solo señales reales extraídas de las demos, atribuidas al deal
+- bant_per_deal: evalúa el BANT basándote en TODA la comunicación previa a la demo (emails, notas, calls PBD, calls anteriores del PAE). "Confirmed" = se abordó explícitamente con evidencia clara, "Partial" = se tocó pero sin profundidad, "Missing" = no se abordó. Un item por cada deal.
+- buyer_signals: señales reales extraídas de las demos, AGRUPADAS por deal. Todas las señales del mismo deal en un solo array.
 - objections: agrupadas por categoría, no por deal
 - improvements: 5-7 items, enfocados en PATRONES que se repiten entre demos, no issues puntuales
-- pbd_handover_note: valora si el PBD dejó un BANT sólido o si el PAE tuvo que empezar de cero
+- pbd_handover_note: valora si el PBD dejó un BANT sólido o si el PAE tuvo que empezar de cero, usando el contexto previo disponible
 - NO incluir scores numéricos en ningún campo
 """
 
 
 def _format_date(val) -> str:
     return str(val)[:10] if val else "—"
+
+
+def _truncate_context(ctx: str, max_chars: int = 1500) -> str:
+    if not ctx or len(ctx) <= max_chars:
+        return ctx or ""
+    return ctx[:max_chars] + "\n... (truncado)"
 
 
 def build(
@@ -55,7 +72,6 @@ def build(
     week_end: date,
     audit_rows: list[dict],
     deals_data: dict[str, dict],
-    bant_data: dict[str, dict],
 ) -> tuple[str, str]:
     week_range = f"{week_start.isoformat()} → {(week_end - timedelta(days=1)).isoformat()}"
 
@@ -91,7 +107,9 @@ def build(
             "",
         ]
 
-    lines.append("=== BANT PREVIO PBD POR DEAL ===")
+    lines.append("=== CONTEXTO PRE-DEMO POR DEAL (emails, notas, calls PBD, etc.) ===")
+    lines.append("Usa este contexto para evaluar el BANT de cada deal en bant_per_deal.")
+    lines.append("")
     seen_deals = set()
     for row in audit_rows:
         deal_ref = row.get("deal_ref")
@@ -99,15 +117,14 @@ def build(
             continue
         seen_deals.add(deal_ref)
         deal_name = row.get("deal_name") or "?"
-        bant = bant_data.get(deal_ref)
-        if bant:
-            b = bant.get("budget") or "Missing"
-            a = bant.get("authority") or "Missing"
-            n = bant.get("need") or "Missing"
-            t = bant.get("timing") or "Missing"
-            lines.append(f'Deal "{deal_name}": B={b} A={a} N={n} T={t}')
+        deal = deals_data.get(deal_ref, {})
+        ctx = deal.get("deal_context") or ""
+        lines.append(f'--- Deal: {deal_name} ---')
+        if ctx.strip():
+            lines.append(_truncate_context(ctx))
         else:
-            lines.append(f'Deal "{deal_name}": (sin PBD previo)')
+            lines.append("(Sin comunicación previa registrada)")
+        lines.append("")
 
     lines += ["", "=== OUTPUT SPEC ===", OUTPUT_SPEC]
 

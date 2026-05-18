@@ -13,6 +13,10 @@ on:
         description: "Monday YYYY-MM-DD (blank = previous week)"
         required: false
         type: string
+      channel:
+        description: "Override Slack channel ID (for testing)"
+        required: false
+        type: string
 
 jobs:
   report:
@@ -44,4 +48,5 @@ jobs:
           ARGS=""
           if [ -n "${{ inputs.pae_email }}" ]; then ARGS="$ARGS --pae-email ${{ inputs.pae_email }}"; fi
           if [ -n "${{ inputs.week_start }}" ]; then ARGS="$ARGS --week-start ${{ inputs.week_start }}"; fi
+          if [ -n "${{ inputs.channel }}" ]; then ARGS="$ARGS --channel ${{ inputs.channel }}"; fi
           python -m scripts.demo_report $ARGS
