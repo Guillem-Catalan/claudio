@@ -6,28 +6,42 @@ from datetime import date, timedelta
 import weasyprint
 
 STAGE_CSS = {
+    "Factorial Project Alignment started": "s-pa",
     "Product Alignment": "s-pa",
+    "Economical Allignment Started": "s-pp",
     "Pricing and Packaging": "s-pp",
+    "Pricing & Packaging": "s-pp",
+    "Contract Sent": "s-tr",
     "Contracting": "s-tr",
     "Demo Booked": "s-db",
+    "MEDDPICC Criteria Validation Started": "s-db",
     "New Deals": "s-nd",
     "Closed Won": "s-cw",
     "Closed Lost": "s-cl",
     "On Hold": "s-nd",
+    "To reschedule": "s-nd",
     "To Reschedule": "s-nd",
     "Discovery": "s-pa",
     "Meeting Booked": "s-db",
+    "Closed - pending finance validation": "s-cw",
     "Closed Pending Payment": "s-cw",
 }
 
 STAGE_PILL_CSS = {
+    "Factorial Project Alignment started": "p-pa",
     "Product Alignment": "p-pa",
+    "Economical Allignment Started": "p-pp",
     "Pricing and Packaging": "p-pp",
+    "Pricing & Packaging": "p-pp",
+    "Contract Sent": "p-tr",
     "Contracting": "p-tr",
     "Demo Booked": "p-db",
+    "MEDDPICC Criteria Validation Started": "p-db",
     "New Deals": "p-nd",
     "Closed Won": "p-cw",
     "Closed Lost": "p-cl",
+    "Closed - pending finance validation": "p-cw",
+    "Closed Pending Payment": "p-cw",
 }
 
 BANT_CSS = {"Confirmed": "bt-c", "Partial": "bt-p", "Missing": "bt-m", "N/A": "bt-n"}

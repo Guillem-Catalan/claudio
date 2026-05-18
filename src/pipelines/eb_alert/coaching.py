@@ -20,7 +20,7 @@ Scenario: Past rejection by unseen EBs (Serviplast / Xavier Fortuny).
 Line: "Entiendo que la decisión final la tenéis que ver con el gerente y los socios. La última vez que llegamos a este punto, en febrero de 2024, el deal no salió adelante precisamente porque ellos no habían visto el producto. ¿Qué te parece si en la próxima llamada los incluimos directamente — así ellos pueden hacer sus preguntas y tú no tienes que hacer de intermediaria?"
 Why it works: Uses the deal's own history as the argument — ignoring the EB feels like repeating a known mistake.
 
-STAGE 2 — PRODUCT ALIGNMENT
+STAGE 2 — FACTORIAL PROJECT ALIGNMENT
 
 Scenario: Champion is sold but EB unknown — arm the champion (SALMER / Joan Lorenzo).
 Line: "Me alegra que veas el encaje. Ahora lo importante es que [EB] también lo vea. Antes de que hables con él, dime: ¿qué es lo que más le va a importar — el precio por empleado, el tiempo de implementación, o la reducción de riesgo de inspección? Así te preparo una hoja de una página con exactamente eso."
@@ -34,7 +34,7 @@ Scenario: EB attended demo but was passive (Comesacanarias / Pol Bartolomé).
 Line: "[EB] estuvo en la demo y vi que tenía buenas preguntas. Me gustaría asegurarme de que tiene toda la información para tomar la decisión con confianza. ¿Puedo mandarte a ti y a [EB] directamente un resumen ejecutivo con el impacto en horas y el coste total, para que la conversación sea más ágil?"
 Why it works: Re-engages a passive EB with a one-pager — bypasses the intermediary before the pricing call.
 
-STAGE 3 — PRICING & PACKAGING
+STAGE 3 — ECONOMICAL ALLIGNMENT
 
 Scenario: Presenting price to champion without EB present — create urgency (Ciudad Jardín / Pol Bartolomé).
 Line: "Antes de enviarte los números, quiero asegurarme de que cuando los veas con [EBs] no haya sorpresas. ¿Podemos hacer una llamada rápida de 20 minutos con ellos — yo, tú, y [EBs] — para que puedan hacerme las preguntas directamente? Así tú no tienes que ser el intermediario."
@@ -50,7 +50,7 @@ Why it works: Naming the EB directly forces clarification — surfaces the risk 
 """
 
 _PROMPT = """\
-You are a Factorial PAE coach. A deal just entered Pricing & Packaging. Use the \
+You are a Factorial PAE coach. A deal just entered Economical Allignment. Use the \
 PAE Economic Buyer Script below to coach the AE on this specific deal.
 
 {script}

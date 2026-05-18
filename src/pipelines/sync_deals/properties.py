@@ -68,6 +68,8 @@ PIPELINE_DATE_MAP: dict[str, str] = {
     "hs_v2_date_exited_35119283": "dist_closed_lost_exited",
     "hs_v2_date_entered_4977567965": "dist_to_reschedule_entered",
     "hs_v2_date_exited_4977567965": "dist_to_reschedule_exited",
+    "hs_v2_date_entered_5366023400": "dist_meddpicc_validation_entered",
+    "hs_v2_date_exited_5366023400": "dist_meddpicc_validation_exited",
     # Sales Pipeline
     "hs_v2_date_entered_96e820da_7bc1_4ea3_81a2_bc533ed26934_2127198906": "sales_meeting_booked_entered",
     "hs_v2_date_exited_96e820da_7bc1_4ea3_81a2_bc533ed26934_2127198906": "sales_meeting_booked_exited",

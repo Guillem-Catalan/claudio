@@ -15,13 +15,15 @@ _PROMPTS_DIR = Path(__file__).resolve().parent.parent.parent / "prompts" / "pae_
 
 CLOSED_STAGES = {
     "closed lost", "closed won", "opportunity lost", "opportunity lost ",
-    "closed pending payment", "closed won - finance only", "nurturing",
+    "closed pending payment", "closed - pending finance validation",
+    "closed won - finance only", "nurturing",
     "sales nurturing", "long nurturing", "hot nurturing",
 }
 
 STALLED_STAGES = {"on hold", "to reschedule"}
 
-WON_STAGES = {"closed won", "closed won - finance only", "closed pending payment"}
+WON_STAGES = {"closed won", "closed won - finance only", "closed pending payment",
+              "closed - pending finance validation"}
 
 
 def _level1(deal_stage: str) -> str:
