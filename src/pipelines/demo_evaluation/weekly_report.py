@@ -316,7 +316,10 @@ def _reconcile_unrecorded_demos(
     )
     exited_deals = resp.data or []
 
-    non_demo_stages = {"To reschedule", "On Hold", "Demo Booked", "New Deals"}
+    non_demo_stages = {
+        "To reschedule", "On Hold", "Demo Booked", "New Deals",
+        "Closed Lost", "Opportunity lost",
+    }
     candidates = [
         d for d in exited_deals
         if (d.get("deal_stage") or "") not in non_demo_stages
