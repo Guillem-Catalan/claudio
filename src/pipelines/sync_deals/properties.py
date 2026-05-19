@@ -245,11 +245,14 @@ def fetch_engagement_counts(deal_ids: list[str]) -> dict[str, dict[str, int]]:
     emails = _count_associations(deal_ids, "emails")
     print("    counting calls ...")
     calls = _count_associations(deal_ids, "calls")
+    print("    counting meetings ...")
+    meetings = _count_associations(deal_ids, "meetings")
     return {
         did: {
             "numero_de_notas": notes.get(did, 0),
             "numero_de_emails": emails.get(did, 0),
             "numero_de_calls": calls.get(did, 0),
+            "numero_de_meetings": meetings.get(did, 0),
         }
         for did in deal_ids
     }

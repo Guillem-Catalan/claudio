@@ -5,7 +5,7 @@ from src.pipelines.audit.prompt_builder import build
 from src.pipelines.audit.parser import parse
 
 
-def run_single(call_id: str) -> dict | None:
+def run_single(call_id: str, classified_type: str | None = None) -> dict | None:
     resp = (
         supabase.table("calls")
         .select("*")
@@ -22,7 +22,7 @@ def run_single(call_id: str) -> dict | None:
         print(f"  Skipping call {call_id} — already audited")
         return None
 
-    return _audit(call)
+    return _audit(call, classified_type)
 
 
 def _already_audited(call: dict) -> bool:
@@ -42,7 +42,7 @@ def _already_audited(call: dict) -> bool:
     return resp.data[0].get("win_rate_score") is not None
 
 
-def _audit(call: dict) -> dict | None:
+def _audit(call: dict, classified_type: str | None = None) -> dict | None:
     role = call.get("rol")
     if not role:
         print(f"  Skipping call {call['call_id']} — no role assigned")
@@ -92,7 +92,8 @@ def _audit(call: dict) -> dict | None:
         print(f"  Appending audit result to deal_context ...")
         append_audit_to_context(call["deal_id"], call, fields)
 
-    if role == "PAE" and _is_demo_call(call):
+    is_demo = (classified_type == "demo") if classified_type else _is_demo_call(call)
+    if role == "PAE" and is_demo:
         from src.config import get_subteam
         team = get_subteam(call.get("owner_email") or "")
         if team in ("Santander", "Telefónica"):

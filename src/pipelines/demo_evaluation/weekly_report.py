@@ -2,6 +2,7 @@
 
 import json
 import re
+import unicodedata
 from datetime import date, timedelta
 
 from src.config import TEAMS, PAE_CHANNELS, TEAM_LEAD_CHANNELS
@@ -35,9 +36,21 @@ def run_weekly(
     print(f"Weekly demo report: {week_start} → {week_end - timedelta(days=1)}")
     print(f"  PAEs to process: {len(pae_emails)}")
 
+    print("  Reconciling unrecorded demos ...")
+    unrecorded = _reconcile_unrecorded_demos(pae_emails, week_start, week_end)
+    if unrecorded:
+        print(f"  {len(unrecorded)} unrecorded demos found")
+
+    print("  Finding no-shows ...")
+    no_shows = _find_no_shows(pae_emails, week_start, week_end)
+    if no_shows:
+        print(f"  {len(no_shows)} no-shows found")
+
     for email in sorted(pae_emails):
         try:
-            _process_pae(email, week_start, week_end, channel_override)
+            pae_unrecorded = [d for d in unrecorded if d.get("pae_email") == email]
+            pae_no_shows = [d for d in no_shows if d.get("pae_email") == email]
+            _process_pae(email, week_start, week_end, channel_override, pae_unrecorded, pae_no_shows)
         except Exception as e:
             print(f"  ERROR processing {email}: {e}")
 
@@ -68,6 +81,8 @@ def _process_pae(
     week_start: date,
     week_end: date,
     channel_override: str | None = None,
+    unrecorded_demos: list[dict] | None = None,
+    no_show_demos: list[dict] | None = None,
 ):
     print(f"\n  --- {pae_email} ---")
 
@@ -99,7 +114,11 @@ def _process_pae(
     synthesis = _generate_synthesis(pae_name, pae_email, week_start, week_end, audit_rows, deals_data)
 
     print(f"  Generating PDF ...")
-    pdf_bytes = generate_pdf(pae_name, week_start, week_end, audit_rows, deals_data, pbd_names, synthesis)
+    pdf_bytes = generate_pdf(
+        pae_name, week_start, week_end, audit_rows, deals_data, pbd_names, synthesis,
+        unrecorded_demos=unrecorded_demos or [],
+        no_show_demos=no_show_demos or [],
+    )
     print(f"  PDF: {len(pdf_bytes)} bytes")
 
     print(f"  Sending to Slack ({channel}) ...")
@@ -275,6 +294,124 @@ def _most_frequent_name(rows: list[dict], field: str) -> str:
     if not names:
         return ""
     return Counter(names).most_common(1)[0][0]
+
+
+def _reconcile_unrecorded_demos(
+    pae_emails: set[str],
+    week_start: date,
+    week_end: date,
+) -> list[dict]:
+    """Find deals that exited Demo Booked this week but have no audit_demos entry.
+
+    These are demos that happened (deal advanced) but were never recorded in Modjo.
+    Returns stub dicts for display in the PDF's unrecorded section.
+    """
+    resp = (
+        supabase.table("deals")
+        .select("id, deal_id, deal_name, deal_stage, pae, pbd, amount, "
+                "dist_demo_booked_exited, first_meeting_at")
+        .gte("dist_demo_booked_exited", week_start.isoformat())
+        .lt("dist_demo_booked_exited", week_end.isoformat())
+        .execute()
+    )
+    exited_deals = resp.data or []
+
+    non_demo_stages = {"To reschedule", "On Hold", "Demo Booked", "New Deals"}
+    candidates = [
+        d for d in exited_deals
+        if (d.get("deal_stage") or "") not in non_demo_stages
+    ]
+
+    existing_refs = set()
+    existing_hs = set()
+    for email in pae_emails:
+        resp = (
+            supabase.table("audit_demos")
+            .select("deal_ref, hs_deal_id")
+            .eq("owner_email", email)
+            .gte("demo_date", week_start.isoformat())
+            .lt("demo_date", week_end.isoformat())
+            .execute()
+        )
+        for row in (resp.data or []):
+            if row.get("deal_ref"):
+                existing_refs.add(row["deal_ref"])
+            if row.get("hs_deal_id"):
+                existing_hs.add(str(row["hs_deal_id"]))
+
+    unrecorded = []
+    for d in candidates:
+        if d["id"] in existing_refs:
+            continue
+        if d.get("deal_id") and str(d["deal_id"]) in existing_hs:
+            continue
+
+        pae_name = d.get("pae") or ""
+        pae_email = _resolve_pae_email(pae_name, pae_emails)
+
+        unrecorded.append({
+            "deal_name": d.get("deal_name", "?"),
+            "deal_stage": d.get("deal_stage", "?"),
+            "amount": d.get("amount"),
+            "exit_date": d.get("dist_demo_booked_exited", ""),
+            "first_meeting": d.get("first_meeting_at", ""),
+            "pae_name": pae_name,
+            "pae_email": pae_email,
+            "pbd": d.get("pbd", ""),
+        })
+
+    return unrecorded
+
+
+def _find_no_shows(
+    pae_emails: set[str],
+    week_start: date,
+    week_end: date,
+) -> list[dict]:
+    """Find deals that exited Demo Booked to reschedule/on-hold (no-shows)."""
+    resp = (
+        supabase.table("deals")
+        .select("id, deal_id, deal_name, deal_stage, pae, pbd, amount, "
+                "dist_demo_booked_exited, first_meeting_at")
+        .gte("dist_demo_booked_exited", week_start.isoformat())
+        .lt("dist_demo_booked_exited", week_end.isoformat())
+        .execute()
+    )
+    no_show_stages = {"To reschedule", "On Hold"}
+    results = []
+    for d in (resp.data or []):
+        if (d.get("deal_stage") or "") not in no_show_stages:
+            continue
+        pae_name = d.get("pae") or ""
+        pae_email = _resolve_pae_email(pae_name, pae_emails)
+        results.append({
+            "deal_name": d.get("deal_name", "?"),
+            "deal_stage": d.get("deal_stage", "?"),
+            "amount": d.get("amount"),
+            "exit_date": d.get("dist_demo_booked_exited", ""),
+            "first_meeting": d.get("first_meeting_at", ""),
+            "pae_name": pae_name,
+            "pae_email": pae_email,
+            "pbd": d.get("pbd", ""),
+        })
+    return results
+
+
+def _strip_accents(s: str) -> str:
+    return "".join(
+        c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn"
+    )
+
+
+def _resolve_pae_email(pae_name: str, pae_emails: set[str]) -> str | None:
+    if not pae_name:
+        return None
+    name_parts = _strip_accents(pae_name.lower()).split()
+    for email in pae_emails:
+        email_low = email.lower()
+        if any(len(p) > 2 and p in email_low for p in name_parts):
+            return email
+    return None
 
 
 def _generate_synthesis(

@@ -147,6 +147,7 @@ def run(full: bool = False, since_hours: int = 48):
         deal["numero_de_notas"] = eng.get("numero_de_notas", 0)
         deal["numero_de_emails"] = eng.get("numero_de_emails", 0)
         deal["numero_de_calls"] = eng.get("numero_de_calls", 0)
+        deal["numero_de_meetings"] = eng.get("numero_de_meetings", 0)
 
         rows.append(deal)
 

@@ -203,20 +203,27 @@ def run(since: datetime | None = None):
     written = _upsert_calls(calls)
     print(f"   {written} calls upserted")
 
-    print("\n6. Auditing calls...")
+    print("\n6. Classifying and auditing calls ...")
+    from src.pipelines.call_classifier import classify
     from src.pipelines.audit.run import run_single
 
     audited = 0
+    demos = 0
     for call in calls:
         if not call["rol"]:
             continue
         try:
-            result = run_single(call["call_id"])
+            call_type = classify(call)
+            if call_type == "skip":
+                continue
+            result = run_single(call["call_id"], classified_type=call_type)
             if result:
                 audited += 1
-                print(f"   {call['call_id']}: win_rate={result.get('win_rate_score')}")
+                if call_type == "demo":
+                    demos += 1
+                print(f"   {call['call_id']}: {call_type} win_rate={result.get('win_rate_score')}")
         except Exception as e:
             print(f"   {call['call_id']}: ERROR {e}")
-    print(f"   {audited} calls audited")
+    print(f"   {audited} calls audited, {demos} demos detected")
 
     return calls

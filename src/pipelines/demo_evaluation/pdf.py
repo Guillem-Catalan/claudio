@@ -210,6 +210,72 @@ def _build_improvements(synthesis: dict) -> str:
     return "\n    ".join(items)
 
 
+def _build_no_show_section(no_show_demos: list[dict]) -> str:
+    if not no_show_demos:
+        return ""
+    rows = []
+    for d in no_show_demos:
+        amount = d.get("amount")
+        mrr = f"&euro;{float(amount):,.0f}" if amount else "&mdash;"
+        stage_css = STAGE_CSS.get(d.get("deal_stage", ""), "s-nd")
+        rows.append(
+            f"<tr>"
+            f"<td>{_esc(d.get('deal_name', '?'))}</td>"
+            f"<td>{_format_date_short(d.get('exit_date'))}</td>"
+            f'<td class="r">{mrr}</td>'
+            f'<td><span class="stag {stage_css}">{_esc(d.get("deal_stage", "?"))}</span></td>'
+            f"<td>{_esc(d.get('pbd', '—'))}</td>"
+            f"</tr>"
+        )
+    table_rows = "\n      ".join(rows)
+    return f'''
+<div style="margin-top:28px">
+  <div class="stit" style="color:var(--amb);border-color:var(--amb)">No-shows / Reschedule ({len(no_show_demos)})</div>
+  <div class="note" style="margin-top:0;margin-bottom:8px;font-size:10px">
+    Deals que salieron de Demo Booked esta semana hacia To Reschedule u On Hold.
+  </div>
+  <table class="dtbl">
+    <thead><tr><th>Deal</th><th>Salida DB</th><th class="r">MRR</th><th>Stage</th><th>PBD</th></tr></thead>
+    <tbody>
+      {table_rows}
+    </tbody>
+  </table>
+</div>'''
+
+
+def _build_unrecorded_section(unrecorded_demos: list[dict]) -> str:
+    if not unrecorded_demos:
+        return ""
+    rows = []
+    for d in unrecorded_demos:
+        amount = d.get("amount")
+        mrr = f"&euro;{float(amount):,.0f}" if amount else "&mdash;"
+        stage_css = STAGE_CSS.get(d.get("deal_stage", ""), "s-nd")
+        rows.append(
+            f"<tr>"
+            f"<td>{_esc(d.get('deal_name', '?'))}</td>"
+            f"<td>{_format_date_short(d.get('exit_date'))}</td>"
+            f'<td class="r">{mrr}</td>'
+            f'<td><span class="stag {stage_css}">{_esc(d.get("deal_stage", "?"))}</span></td>'
+            f"<td>{_esc(d.get('pbd', '—'))}</td>"
+            f"</tr>"
+        )
+    table_rows = "\n      ".join(rows)
+    return f'''
+<div style="margin-top:28px">
+  <div class="stit red">Demos sin grabación en Modjo ({len(unrecorded_demos)})</div>
+  <div class="note" style="margin-top:0;margin-bottom:8px;font-size:10px">
+    Deals que salieron de Demo Booked esta semana y avanzaron, pero no tienen call grabada en Modjo.
+  </div>
+  <table class="dtbl">
+    <thead><tr><th>Deal</th><th>Salida DB</th><th class="r">MRR</th><th>Stage</th><th>PBD</th></tr></thead>
+    <tbody>
+      {table_rows}
+    </tbody>
+  </table>
+</div>'''
+
+
 def generate_pdf(
     pae_name: str,
     week_start: date,
@@ -218,6 +284,8 @@ def generate_pdf(
     deals_data: dict[str, dict],
     pbd_names: dict[str, str],
     synthesis: dict,
+    unrecorded_demos: list[dict] | None = None,
+    no_show_demos: list[dict] | None = None,
 ) -> bytes:
     today = date.today()
     fecha_envio = f"{today.day} {_MESES[today.month]} {today.year}"
@@ -238,6 +306,8 @@ def generate_pdf(
     objections_html = _build_objections(synthesis)
     improvements_html = _build_improvements(synthesis)
     handover_note = _esc(synthesis.get("pbd_handover_note", "—"))
+    no_show_html = _build_no_show_section(no_show_demos or [])
+    unrecorded_html = _build_unrecorded_section(unrecorded_demos or [])
 
     html = f'''\
 <!DOCTYPE html>
@@ -358,6 +428,10 @@ body{{font-family:var(--ff);font-size:12.5px;line-height:1.5;color:var(--ink);ba
   <div class="stit">Nota sobre el handover PBD → PAE</div>
   <div class="note">{handover_note}</div>
 </div>
+
+{no_show_html}
+
+{unrecorded_html}
 
 <div class="foot">Generado por Claudio · Datos: Deals + audit_demos + deal_context · {fecha_envio}</div>
 
