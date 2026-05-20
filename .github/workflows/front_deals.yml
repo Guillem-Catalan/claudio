@@ -10,6 +10,10 @@ on:
         required: true
         type: string
 
+concurrency:
+  group: front-deals
+  cancel-in-progress: false
+
 jobs:
   snapshot:
     runs-on: ubuntu-latest
