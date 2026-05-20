@@ -236,6 +236,11 @@ def main():
     partner_team = _get_partner_team(ae_email) or _get_partner_team(pbd_email)
     print(f"   Partner: {partner_name or '—'}, Team: {partner_team or '—'}")
 
+    ALLOWED_TEAMS = {"Santander", "Telefónica", "Telefonica"}
+    if partner_team not in ALLOWED_TEAMS:
+        print(f"   Team '{partner_team}' not in allowed list — skipping alert.")
+        return
+
     # Slack client
     slack = SlackClient()
 
