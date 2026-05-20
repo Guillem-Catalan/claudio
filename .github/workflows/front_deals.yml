@@ -11,7 +11,7 @@ on:
         type: string
 
 concurrency:
-  group: front-deals
+  group: front-deals-${{ github.event.inputs.deal_uuid }}
   cancel-in-progress: false
 
 jobs:
