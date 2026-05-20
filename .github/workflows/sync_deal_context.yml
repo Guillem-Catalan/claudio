@@ -12,6 +12,10 @@ on:
         required: true
         type: string
 
+concurrency:
+  group: sync-context-${{ github.event.inputs.deal_uuid }}
+  cancel-in-progress: false
+
 jobs:
   sync:
     runs-on: ubuntu-latest
