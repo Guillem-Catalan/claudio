@@ -11,10 +11,12 @@ from src.integrations import hubspot
 
 SEARCH_URL = "/crm/v3/objects/deals/search"
 
-_PARTNER_NAMES = ["Santander", "Telefónica"]
+_PARTNER_NAMES = ["Santander", "Telefónica", "Telefonica"]
 _TEAM_VALUES = [
     "Partners - PAE ES Santander",
     "Partners - PAE ES Telefónica",
+    "Partners - PAE ES Telefonica",
+    "Partners - PAE ES",
 ]
 _DEALNAME_TOKENS = ["santander", "telefonica", "telefónica"]
 
