@@ -1,4 +1,5 @@
 .env
+ui/config.js
 __pycache__/
 *.pyc
 .venv/

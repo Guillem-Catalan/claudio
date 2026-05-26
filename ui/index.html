@@ -1,0 +1,2163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claudio — Sales Intelligence</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        brand: { 50:'#eff6ff', 100:'#dbeafe', 200:'#bfdbfe', 500:'#3b82f6', 600:'#2563eb', 700:'#1d4ed8', 800:'#1e3a5f', 900:'#0f172a' },
+        meddic: { m:'#8b5cf6', e:'#06b6d4', dc:'#f59e0b', dp:'#ef4444', i:'#10b981', c:'#ec4899' }
+      }
+    }
+  }
+}
+</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  body { font-family: 'Inter', system-ui, sans-serif; font-size: 13px; color: #1e293b; -webkit-font-smoothing: antialiased; }
+  .tab-active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: 600; }
+  .kanban-col { min-width: 280px; max-width: 320px; }
+  .fade-in { animation: fadeIn 0.3s ease-in; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+  .radar-wrapper { position: relative; width: 220px; height: 220px; }
+  ::-webkit-scrollbar { height: 8px; width: 6px; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  .badge-prob { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 9999px; }
+  .stage-pill { font-size: 10px; padding: 1px 8px; border-radius: 9999px; white-space: nowrap; }
+  .metric-card { transition: all 0.15s; }
+  .metric-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+  .deal-card { transition: all 0.15s; cursor: pointer; }
+  .deal-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+  .modal-overlay { background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+  .trend-up { color: #16a34a; } .trend-up::before { content: '▲ '; font-size: 9px; }
+  .trend-down { color: #dc2626; } .trend-down::before { content: '▼ '; font-size: 9px; }
+  .trend-flat { color: #94a3b8; } .trend-flat::before { content: '— '; font-size: 9px; }
+  .spark { display: inline-block; vertical-align: middle; }
+  .dense-row { padding: 6px 12px; }
+  .dense-row:hover { background: #f8fafc; }
+  .vs-team { color: #94a3b8; font-size: 10px; }
+</style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+
+<!-- Top Nav -->
+<nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+  <div class="max-w-[1400px] mx-auto px-6 flex items-center justify-between h-14">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center">
+        <span class="text-white font-bold text-sm">C</span>
+      </div>
+      <span class="font-semibold text-lg text-gray-900">Claudio</span>
+      <span class="text-xs text-gray-400 ml-1">Sales Intelligence</span>
+    </div>
+    <div class="flex items-center gap-4">
+      <select id="teamFilter" onchange="applyTeamFilter()" class="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white">
+        <option value="all">All Teams</option>
+        <option value="santander">Santander</option>
+        <option value="telefonica">Telefónica</option>
+      </select>
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 bg-brand-100 rounded-full flex items-center justify-center">
+          <span class="text-brand-700 font-semibold text-xs">XS</span>
+        </div>
+        <div class="text-sm">
+          <div class="font-medium text-gray-700">Xavi Soler</div>
+          <div class="text-gray-400 text-xs">Team Lead · Santander</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- Tabs -->
+<div class="bg-white border-b border-gray-200">
+  <div class="max-w-[1400px] mx-auto px-6 flex gap-1">
+    <button onclick="showTab('general')" id="tab-general" class="px-4 py-3 text-sm text-gray-500 hover:text-gray-700 tab-active transition-colors">General</button>
+    <button onclick="showTab('forecast')" id="tab-forecast" class="px-4 py-3 text-sm text-gray-500 hover:text-gray-700 transition-colors">Forecast</button>
+    <button onclick="showTab('deals')" id="tab-deals" class="px-4 py-3 text-sm text-gray-500 hover:text-gray-700 transition-colors">Deals</button>
+    <button onclick="showTab('analytics')" id="tab-analytics" class="px-4 py-3 text-sm text-gray-500 hover:text-gray-700 transition-colors">Analytics</button>
+    <button onclick="showTab('oneone')" id="tab-oneone" class="px-4 py-3 text-sm text-gray-500 hover:text-gray-700 transition-colors">1:1</button>
+  </div>
+</div>
+
+<!-- ====== GENERAL TAB ====== -->
+<div id="panel-general" class="max-w-[1400px] mx-auto px-6 py-5 fade-in">
+
+  <!-- Forecast del Trimestre — hero block -->
+  <div class="bg-white rounded-lg border border-gray-100 p-5 mb-4">
+    <div class="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Forecast del trimestre</div>
+    <div class="text-xl font-semibold text-gray-900 mb-4">Claudio ve <span class="text-green-700">€119K committed</span> · HubSpot 142K</div>
+
+    <div class="grid grid-cols-3 gap-4 mb-4">
+      <div class="border-r border-gray-100 pr-4">
+        <div class="text-[10px] text-gray-400">Committed (Claudio)</div>
+        <div class="text-3xl font-bold text-gray-900 mt-1">€118.500</div>
+        <div class="w-full bg-gray-100 rounded-full h-1.5 mt-2"><div class="bg-red-500 rounded-full h-1.5" style="width:66%"></div></div>
+        <div class="text-[10px] text-gray-500 mt-1">66% de cuota (€180K)</div>
+      </div>
+      <div class="border-r border-gray-100 pr-4">
+        <div class="text-[10px] text-gray-400">Best case (Claudio)</div>
+        <div class="text-3xl font-bold text-gray-900 mt-1">€176.000</div>
+        <div class="text-xs text-gray-500 mt-2">+€57.500 sobre commit</div>
+      </div>
+      <div>
+        <div class="text-[10px] text-gray-400">HubSpot (referencia)</div>
+        <div class="text-3xl font-bold text-gray-900 mt-1">€142.000</div>
+        <div class="text-xs text-gray-500 mt-2">Precisión histórica: 71%</div>
+      </div>
+    </div>
+
+    <!-- Secondary metrics -->
+    <div class="grid grid-cols-3 gap-4 pt-3 border-t border-gray-50">
+      <div>
+        <div class="text-[10px] text-gray-400">Precisión Claudio</div>
+        <div class="w-8 h-0.5 bg-brand-600 rounded mt-2 mb-1"></div>
+        <div class="text-[10px] text-gray-500">pendiente de histórico</div>
+      </div>
+      <div>
+        <div class="text-[10px] text-gray-400">Deals en riesgo</div>
+        <div class="text-2xl font-bold text-red-500 mt-1">3</div>
+        <div class="text-[10px] text-gray-500">score Claudio bajó esta semana</div>
+      </div>
+      <div>
+        <div class="text-[10px] text-gray-400">Upside detectado</div>
+        <div class="text-2xl font-bold text-green-600 mt-1">4</div>
+        <div class="text-[10px] text-gray-500">score Claudio > HubSpot</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2: Team Health + Alerts -->
+  <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-4">
+    <!-- Salud del equipo -->
+    <div class="lg:col-span-3 bg-white rounded-lg border border-gray-100 p-5">
+      <div class="flex items-center justify-between mb-4">
+        <span class="text-sm font-semibold text-gray-800">Salud del equipo · últimas 8 semanas</span>
+        <span class="text-xs text-gray-500">Score medio <b class="text-gray-800">63</b> <span class="text-green-600">+4</span></span>
+      </div>
+      <div class="grid grid-cols-4 gap-6">
+        <div>
+          <div class="text-[10px] text-gray-400">Llamadas</div>
+          <div class="flex items-baseline gap-1.5 mt-1">
+            <span class="text-2xl font-bold">47</span>
+            <span class="text-xs text-green-600">+12%</span>
+          </div>
+          <div class="mt-2 h-10">
+            <canvas id="sparkCalls" height="40"></canvas>
+          </div>
+        </div>
+        <div>
+          <div class="text-[10px] text-gray-400">Score medio</div>
+          <div class="flex items-baseline gap-1.5 mt-1">
+            <span class="text-2xl font-bold">63</span>
+            <span class="text-xs text-green-600">+4</span>
+          </div>
+          <div class="mt-2 h-10">
+            <canvas id="sparkScore" height="40"></canvas>
+          </div>
+        </div>
+        <div>
+          <div class="text-[10px] text-gray-400">Demos agendadas</div>
+          <div class="flex items-baseline gap-1.5 mt-1">
+            <span class="text-2xl font-bold">14</span>
+            <span class="text-xs text-green-600">+3</span>
+          </div>
+          <div class="mt-2 h-10">
+            <canvas id="sparkDemos" height="40"></canvas>
+          </div>
+        </div>
+        <div>
+          <div class="text-[10px] text-gray-400">Pipeline creado</div>
+          <div class="flex items-baseline gap-1.5 mt-1">
+            <span class="text-2xl font-bold">€312K</span>
+            <span class="text-xs text-green-600">+18%</span>
+          </div>
+          <div class="mt-2 h-10">
+            <canvas id="sparkPipeline" height="40"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alertas activas -->
+    <div class="lg:col-span-2 bg-white rounded-lg border border-gray-100 p-5">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-sm font-semibold text-gray-800">Alertas activas</span>
+        <span class="text-[10px] font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded-full">2 críticas</span>
+      </div>
+      <div class="space-y-0">
+        <div class="flex items-start justify-between py-2.5 border-b border-gray-50">
+          <div class="flex-1 min-w-0">
+            <div class="text-xs font-medium text-gray-900">TecnoIndustrial Ebro · <span class="text-gray-500 font-normal">Diego Navarro</span></div>
+            <div class="text-[10px] text-gray-500">Economic buyer sin identificar tras 3 calls · Deal €67K</div>
+          </div>
+          <span class="text-[10px] text-gray-400 shrink-0 ml-2">Hace 2d</span>
+        </div>
+        <div class="flex items-start justify-between py-2.5 border-b border-gray-50">
+          <div class="flex-1 min-w-0">
+            <div class="text-xs font-medium text-gray-900">Talleres Ribera · <span class="text-gray-500 font-normal">Mateo Álvarez</span></div>
+            <div class="text-[10px] text-gray-500">3 de 4 BANT Missing · Opener no cerrado</div>
+          </div>
+          <span class="text-[10px] text-gray-400 shrink-0 ml-2">Hace 3h</span>
+        </div>
+        <div class="flex items-start justify-between py-2.5 border-b border-gray-50">
+          <div class="flex-1 min-w-0">
+            <div class="text-xs font-medium text-gray-900">Farmacia Girona · <span class="text-gray-500 font-normal">Raúl Mendoza</span></div>
+            <div class="text-[10px] text-gray-500">Deal estancado 3 semanas sin actividad</div>
+          </div>
+          <span class="text-[10px] text-gray-400 shrink-0 ml-2">Hace 4d</span>
+        </div>
+        <div class="flex items-start justify-between py-2.5">
+          <div class="flex-1 min-w-0">
+            <div class="text-xs font-medium text-gray-900">Bufete Serrano & Co. · <span class="text-gray-500 font-normal">Javier Romero</span></div>
+            <div class="text-[10px] text-gray-500">Discovery L1 repetida</div>
+          </div>
+          <span class="text-[10px] text-gray-400 shrink-0 ml-2">Hace 3d</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 3: Reps this week + Deals que Claudio ve diferente -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <!-- Reps esta semana -->
+    <div class="bg-white rounded-lg border border-gray-100 p-5">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-sm font-semibold text-gray-800">Reps · esta semana</span>
+        <span class="text-[10px] text-gray-400">Ordenado por score medio</span>
+      </div>
+      <div class="space-y-0">
+        <div class="flex items-center py-2 border-b border-gray-50 hover:bg-gray-50/50 rounded">
+          <div class="w-7 h-7 bg-green-100 rounded-full flex items-center justify-center text-green-700 text-[10px] font-bold mr-3">IC</div>
+          <div class="flex-1 min-w-0">
+            <div class="text-xs font-medium">Irene Castaño</div>
+            <div class="text-[10px] text-gray-400">PAE · SMB</div>
+          </div>
+          <div class="text-xs text-gray-500 mr-3">3 calls</div>
+          <div class="flex gap-0.5 mr-3">
+            <div class="w-1.5 h-5 bg-blue-500 rounded-sm"></div>
+            <div class="w-1.5 h-4 bg-blue-400 rounded-sm"></div>
+            <div class="w-1.5 h-6 bg-blue-500 rounded-sm"></div>
+            <div class="w-1.5 h-3 bg-blue-300 rounded-sm"></div>
+            <div class="w-1.5 h-2 bg-gray-200 rounded-sm"></div>
+          </div>
+          <div class="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
+            <span class="text-sm font-bold text-green-700">75</span>
+          </div>
+        </div>
+        <div class="flex items-center py-2 border-b border-gray-50 hover:bg-gray-50/50 rounded">
+          <div class="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 text-[10px] font-bold mr-3">LF</div>
+          <div class="flex-1 min-w-0">
+            <div class="text-xs font-medium">Lucía Fernández</div>
+            <div class="text-[10px] text-gray-400">PBD · Prospect</div>
+          </div>
+          <div class="text-xs text-gray-500 mr-3">4 calls</div>
+          <div class="flex gap-0.5 mr-3">
+            <div class="w-1.5 h-6 bg-blue-500 rounded-sm"></div>
+            <div class="w-1.5 h-5 bg-blue-500 rounded-sm"></div>
+            <div class="w-1.5 h-4 bg-blue-400 rounded-sm"></div>
+            <div class="w-1.5 h-6 bg-blue-500 rounded-sm"></div>
+            <div class="w-1.5 h-2 bg-gray-200 rounded-sm"></div>
+          </div>
+          <div class="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
+            <span class="text-sm font-bold text-green-700">74</span>
+          </div>
+        </div>
+        <div class="flex items-center py-2 border-b border-gray-50 hover:bg-gray-50/50 rounded">
+          <div class="w-7 h-7 bg-purple-100 rounded-full flex items-center justify-center text-purple-700 text-[10px] font-bold mr-3">PV</div>
+          <div class="flex-1 min-w-0">
+            <div class="text-xs font-medium">Paula Vidal</div>
+            <div class="text-[10px] text-gray-400">PAE · Enterprise</div>
+          </div>
+          <div class="text-xs text-gray-500 mr-3">4 calls</div>
+          <div class="flex gap-0.5 mr-3">
+            <div class="w-1.5 h-5 bg-blue-400 rounded-sm"></div>
+            <div class="w-1.5 h-6 bg-blue-500 rounded-sm"></div>
+            <div class="w-1.5 h-5 bg-blue-400 rounded-sm"></div>
+            <div class="w-1.5 h-4 bg-blue-300 rounded-sm"></div>
+            <div class="w-1.5 h-2 bg-gray-200 rounded-sm"></div>
+          </div>
+          <div class="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
+            <span class="text-sm font-bold text-green-700">74</span>
+          </div>
+        </div>
+        <div class="flex items-center py-2 border-b border-gray-50 hover:bg-gray-50/50 rounded">
+          <div class="w-7 h-7 bg-amber-100 rounded-full flex items-center justify-center text-amber-700 text-[10px] font-bold mr-3">MR</div>
+          <div class="flex-1 min-w-0">
+            <div class="text-xs font-medium">Marc Riera</div>
+            <div class="text-[10px] text-gray-400">PAE · Mid-Market</div>
+          </div>
+          <div class="text-xs text-gray-500 mr-3">5 calls</div>
+          <div class="flex gap-0.5 mr-3">
+            <div class="w-1.5 h-3 bg-blue-300 rounded-sm"></div>
+            <div class="w-1.5 h-4 bg-blue-400 rounded-sm"></div>
+            <div class="w-1.5 h-3 bg-blue-300 rounded-sm"></div>
+            <div class="w-1.5 h-5 bg-blue-400 rounded-sm"></div>
+            <div class="w-1.5 h-4 bg-blue-300 rounded-sm"></div>
+          </div>
+          <div class="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
+            <span class="text-sm font-bold text-amber-700">58</span>
+          </div>
+        </div>
+        <div class="flex items-center py-2 hover:bg-gray-50/50 rounded">
+          <div class="w-7 h-7 bg-red-100 rounded-full flex items-center justify-center text-red-700 text-[10px] font-bold mr-3">AV</div>
+          <div class="flex-1 min-w-0">
+            <div class="text-xs font-medium">Ana Vidal</div>
+            <div class="text-[10px] text-gray-400">PAE · SMB</div>
+          </div>
+          <div class="text-xs text-gray-500 mr-3">2 calls</div>
+          <div class="flex gap-0.5 mr-3">
+            <div class="w-1.5 h-3 bg-blue-300 rounded-sm"></div>
+            <div class="w-1.5 h-2 bg-blue-200 rounded-sm"></div>
+            <div class="w-1.5 h-2 bg-gray-200 rounded-sm"></div>
+            <div class="w-1.5 h-2 bg-gray-200 rounded-sm"></div>
+            <div class="w-1.5 h-2 bg-gray-200 rounded-sm"></div>
+          </div>
+          <div class="w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center">
+            <span class="text-sm font-bold text-red-600">42</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Deals que Claudio ve diferente -->
+    <div class="bg-white rounded-lg border border-gray-100 p-5">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-sm font-semibold text-gray-800">Deals que Claudio ve diferente</span>
+        <span class="text-[10px] text-gray-400">|Claudio – HubSpot| ≥ 10pt</span>
+      </div>
+      <div class="space-y-0">
+        <div class="flex items-center justify-between py-2.5 border-b border-gray-50">
+          <div class="flex-1 min-w-0">
+            <div class="text-xs font-medium text-gray-900">TecnoIndustrial Ebro</div>
+            <div class="text-[10px] text-gray-500">Diego Navarro · €67.000 · Negociación</div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <span class="text-[10px] text-gray-400">HS</span>
+            <span class="text-xs font-medium">60%</span>
+            <span class="text-[10px] text-gray-300">→</span>
+            <span class="text-[10px] text-gray-400">Cl</span>
+            <span class="text-xs font-bold text-red-600">28%</span>
+            <span class="text-xs font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded">-32</span>
+          </div>
+        </div>
+        <div class="flex items-center justify-between py-2.5 border-b border-gray-50">
+          <div class="flex-1 min-w-0">
+            <div class="text-xs font-medium text-gray-900">EcoLogistics Ibérica</div>
+            <div class="text-[10px] text-gray-500">Paula Vidal · €42.000 · Propuesta</div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <span class="text-[10px] text-gray-400">HS</span>
+            <span class="text-xs font-medium">50%</span>
+            <span class="text-[10px] text-gray-300">→</span>
+            <span class="text-[10px] text-gray-400">Cl</span>
+            <span class="text-xs font-bold text-green-600">71%</span>
+            <span class="text-xs font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">+21</span>
+          </div>
+        </div>
+        <div class="flex items-center justify-between py-2.5 border-b border-gray-50">
+          <div class="flex-1 min-w-0">
+            <div class="text-xs font-medium text-gray-900">Studio Textil Blanco</div>
+            <div class="text-[10px] text-gray-500">Lucía Fernández · €28.000 · Discovery</div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <span class="text-[10px] text-gray-400">HS</span>
+            <span class="text-xs font-medium">40%</span>
+            <span class="text-[10px] text-gray-300">→</span>
+            <span class="text-[10px] text-gray-400">Cl</span>
+            <span class="text-xs font-bold text-green-600">60%</span>
+            <span class="text-xs font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">+20</span>
+          </div>
+        </div>
+        <div class="flex items-center justify-between py-2.5 border-b border-gray-50">
+          <div class="flex-1 min-w-0">
+            <div class="text-xs font-medium text-gray-900">Grupo Antolin</div>
+            <div class="text-[10px] text-gray-500">Marc Riera · €19.500 · MEDDPICC</div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <span class="text-[10px] text-gray-400">HS</span>
+            <span class="text-xs font-medium">65%</span>
+            <span class="text-[10px] text-gray-300">→</span>
+            <span class="text-[10px] text-gray-400">Cl</span>
+            <span class="text-xs font-bold text-red-600">42%</span>
+            <span class="text-xs font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded">-23</span>
+          </div>
+        </div>
+        <div class="flex items-center justify-between py-2.5">
+          <div class="flex-1 min-w-0">
+            <div class="text-xs font-medium text-gray-900">Cepsa Química</div>
+            <div class="text-[10px] text-gray-500">Pol Bartolomé · €12.500 · Economical</div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <span class="text-[10px] text-gray-400">HS</span>
+            <span class="text-xs font-medium">55%</span>
+            <span class="text-[10px] text-gray-300">→</span>
+            <span class="text-[10px] text-gray-400">Cl</span>
+            <span class="text-xs font-bold text-red-600">22%</span>
+            <span class="text-xs font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded">-33</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== FORECAST TAB ====== -->
+<div id="panel-forecast" class="max-w-[1400px] mx-auto px-6 py-5 hidden fade-in">
+
+  <!-- Header + Filters -->
+  <div class="flex items-center justify-between mb-4">
+    <div class="flex items-center gap-3">
+      <h2 class="text-base font-semibold text-gray-800">Forecast</h2>
+      <div class="flex bg-gray-100 rounded-lg p-0.5 gap-0.5">
+        <button onclick="setFScope(this)" class="px-2.5 py-1 text-xs font-medium bg-white rounded-md shadow-sm text-gray-800">Team</button>
+        <button onclick="setFScope(this)" class="px-2.5 py-1 text-xs font-medium text-gray-500 rounded-md hover:text-gray-700">My Deals</button>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <div class="flex bg-gray-100 rounded-lg p-0.5 gap-0.5">
+        <button onclick="setFTime(this)" class="px-2.5 py-1 text-xs font-medium bg-white rounded-md shadow-sm text-gray-800">This Month</button>
+        <button onclick="setFTime(this)" class="px-2.5 py-1 text-xs font-medium text-gray-500 rounded-md hover:text-gray-700">Next Month</button>
+        <button onclick="setFTime(this)" class="px-2.5 py-1 text-xs font-medium text-gray-500 rounded-md hover:text-gray-700">Q3</button>
+      </div>
+      <select class="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600">
+        <option>June 2026</option>
+        <option>July 2026</option>
+        <option>August 2026</option>
+        <option>September 2026</option>
+        <option>Q3 2026</option>
+        <option>Q4 2026</option>
+      </select>
+      <select class="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600">
+        <option>All PAEs</option>
+        <option>Xavi Soler</option>
+        <option>Pol Bartolomé</option>
+        <option>Laura Sánchez</option>
+        <option>Marc Riera</option>
+        <option>Carlos Martín</option>
+        <option>Ana Vidal</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Chart + KPI strip -->
+  <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-5">
+    <div class="lg:col-span-3 bg-white rounded-lg border border-gray-100 p-4">
+      <canvas id="forecastChart" height="100"></canvas>
+    </div>
+    <div class="flex flex-col gap-3">
+      <div class="bg-white rounded-lg border border-gray-100 p-3 flex-1">
+        <div class="text-[10px] text-gray-400 uppercase tracking-wider">Target June</div>
+        <div class="text-xl font-bold mt-1">€320K</div>
+        <div class="w-full bg-gray-100 rounded-full h-2 mt-2"><div class="bg-brand-600 rounded-full h-2" style="width:62%"></div></div>
+        <div class="text-[10px] text-gray-500 mt-1">€198K committed (62%)</div>
+      </div>
+      <div class="bg-green-50 rounded-lg border border-green-100 p-3 flex-1">
+        <div class="text-[10px] text-green-600 uppercase tracking-wider">Commit</div>
+        <div class="text-xl font-bold text-green-800 mt-1">€198K</div>
+        <div class="text-[10px] text-green-600">5 deals · avg 84%</div>
+      </div>
+      <div class="bg-blue-50 rounded-lg border border-blue-100 p-3 flex-1">
+        <div class="text-[10px] text-blue-600 uppercase tracking-wider">Best Case</div>
+        <div class="text-xl font-bold text-blue-800 mt-1">€156K</div>
+        <div class="text-[10px] text-blue-600">8 deals · avg 55%</div>
+      </div>
+      <div class="bg-gray-50 rounded-lg border border-gray-200 p-3 flex-1">
+        <div class="text-[10px] text-gray-500 uppercase tracking-wider">Pipeline</div>
+        <div class="text-xl font-bold text-gray-700 mt-1">€412K</div>
+        <div class="text-[10px] text-gray-500">22 deals · avg 28%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Deal rows grouped by forecast category -->
+
+  <!-- COMMIT -->
+  <div class="mb-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+      <span class="text-xs font-semibold text-gray-700 uppercase tracking-wider">Commit</span>
+      <span class="text-[10px] text-gray-400">5 deals · €198K MRR · €166K weighted</span>
+    </div>
+    <div class="space-y-2">
+      <!-- Deal card row -->
+      <div class="bg-white rounded-lg border border-gray-100 p-3 flex items-start gap-4 hover:shadow-sm transition-shadow">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-sm font-semibold text-gray-900">Ferrovial Servicios</span>
+            <span class="stage-pill bg-green-100 text-green-700">Contract Sent</span>
+            <span class="badge-prob bg-green-100 text-green-700">88%</span>
+            <span class="text-xs text-gray-400 trend-up">+3</span>
+          </div>
+          <div class="flex items-center gap-4 text-xs text-gray-500">
+            <span>Xavi Soler</span>
+            <span>MEDDIC <b class="text-gray-700">8.1</b></span>
+            <span>4d in stage</span>
+          </div>
+        </div>
+        <div class="text-right shrink-0 w-24">
+          <div class="text-sm font-bold text-gray-900">€45,000</div>
+          <div class="text-[10px] text-green-600 font-medium">€39,600 wtd</div>
+        </div>
+        <div class="text-right shrink-0 w-16">
+          <div class="text-sm font-semibold text-gray-700">Jun 2</div>
+          <div class="text-[10px] text-gray-400">7 days</div>
+        </div>
+        <div class="flex-1 min-w-0 pl-3 border-l border-gray-100">
+          <div class="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Key Lever</div>
+          <div class="text-xs text-gray-700">EB signed off. Legal cleared. Waiting on final signature from procurement — follow up Thursday.</div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg border border-gray-100 p-3 flex items-start gap-4 hover:shadow-sm transition-shadow">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-sm font-semibold text-gray-900">Acciona Energía</span>
+            <span class="stage-pill bg-blue-100 text-blue-700">Pricing</span>
+            <span class="badge-prob bg-green-100 text-green-700">75%</span>
+            <span class="text-xs text-gray-400 trend-up">+5</span>
+          </div>
+          <div class="flex items-center gap-4 text-xs text-gray-500">
+            <span>Laura Sánchez</span>
+            <span>MEDDIC <b class="text-gray-700">7.8</b></span>
+            <span>7d in stage</span>
+          </div>
+        </div>
+        <div class="text-right shrink-0 w-24">
+          <div class="text-sm font-bold text-gray-900">€32,000</div>
+          <div class="text-[10px] text-green-600 font-medium">€24,000 wtd</div>
+        </div>
+        <div class="text-right shrink-0 w-16">
+          <div class="text-sm font-semibold text-gray-700">Jun 8</div>
+          <div class="text-[10px] text-gray-400">13 days</div>
+        </div>
+        <div class="flex-1 min-w-0 pl-3 border-l border-gray-100">
+          <div class="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Key Lever</div>
+          <div class="text-xs text-gray-700">Mutual action plan agreed. CFO reviewing final proposal. Push for pricing call this week to lock terms.</div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg border border-gray-100 p-3 flex items-start gap-4 hover:shadow-sm transition-shadow">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-sm font-semibold text-gray-900">ACS Servicios</span>
+            <span class="stage-pill bg-green-100 text-green-700">Contract Sent</span>
+            <span class="badge-prob bg-green-100 text-green-700">82%</span>
+            <span class="text-xs text-gray-400 trend-flat">0</span>
+          </div>
+          <div class="flex items-center gap-4 text-xs text-gray-500">
+            <span>Marta García</span>
+            <span>MEDDIC <b class="text-gray-700">7.4</b></span>
+            <span>6d in stage</span>
+          </div>
+        </div>
+        <div class="text-right shrink-0 w-24">
+          <div class="text-sm font-bold text-gray-900">€21,500</div>
+          <div class="text-[10px] text-green-600 font-medium">€17,630 wtd</div>
+        </div>
+        <div class="text-right shrink-0 w-16">
+          <div class="text-sm font-semibold text-gray-700">Jun 10</div>
+          <div class="text-[10px] text-gray-400">15 days</div>
+        </div>
+        <div class="flex-1 min-w-0 pl-3 border-l border-gray-100">
+          <div class="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Key Lever</div>
+          <div class="text-xs text-gray-700">Contract with legal. Champion confirmed timeline. Risk: procurement summer freeze — need signature before Jun 15.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BEST CASE -->
+  <div class="mb-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+      <span class="text-xs font-semibold text-gray-700 uppercase tracking-wider">Best Case</span>
+      <span class="text-[10px] text-gray-400">8 deals · €156K MRR · €78K weighted</span>
+    </div>
+    <div class="space-y-2">
+      <div class="bg-white rounded-lg border border-gray-100 p-3 flex items-start gap-4 hover:shadow-sm transition-shadow">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-sm font-semibold text-gray-900">Naturgy</span>
+            <span class="stage-pill bg-indigo-100 text-indigo-700">Economical</span>
+            <span class="badge-prob bg-amber-100 text-amber-700">55%</span>
+            <span class="text-xs text-gray-400 trend-up">+8</span>
+          </div>
+          <div class="flex items-center gap-4 text-xs text-gray-500">
+            <span>Carlos Martín</span>
+            <span>MEDDIC <b class="text-gray-700">6.2</b></span>
+            <span>14d in stage</span>
+          </div>
+        </div>
+        <div class="text-right shrink-0 w-24">
+          <div class="text-sm font-bold text-gray-900">€28,000</div>
+          <div class="text-[10px] text-blue-600 font-medium">€15,400 wtd</div>
+        </div>
+        <div class="text-right shrink-0 w-16">
+          <div class="text-sm font-semibold text-gray-700">Jun 15</div>
+          <div class="text-[10px] text-gray-400">20 days</div>
+        </div>
+        <div class="flex-1 min-w-0 pl-3 border-l border-gray-100">
+          <div class="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Key Lever</div>
+          <div class="text-xs text-gray-700"><span class="text-red-600 font-medium">EB not identified.</span> Need to multi-thread beyond HR Director. Request intro to CFO in next call.</div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg border border-gray-100 p-3 flex items-start gap-4 hover:shadow-sm transition-shadow">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-sm font-semibold text-gray-900">Repsol Exploración</span>
+            <span class="stage-pill bg-purple-100 text-purple-700">MEDDPICC</span>
+            <span class="badge-prob bg-amber-100 text-amber-700">45%</span>
+            <span class="text-xs text-gray-400 trend-up">+4</span>
+          </div>
+          <div class="flex items-center gap-4 text-xs text-gray-500">
+            <span>Marc Riera</span>
+            <span>MEDDIC <b class="text-gray-700">5.8</b></span>
+            <span>18d in stage</span>
+          </div>
+        </div>
+        <div class="text-right shrink-0 w-24">
+          <div class="text-sm font-bold text-gray-900">€22,000</div>
+          <div class="text-[10px] text-blue-600 font-medium">€9,900 wtd</div>
+        </div>
+        <div class="text-right shrink-0 w-16">
+          <div class="text-sm font-semibold text-gray-700">Jun 20</div>
+          <div class="text-[10px] text-gray-400">25 days</div>
+        </div>
+        <div class="flex-1 min-w-0 pl-3 border-l border-gray-100">
+          <div class="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Key Lever</div>
+          <div class="text-xs text-gray-700">2nd demo booked for Wed. Must nail ROI quantification — they're comparing with Personio. Prepare TCO comparison.</div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg border border-gray-100 p-3 flex items-start gap-4 hover:shadow-sm transition-shadow">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-sm font-semibold text-gray-900">Mapfre</span>
+            <span class="stage-pill bg-purple-100 text-purple-700">MEDDPICC</span>
+            <span class="badge-prob bg-amber-100 text-amber-700">52%</span>
+            <span class="text-xs text-gray-400 trend-up">+8</span>
+          </div>
+          <div class="flex items-center gap-4 text-xs text-gray-500">
+            <span>Pol Bartolomé</span>
+            <span>MEDDIC <b class="text-gray-700">6.1</b></span>
+            <span>9d in stage</span>
+          </div>
+        </div>
+        <div class="text-right shrink-0 w-24">
+          <div class="text-sm font-bold text-gray-900">€15,000</div>
+          <div class="text-[10px] text-blue-600 font-medium">€7,800 wtd</div>
+        </div>
+        <div class="text-right shrink-0 w-16">
+          <div class="text-sm font-semibold text-gray-700">Jun 25</div>
+          <div class="text-[10px] text-gray-400">30 days</div>
+        </div>
+        <div class="flex-1 min-w-0 pl-3 border-l border-gray-100">
+          <div class="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Key Lever</div>
+          <div class="text-xs text-gray-700">DC clear. Need mutual action plan to keep velocity. Schedule economical alignment call before Jun 5.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIPELINE -->
+  <div class="mb-4">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="w-2.5 h-2.5 rounded-full bg-gray-400"></span>
+      <span class="text-xs font-semibold text-gray-700 uppercase tracking-wider">Pipeline</span>
+      <span class="text-[10px] text-gray-400">22 deals · €412K MRR · €115K weighted</span>
+    </div>
+    <div class="space-y-2">
+      <div class="bg-white rounded-lg border border-gray-100 p-3 flex items-start gap-4 hover:shadow-sm transition-shadow">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-sm font-semibold text-gray-900">Iberdrola</span>
+            <span class="stage-pill bg-cyan-100 text-cyan-700">Demo</span>
+            <span class="badge-prob bg-amber-100 text-amber-700">35%</span>
+            <span class="text-xs text-gray-400 trend-up">+5</span>
+          </div>
+          <div class="flex items-center gap-4 text-xs text-gray-500">
+            <span>Pol Bartolomé</span>
+            <span>MEDDIC <b class="text-gray-700">4.8</b></span>
+            <span>5d in stage</span>
+          </div>
+        </div>
+        <div class="text-right shrink-0 w-24">
+          <div class="text-sm font-bold text-gray-900">€18,500</div>
+          <div class="text-[10px] text-gray-500 font-medium">€6,475 wtd</div>
+        </div>
+        <div class="text-right shrink-0 w-16">
+          <div class="text-sm font-semibold text-gray-700">Jun 30</div>
+          <div class="text-[10px] text-gray-400">35 days</div>
+        </div>
+        <div class="flex-1 min-w-0 pl-3 border-l border-gray-100">
+          <div class="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Key Lever</div>
+          <div class="text-xs text-gray-700">Champion engaged but EB unknown. Demo today — must identify decision process and timeline during call.</div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg border border-gray-100 border-red-200/50 p-3 flex items-start gap-4 hover:shadow-sm transition-shadow bg-red-50/20">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-sm font-semibold text-gray-900">Gestamp</span>
+            <span class="stage-pill bg-indigo-100 text-indigo-700">Economical</span>
+            <span class="badge-prob bg-red-100 text-red-700">25%</span>
+            <span class="text-xs text-gray-400 trend-down">-18</span>
+          </div>
+          <div class="flex items-center gap-4 text-xs text-gray-500">
+            <span>Laura Sánchez</span>
+            <span>MEDDIC <b class="text-red-600">4.2</b></span>
+            <span class="text-red-500">31d in stage</span>
+          </div>
+        </div>
+        <div class="text-right shrink-0 w-24">
+          <div class="text-sm font-bold text-gray-900">€19,000</div>
+          <div class="text-[10px] text-gray-500 font-medium">€4,750 wtd</div>
+        </div>
+        <div class="text-right shrink-0 w-16">
+          <div class="text-sm font-semibold text-red-600">Jun 12</div>
+          <div class="text-[10px] text-red-500">at risk</div>
+        </div>
+        <div class="flex-1 min-w-0 pl-3 border-l border-red-100">
+          <div class="text-[10px] text-red-500 uppercase tracking-wider mb-0.5">Blocker</div>
+          <div class="text-xs text-red-700">Champion gone dark since May 8. 3 emails unanswered. Need re-engagement strategy or escalation through partner channel.</div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg border border-gray-100 p-3 flex items-start gap-4 hover:shadow-sm transition-shadow">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-sm font-semibold text-gray-900">Indra Sistemas</span>
+            <span class="stage-pill bg-purple-100 text-purple-700">MEDDPICC</span>
+            <span class="badge-prob bg-amber-100 text-amber-700">38%</span>
+            <span class="text-xs text-gray-400 trend-up">+7</span>
+          </div>
+          <div class="flex items-center gap-4 text-xs text-gray-500">
+            <span>Carlos Martín</span>
+            <span>MEDDIC <b class="text-gray-700">5.5</b></span>
+            <span>12d in stage</span>
+          </div>
+        </div>
+        <div class="text-right shrink-0 w-24">
+          <div class="text-sm font-bold text-gray-900">€16,800</div>
+          <div class="text-[10px] text-gray-500 font-medium">€6,384 wtd</div>
+        </div>
+        <div class="text-right shrink-0 w-16">
+          <div class="text-sm font-semibold text-gray-700">Jun 28</div>
+          <div class="text-[10px] text-gray-400">33 days</div>
+        </div>
+        <div class="flex-1 min-w-0 pl-3 border-l border-gray-100">
+          <div class="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Key Lever</div>
+          <div class="text-xs text-gray-700">Good momentum post-demo. Need to validate budget with CTO and confirm decision timeline for Q3 start.</div>
+        </div>
+      </div>
+
+      <div class="text-center text-xs text-gray-300 py-2">+ 19 more pipeline deals...</div>
+    </div>
+  </div>
+
+  <!-- Summary footer -->
+  <div class="bg-white rounded-lg border border-gray-200 p-3 flex items-center justify-between">
+    <div class="flex items-center gap-6 text-xs">
+      <span class="text-gray-500">June 2026 · 35 deals</span>
+      <span>Total MRR: <b class="text-gray-900">€766K</b></span>
+      <span>Weighted: <b class="text-brand-700">€359K</b></span>
+      <span>vs Target: <b class="text-green-600">€320K (112%)</b></span>
+    </div>
+    <div class="flex items-center gap-4 text-[10px] text-gray-400">
+      <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-500"></span> Commit €198K</span>
+      <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-500"></span> Best Case €78K</span>
+      <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-gray-400"></span> Pipeline €115K</span>
+    </div>
+  </div>
+</div>
+
+<!-- ====== DEALS TAB (KANBAN) ====== -->
+<div id="panel-deals" class="max-w-[1600px] mx-auto px-6 py-5 hidden fade-in">
+  <div class="flex items-center justify-between mb-4">
+    <div class="flex items-center gap-3">
+      <h2 class="text-base font-semibold text-gray-800">Deals</h2>
+      <span class="text-xs text-gray-400">203 open deals · 6 stages</span>
+    </div>
+    <div class="flex gap-2">
+      <input type="text" placeholder="Search deals..." class="text-xs border border-gray-200 rounded-lg px-3 py-1.5 w-52">
+      <select class="text-xs border border-gray-200 rounded-lg px-2 py-1.5">
+        <option>All PAEs</option>
+        <option>Xavi Soler</option>
+        <option>Pol Bartolomé</option>
+        <option>Laura Sánchez</option>
+        <option>Marc Riera</option>
+        <option>Carlos Martín</option>
+        <option>Ana Vidal</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="flex gap-3 overflow-x-auto pb-4">
+
+    <!-- FPA Started -->
+    <div class="kanban-col flex-shrink-0">
+      <div class="flex items-center justify-between mb-2.5 px-1">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-blue-300"></span>
+          <span class="text-xs font-semibold text-gray-700">FPA Started</span>
+        </div>
+        <span class="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">68</span>
+      </div>
+      <div class="space-y-2">
+        <div class="deal-card bg-white rounded-lg p-3 border border-gray-100 shadow-sm">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-xs font-semibold text-gray-900">Solaria Energía</span>
+            <span class="badge-prob bg-gray-100 text-gray-600">15%</span>
+          </div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-bold text-gray-800">€8,200</span>
+            <span class="text-[10px] text-gray-400">8d in stage</span>
+          </div>
+          <div class="flex gap-1.5 pt-2 border-t border-gray-50">
+            <button onclick="openHistorico('solaria')" class="flex-1 text-[10px] font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded py-1.5 text-center transition-colors">Histórico</button>
+            <button onclick="openNextSteps('solaria')" class="flex-1 text-[10px] font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 rounded py-1.5 text-center transition-colors">Next Steps</button>
+          </div>
+        </div>
+        <div class="deal-card bg-white rounded-lg p-3 border border-gray-100 shadow-sm">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-xs font-semibold text-gray-900">Grupo Catalana</span>
+            <span class="badge-prob bg-gray-100 text-gray-600">20%</span>
+          </div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-bold text-gray-800">€6,800</span>
+            <span class="text-[10px] text-gray-400">3d in stage</span>
+          </div>
+          <div class="flex gap-1.5 pt-2 border-t border-gray-50">
+            <button onclick="openHistorico('catalana')" class="flex-1 text-[10px] font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded py-1.5 text-center transition-colors">Histórico</button>
+            <button onclick="openNextSteps('catalana')" class="flex-1 text-[10px] font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 rounded py-1.5 text-center transition-colors">Next Steps</button>
+          </div>
+        </div>
+        <div class="deal-card bg-white rounded-lg p-3 border border-gray-100 shadow-sm">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-xs font-semibold text-gray-900">Laboratorios Rovi</span>
+            <span class="badge-prob bg-gray-100 text-gray-600">15%</span>
+          </div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-bold text-gray-800">€6,800</span>
+            <span class="text-[10px] text-gray-400">2d in stage</span>
+          </div>
+          <div class="flex gap-1.5 pt-2 border-t border-gray-50">
+            <button onclick="openHistorico('rovi')" class="flex-1 text-[10px] font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded py-1.5 text-center transition-colors">Histórico</button>
+            <button onclick="openNextSteps('rovi')" class="flex-1 text-[10px] font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 rounded py-1.5 text-center transition-colors">Next Steps</button>
+          </div>
+        </div>
+        <div class="text-center text-[10px] text-gray-300 py-1">+65 more</div>
+      </div>
+    </div>
+
+    <!-- Demo Booked -->
+    <div class="kanban-col flex-shrink-0">
+      <div class="flex items-center justify-between mb-2.5 px-1">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+          <span class="text-xs font-semibold text-gray-700">Demo Booked</span>
+        </div>
+        <span class="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">49</span>
+      </div>
+      <div class="space-y-2">
+        <div class="deal-card bg-white rounded-lg p-3 border border-gray-100 shadow-sm">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-xs font-semibold text-gray-900">Iberdrola</span>
+            <span class="badge-prob bg-amber-100 text-amber-700">35%</span>
+          </div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-bold text-gray-800">€18,500</span>
+            <span class="text-[10px] text-gray-400">5d in stage</span>
+          </div>
+          <div class="flex gap-1.5 pt-2 border-t border-gray-50">
+            <button onclick="openHistorico('iberdrola')" class="flex-1 text-[10px] font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded py-1.5 text-center transition-colors">Histórico</button>
+            <button onclick="openNextSteps('iberdrola')" class="flex-1 text-[10px] font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 rounded py-1.5 text-center transition-colors">Next Steps</button>
+          </div>
+        </div>
+        <div class="deal-card bg-white rounded-lg p-3 border border-gray-100 shadow-sm">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-xs font-semibold text-gray-900">Endesa Distribución</span>
+            <span class="badge-prob bg-amber-100 text-amber-700">40%</span>
+          </div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-bold text-gray-800">€14,200</span>
+            <span class="text-[10px] text-gray-400">12d in stage</span>
+          </div>
+          <div class="flex gap-1.5 pt-2 border-t border-gray-50">
+            <button onclick="openHistorico('endesa')" class="flex-1 text-[10px] font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded py-1.5 text-center transition-colors">Histórico</button>
+            <button onclick="openNextSteps('endesa')" class="flex-1 text-[10px] font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 rounded py-1.5 text-center transition-colors">Next Steps</button>
+          </div>
+        </div>
+        <div class="text-center text-[10px] text-gray-300 py-1">+47 more</div>
+      </div>
+    </div>
+
+    <!-- MEDDPICC -->
+    <div class="kanban-col flex-shrink-0">
+      <div class="flex items-center justify-between mb-2.5 px-1">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span>
+          <span class="text-xs font-semibold text-gray-700">MEDDPICC</span>
+        </div>
+        <span class="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">38</span>
+      </div>
+      <div class="space-y-2">
+        <div class="deal-card bg-white rounded-lg p-3 border border-gray-100 shadow-sm">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-xs font-semibold text-gray-900">Repsol Exploración</span>
+            <span class="badge-prob bg-amber-100 text-amber-700">45%</span>
+          </div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-bold text-gray-800">€22,000</span>
+            <span class="text-[10px] text-gray-400">18d in stage</span>
+          </div>
+          <div class="flex gap-1.5 pt-2 border-t border-gray-50">
+            <button onclick="openHistorico('repsol')" class="flex-1 text-[10px] font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded py-1.5 text-center transition-colors">Histórico</button>
+            <button onclick="openNextSteps('repsol')" class="flex-1 text-[10px] font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 rounded py-1.5 text-center transition-colors">Next Steps</button>
+          </div>
+        </div>
+        <div class="deal-card bg-white rounded-lg p-3 border border-gray-100 shadow-sm">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-xs font-semibold text-gray-900">Mapfre</span>
+            <span class="badge-prob bg-amber-100 text-amber-700">52%</span>
+          </div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-bold text-gray-800">€15,000</span>
+            <span class="text-[10px] text-gray-400">9d in stage</span>
+          </div>
+          <div class="flex gap-1.5 pt-2 border-t border-gray-50">
+            <button onclick="openHistorico('mapfre')" class="flex-1 text-[10px] font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded py-1.5 text-center transition-colors">Histórico</button>
+            <button onclick="openNextSteps('mapfre')" class="flex-1 text-[10px] font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 rounded py-1.5 text-center transition-colors">Next Steps</button>
+          </div>
+        </div>
+        <div class="text-center text-[10px] text-gray-300 py-1">+36 more</div>
+      </div>
+    </div>
+
+    <!-- Economical -->
+    <div class="kanban-col flex-shrink-0">
+      <div class="flex items-center justify-between mb-2.5 px-1">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-indigo-400"></span>
+          <span class="text-xs font-semibold text-gray-700">Economical</span>
+        </div>
+        <span class="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">26</span>
+      </div>
+      <div class="space-y-2">
+        <div class="deal-card bg-white rounded-lg p-3 border border-gray-100 shadow-sm">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-xs font-semibold text-gray-900">Naturgy</span>
+            <span class="badge-prob bg-amber-100 text-amber-700">55%</span>
+          </div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-bold text-gray-800">€28,000</span>
+            <span class="text-[10px] text-gray-400">14d in stage</span>
+          </div>
+          <div class="flex gap-1.5 pt-2 border-t border-gray-50">
+            <button onclick="openHistorico('naturgy')" class="flex-1 text-[10px] font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded py-1.5 text-center transition-colors">Histórico</button>
+            <button onclick="openNextSteps('naturgy')" class="flex-1 text-[10px] font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 rounded py-1.5 text-center transition-colors">Next Steps</button>
+          </div>
+        </div>
+        <div class="deal-card bg-white rounded-lg p-3 border border-red-200 shadow-sm bg-red-50/30">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-xs font-semibold text-red-800">Gestamp</span>
+            <span class="badge-prob bg-red-100 text-red-700">25%</span>
+          </div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-bold text-gray-800">€19,000</span>
+            <span class="text-[10px] text-red-500">31d in stage</span>
+          </div>
+          <div class="flex gap-1.5 pt-2 border-t border-red-100">
+            <button onclick="openHistorico('gestamp')" class="flex-1 text-[10px] font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded py-1.5 text-center transition-colors">Histórico</button>
+            <button onclick="openNextSteps('gestamp')" class="flex-1 text-[10px] font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 rounded py-1.5 text-center transition-colors">Next Steps</button>
+          </div>
+        </div>
+        <div class="text-center text-[10px] text-gray-300 py-1">+24 more</div>
+      </div>
+    </div>
+
+    <!-- Pricing -->
+    <div class="kanban-col flex-shrink-0">
+      <div class="flex items-center justify-between mb-2.5 px-1">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+          <span class="text-xs font-semibold text-gray-700">Pricing</span>
+        </div>
+        <span class="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">15</span>
+      </div>
+      <div class="space-y-2">
+        <div class="deal-card bg-white rounded-lg p-3 border border-gray-100 shadow-sm">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-xs font-semibold text-gray-900">Acciona Energía</span>
+            <span class="badge-prob bg-green-100 text-green-700">75%</span>
+          </div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-bold text-gray-800">€32,000</span>
+            <span class="text-[10px] text-gray-400">7d in stage</span>
+          </div>
+          <div class="flex gap-1.5 pt-2 border-t border-gray-50">
+            <button onclick="openHistorico('acciona')" class="flex-1 text-[10px] font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded py-1.5 text-center transition-colors">Histórico</button>
+            <button onclick="openNextSteps('acciona')" class="flex-1 text-[10px] font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 rounded py-1.5 text-center transition-colors">Next Steps</button>
+          </div>
+        </div>
+        <div class="text-center text-[10px] text-gray-300 py-1">+14 more</div>
+      </div>
+    </div>
+
+    <!-- Contract Sent -->
+    <div class="kanban-col flex-shrink-0">
+      <div class="flex items-center justify-between mb-2.5 px-1">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+          <span class="text-xs font-semibold text-gray-700">Contract Sent</span>
+        </div>
+        <span class="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">7</span>
+      </div>
+      <div class="space-y-2">
+        <div class="deal-card bg-white rounded-lg p-3 border border-green-100 shadow-sm bg-green-50/20">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-xs font-semibold text-gray-900">Ferrovial Servicios</span>
+            <span class="badge-prob bg-green-100 text-green-700">88%</span>
+          </div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-bold text-gray-800">€45,000</span>
+            <span class="text-[10px] text-gray-400">4d in stage</span>
+          </div>
+          <div class="flex gap-1.5 pt-2 border-t border-green-50">
+            <button onclick="openHistorico('ferrovial')" class="flex-1 text-[10px] font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded py-1.5 text-center transition-colors">Histórico</button>
+            <button onclick="openNextSteps('ferrovial')" class="flex-1 text-[10px] font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 rounded py-1.5 text-center transition-colors">Next Steps</button>
+          </div>
+        </div>
+        <div class="deal-card bg-white rounded-lg p-3 border border-green-100 shadow-sm bg-green-50/20">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-xs font-semibold text-gray-900">ACS Servicios</span>
+            <span class="badge-prob bg-green-100 text-green-700">82%</span>
+          </div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-bold text-gray-800">€21,500</span>
+            <span class="text-[10px] text-gray-400">6d in stage</span>
+          </div>
+          <div class="flex gap-1.5 pt-2 border-t border-green-50">
+            <button onclick="openHistorico('acs')" class="flex-1 text-[10px] font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded py-1.5 text-center transition-colors">Histórico</button>
+            <button onclick="openNextSteps('acs')" class="flex-1 text-[10px] font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 rounded py-1.5 text-center transition-colors">Next Steps</button>
+          </div>
+        </div>
+        <div class="text-center text-[10px] text-gray-300 py-1">+5 more</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Next Steps Modal -->
+<div id="nextStepsModal" class="fixed inset-0 z-50 hidden">
+  <div class="modal-overlay absolute inset-0" onclick="closeNextSteps()"></div>
+  <div class="absolute inset-y-12 inset-x-12 md:inset-y-16 md:inset-x-32 lg:inset-x-[30%] bg-white rounded-2xl shadow-2xl overflow-y-auto z-10 fade-in">
+    <div class="p-8 flex flex-col items-center justify-center h-full text-center">
+      <div class="w-12 h-12 bg-brand-100 rounded-full flex items-center justify-center mb-4">
+        <span class="text-brand-600 text-xl font-bold">→</span>
+      </div>
+      <h3 class="text-lg font-semibold text-gray-800 mb-2">Next Steps</h3>
+      <p class="text-sm text-gray-500 max-w-sm">This view will show AI-recommended next actions, pending tasks, and upcoming milestones for this deal.</p>
+      <p class="text-xs text-gray-400 mt-4">Coming soon</p>
+      <button onclick="closeNextSteps()" class="mt-6 px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600 transition-colors">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== DEAL DETAIL MODAL ====== -->
+<div id="dealModal" class="fixed inset-0 z-50 hidden">
+  <div class="modal-overlay absolute inset-0" onclick="closeDealModal()"></div>
+  <div class="absolute inset-4 md:inset-8 lg:inset-y-8 lg:inset-x-24 bg-white rounded-2xl shadow-2xl overflow-y-auto z-10 fade-in">
+    <div class="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">
+      <div>
+        <h2 class="text-lg font-semibold">Solaria Energía — HR Platform</h2>
+        <div class="flex items-center gap-3 mt-1">
+          <span class="stage-pill bg-blue-100 text-blue-700">FPA Started</span>
+          <span class="text-sm text-gray-400">PAE: Ana Vidal · PBD: Jorge Ruiz</span>
+          <span class="text-sm text-gray-400">· Deal age: 22 days</span>
+        </div>
+      </div>
+      <button onclick="closeDealModal()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="p-6">
+      <!-- Top stats -->
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+        <div class="bg-gray-50 rounded-lg p-3">
+          <div class="text-xs text-gray-400">MRR</div>
+          <div class="text-lg font-bold">€8,200</div>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3">
+          <div class="text-xs text-gray-400">Close Probability</div>
+          <div class="text-lg font-bold text-amber-600">15%</div>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3">
+          <div class="text-xs text-gray-400">Close Date</div>
+          <div class="text-lg font-bold">Jul 15</div>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3">
+          <div class="text-xs text-gray-400">Forecast</div>
+          <div class="text-lg font-bold text-gray-500">Pipeline</div>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3">
+          <div class="text-xs text-gray-400">Employees</div>
+          <div class="text-lg font-bold">340</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left: MEDDIC -->
+        <div>
+          <h3 class="font-semibold text-gray-800 mb-3">MEDDIC Assessment</h3>
+          <div class="bg-gray-50 rounded-xl p-4 mb-4">
+            <canvas id="radarChart" width="280" height="280"></canvas>
+          </div>
+          <div class="space-y-2">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-md bg-meddic-m text-white text-xs flex items-center justify-center font-bold">M</span>
+              <div class="flex-1">
+                <div class="flex justify-between">
+                  <span class="text-sm font-medium">Metrics</span>
+                  <span class="text-sm font-bold text-meddic-m">4/10</span>
+                </div>
+                <div class="text-xs text-gray-400">ROI not yet quantified. Mentioned "reducing manual time" but no numbers.</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-md bg-meddic-e text-white text-xs flex items-center justify-center font-bold">E</span>
+              <div class="flex-1">
+                <div class="flex justify-between">
+                  <span class="text-sm font-medium">Economic Buyer</span>
+                  <span class="text-sm font-bold text-meddic-e">3/10</span>
+                </div>
+                <div class="text-xs text-gray-400">Identified CHRO but no direct access yet. Working through HR Manager.</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-md bg-meddic-dc text-white text-xs flex items-center justify-center font-bold">DC</span>
+              <div class="flex-1">
+                <div class="flex justify-between">
+                  <span class="text-sm font-medium">Decision Criteria</span>
+                  <span class="text-sm font-bold text-meddic-dc">2/10</span>
+                </div>
+                <div class="text-xs text-gray-400">Unclear what they'll evaluate. Need to understand RFP process.</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-md bg-meddic-dp text-white text-xs flex items-center justify-center font-bold">DP</span>
+              <div class="flex-1">
+                <div class="flex justify-between">
+                  <span class="text-sm font-medium">Decision Process</span>
+                  <span class="text-sm font-bold text-meddic-dp">2/10</span>
+                </div>
+                <div class="text-xs text-gray-400">Unknown timeline. Need to map stakeholders and approval chain.</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-md bg-meddic-i text-white text-xs flex items-center justify-center font-bold">I</span>
+              <div class="flex-1">
+                <div class="flex justify-between">
+                  <span class="text-sm font-medium">Identify Pain</span>
+                  <span class="text-sm font-bold text-meddic-i">5/10</span>
+                </div>
+                <div class="text-xs text-gray-400">Manual payroll taking 3 days/month. Compliance gaps mentioned.</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-md bg-meddic-c text-white text-xs flex items-center justify-center font-bold">C</span>
+              <div class="flex-1">
+                <div class="flex justify-between">
+                  <span class="text-sm font-medium">Champion</span>
+                  <span class="text-sm font-bold text-meddic-c">3/10</span>
+                </div>
+                <div class="text-xs text-gray-400">HR Manager is engaged but lacks authority. Need to coach or find new champion.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Middle: Summary + Signals -->
+        <div>
+          <h3 class="font-semibold text-gray-800 mb-3">Deal Summary</h3>
+          <div class="bg-gray-50 rounded-lg p-4 text-sm text-gray-700 mb-4">
+            Solaria Energía is a mid-size renewable energy company with ~340 employees exploring HR platform consolidation. Currently using a legacy on-prem system for payroll and separate tools for time tracking. The HR Manager (María López) initiated contact through Santander's referral. Initial discovery revealed pain around manual payroll processing and compliance reporting. Early stage — no demo yet, limited stakeholder mapping.
+          </div>
+
+          <h3 class="font-semibold text-gray-800 mb-3">Buyer Signals</h3>
+          <div class="space-y-2 mb-4">
+            <div class="flex items-start gap-2 p-2 bg-green-50 rounded-lg">
+              <span class="text-green-500 mt-0.5">+</span>
+              <span class="text-sm text-green-800">Active pain: payroll takes 3 days/month manually</span>
+            </div>
+            <div class="flex items-start gap-2 p-2 bg-green-50 rounded-lg">
+              <span class="text-green-500 mt-0.5">+</span>
+              <span class="text-sm text-green-800">Compliance audit coming in Q4 — internal urgency</span>
+            </div>
+            <div class="flex items-start gap-2 p-2 bg-green-50 rounded-lg">
+              <span class="text-green-500 mt-0.5">+</span>
+              <span class="text-sm text-green-800">HR Manager asked for product documentation proactively</span>
+            </div>
+          </div>
+
+          <h3 class="font-semibold text-gray-800 mb-3">Live Blockers</h3>
+          <div class="space-y-2 mb-4">
+            <div class="flex items-start gap-2 p-2 bg-red-50 rounded-lg">
+              <span class="text-red-500 mt-0.5">!</span>
+              <span class="text-sm text-red-800">No access to Economic Buyer (CHRO). Gatekeeper risk.</span>
+            </div>
+            <div class="flex items-start gap-2 p-2 bg-red-50 rounded-lg">
+              <span class="text-red-500 mt-0.5">!</span>
+              <span class="text-sm text-red-800">Competitor SAP SuccessFactors also in evaluation</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right: Timeline + Contacts -->
+        <div>
+          <h3 class="font-semibold text-gray-800 mb-3">Contacts</h3>
+          <div class="space-y-2 mb-6">
+            <div class="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
+              <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 text-xs font-bold">ML</div>
+              <div>
+                <div class="text-sm font-medium">María López</div>
+                <div class="text-xs text-gray-400">HR Manager · Champion candidate</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
+              <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-xs font-bold">AG</div>
+              <div>
+                <div class="text-sm font-medium">Alberto García</div>
+                <div class="text-xs text-gray-400">CHRO · Economic Buyer (no contact)</div>
+              </div>
+            </div>
+          </div>
+
+          <h3 class="font-semibold text-gray-800 mb-3">Probability Timeline</h3>
+          <div class="bg-gray-50 rounded-xl p-4 mb-6">
+            <canvas id="probTimeline" width="280" height="140"></canvas>
+          </div>
+
+          <h3 class="font-semibold text-gray-800 mb-3">Activity History</h3>
+          <div class="space-y-3">
+            <div class="flex gap-3">
+              <div class="flex flex-col items-center">
+                <div class="w-2 h-2 bg-blue-400 rounded-full mt-1.5"></div>
+                <div class="w-px flex-1 bg-gray-200"></div>
+              </div>
+              <div class="pb-4">
+                <div class="text-sm font-medium">Discovery Call</div>
+                <div class="text-xs text-gray-400">May 22 · 28 min · MEDDIC 3.2</div>
+                <div class="text-xs text-gray-500 mt-1">Identified payroll pain. María engaged but couldn't confirm budget.</div>
+              </div>
+            </div>
+            <div class="flex gap-3">
+              <div class="flex flex-col items-center">
+                <div class="w-2 h-2 bg-green-400 rounded-full mt-1.5"></div>
+                <div class="w-px flex-1 bg-gray-200"></div>
+              </div>
+              <div class="pb-4">
+                <div class="text-sm font-medium">Email: Product deck sent</div>
+                <div class="text-xs text-gray-400">May 20 · Outbound</div>
+              </div>
+            </div>
+            <div class="flex gap-3">
+              <div class="flex flex-col items-center">
+                <div class="w-2 h-2 bg-purple-400 rounded-full mt-1.5"></div>
+              </div>
+              <div>
+                <div class="text-sm font-medium">PBD Handover</div>
+                <div class="text-xs text-gray-400">May 18 · BANT: 3/4 confirmed</div>
+                <div class="text-xs text-gray-500 mt-1">Budget tentative (€50-80K annual). Authority unclear. Need confirmed. Timeline Q4.</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== ANALYTICS TAB (PER-REP) ====== -->
+<div id="panel-analytics" class="max-w-[1400px] mx-auto px-6 py-5 hidden fade-in">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-4">
+    <div class="flex items-center gap-3">
+      <h2 class="text-base font-semibold text-gray-800">My Analytics</h2>
+      <span class="text-xs text-gray-400">Pol Bartolomé · Santander</span>
+    </div>
+    <div class="flex gap-2 items-center">
+      <select class="text-xs border border-gray-200 rounded px-2 py-1 bg-white">
+        <option>Last 30 days</option>
+        <option>Last 90 days</option>
+        <option>This quarter</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- KPI Strip — dense, horizontal -->
+  <div class="grid grid-cols-3 md:grid-cols-7 gap-3 mb-5">
+    <div class="bg-white rounded-lg p-3 border border-gray-100">
+      <div class="text-[10px] text-gray-400 uppercase tracking-wider">Active Deals</div>
+      <div class="text-xl font-bold mt-0.5">31</div>
+      <div class="vs-team">team avg: 25</div>
+    </div>
+    <div class="bg-white rounded-lg p-3 border border-gray-100">
+      <div class="text-[10px] text-gray-400 uppercase tracking-wider">Pipeline MRR</div>
+      <div class="text-xl font-bold mt-0.5">€245K</div>
+      <div class="vs-team">team avg: €187K</div>
+    </div>
+    <div class="bg-white rounded-lg p-3 border border-gray-100">
+      <div class="text-[10px] text-gray-400 uppercase tracking-wider">Weighted</div>
+      <div class="text-xl font-bold mt-0.5">€98K</div>
+      <div class="vs-team">team avg: €81K</div>
+    </div>
+    <div class="bg-white rounded-lg p-3 border border-gray-100">
+      <div class="text-[10px] text-gray-400 uppercase tracking-wider">Avg MEDDIC</div>
+      <div class="text-xl font-bold mt-0.5">6.2</div>
+      <div class="vs-team">team avg: 6.0</div>
+    </div>
+    <div class="bg-white rounded-lg p-3 border border-gray-100">
+      <div class="text-[10px] text-gray-400 uppercase tracking-wider">Win Rate</div>
+      <div class="text-xl font-bold mt-0.5">22%</div>
+      <div class="vs-team">team avg: 18%</div>
+    </div>
+    <div class="bg-white rounded-lg p-3 border border-gray-100">
+      <div class="text-[10px] text-gray-400 uppercase tracking-wider">Avg Cycle</div>
+      <div class="text-xl font-bold mt-0.5">38d</div>
+      <div class="vs-team">team avg: 45d</div>
+    </div>
+    <div class="bg-white rounded-lg p-3 border border-gray-100">
+      <div class="text-[10px] text-gray-400 uppercase tracking-wider">Won (30d)</div>
+      <div class="text-xl font-bold text-green-600 mt-0.5">2</div>
+      <div class="vs-team">€23,700 MRR closed</div>
+    </div>
+  </div>
+
+  <!-- Row 2: MEDDIC + Activity + Velocity -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+
+    <!-- My MEDDIC -->
+    <div class="bg-white rounded-lg border border-gray-100 p-4">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-xs font-semibold text-gray-700 uppercase tracking-wider">My MEDDIC</span>
+        <span class="text-[10px] text-gray-400">avg across 31 deals · 4-wk trend</span>
+      </div>
+      <div class="space-y-2">
+        <div class="flex items-center gap-2">
+          <span class="w-5 text-[10px] font-bold text-meddic-m">M</span>
+          <div class="flex-1 bg-gray-100 rounded-full h-2"><div class="bg-meddic-m rounded-full h-2" style="width:64%"></div></div>
+          <span class="w-7 text-right text-xs font-semibold">6.4</span>
+          <span class="w-12 text-right trend-up text-[11px]">+0.3</span>
+          <span class="vs-team w-10 text-right">6.5</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-5 text-[10px] font-bold text-meddic-e">E</span>
+          <div class="flex-1 bg-gray-100 rounded-full h-2"><div class="bg-meddic-e rounded-full h-2" style="width:51%"></div></div>
+          <span class="w-7 text-right text-xs font-semibold">5.1</span>
+          <span class="w-12 text-right trend-down text-[11px]">-0.4</span>
+          <span class="vs-team w-10 text-right">5.8</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-5 text-[10px] font-bold text-meddic-dc">DC</span>
+          <div class="flex-1 bg-gray-100 rounded-full h-2"><div class="bg-meddic-dc rounded-full h-2" style="width:72%"></div></div>
+          <span class="w-7 text-right text-xs font-semibold">7.2</span>
+          <span class="w-12 text-right trend-up text-[11px]">+0.6</span>
+          <span class="vs-team w-10 text-right">6.8</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-5 text-[10px] font-bold text-meddic-dp">DP</span>
+          <div class="flex-1 bg-gray-100 rounded-full h-2"><div class="bg-meddic-dp rounded-full h-2" style="width:48%"></div></div>
+          <span class="w-7 text-right text-xs font-semibold">4.8</span>
+          <span class="w-12 text-right trend-flat text-[11px]">0.0</span>
+          <span class="vs-team w-10 text-right">5.2</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-5 text-[10px] font-bold text-meddic-i">I</span>
+          <div class="flex-1 bg-gray-100 rounded-full h-2"><div class="bg-meddic-i rounded-full h-2" style="width:78%"></div></div>
+          <span class="w-7 text-right text-xs font-semibold">7.8</span>
+          <span class="w-12 text-right trend-up text-[11px]">+0.2</span>
+          <span class="vs-team w-10 text-right">7.2</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-5 text-[10px] font-bold text-meddic-c">C</span>
+          <div class="flex-1 bg-gray-100 rounded-full h-2"><div class="bg-meddic-c rounded-full h-2" style="width:55%"></div></div>
+          <span class="w-7 text-right text-xs font-semibold">5.5</span>
+          <span class="w-12 text-right trend-down text-[11px]">-0.2</span>
+          <span class="vs-team w-10 text-right">5.8</span>
+        </div>
+      </div>
+      <div class="mt-3 pt-2 border-t border-gray-50">
+        <div class="text-[10px] text-amber-700 bg-amber-50 rounded px-2 py-1">Weakest: <b>Decision Process</b> (4.8) and <b>Economic Buyer</b> (5.1) — both below team avg</div>
+      </div>
+    </div>
+
+    <!-- Activity this week -->
+    <div class="bg-white rounded-lg border border-gray-100 p-4">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-xs font-semibold text-gray-700 uppercase tracking-wider">Activity</span>
+        <span class="text-[10px] text-gray-400">this week vs 4-wk avg</span>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span class="text-gray-600">Calls</span>
+            <span><b>4</b> <span class="vs-team">/ avg 3.8</span></span>
+          </div>
+          <div class="flex gap-1 h-5">
+            <div class="bg-blue-500 rounded-sm flex-1" title="Mon: 2"></div>
+            <div class="bg-blue-500 rounded-sm" style="flex:0.5" title="Tue: 1"></div>
+            <div class="bg-blue-500 rounded-sm" style="flex:0.5" title="Wed: 1"></div>
+            <div class="bg-gray-100 rounded-sm flex-1" title="Thu: 0"></div>
+            <div class="bg-gray-100 rounded-sm flex-1" title="Fri: 0"></div>
+          </div>
+        </div>
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span class="text-gray-600">Emails sent</span>
+            <span><b>11</b> <span class="vs-team">/ avg 7</span></span>
+          </div>
+          <div class="flex gap-1 h-5">
+            <div class="bg-purple-500 rounded-sm" style="flex:3" title="Mon: 3"></div>
+            <div class="bg-purple-500 rounded-sm" style="flex:4" title="Tue: 4"></div>
+            <div class="bg-purple-500 rounded-sm" style="flex:4" title="Wed: 4"></div>
+            <div class="bg-gray-100 rounded-sm flex-1" title="Thu: 0"></div>
+            <div class="bg-gray-100 rounded-sm flex-1" title="Fri: 0"></div>
+          </div>
+        </div>
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span class="text-gray-600">Meetings</span>
+            <span><b>2</b> <span class="vs-team">/ avg 2.5</span></span>
+          </div>
+          <div class="flex gap-1 h-5">
+            <div class="bg-emerald-500 rounded-sm flex-1" title="Mon: 1"></div>
+            <div class="bg-gray-100 rounded-sm flex-1" title="Tue: 0"></div>
+            <div class="bg-emerald-500 rounded-sm flex-1" title="Wed: 1"></div>
+            <div class="bg-gray-100 rounded-sm flex-1" title="Thu: 0"></div>
+            <div class="bg-gray-100 rounded-sm flex-1" title="Fri: 0"></div>
+          </div>
+        </div>
+      </div>
+      <div class="mt-3">
+        <canvas id="activityTrendChart" height="90"></canvas>
+      </div>
+    </div>
+
+    <!-- Velocity + Win/Loss -->
+    <div class="bg-white rounded-lg border border-gray-100 p-4">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-xs font-semibold text-gray-700 uppercase tracking-wider">Velocity</span>
+        <span class="text-[10px] text-gray-400">my avg days vs team</span>
+      </div>
+      <div class="space-y-1.5">
+        <div class="flex items-center gap-2 text-xs">
+          <span class="w-20 text-gray-500 text-right">FPA</span>
+          <div class="flex-1 flex items-center gap-1">
+            <div class="bg-blue-400 rounded-sm h-3" style="width:46%"></div>
+            <span class="font-semibold">12d</span>
+            <span class="vs-team">/ 14d</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+          <span class="w-20 text-gray-500 text-right">Demo</span>
+          <div class="flex-1 flex items-center gap-1">
+            <div class="bg-cyan-400 rounded-sm h-3" style="width:35%"></div>
+            <span class="font-semibold">9d</span>
+            <span class="vs-team">/ 11d</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+          <span class="w-20 text-gray-500 text-right">MEDDPICC</span>
+          <div class="flex-1 flex items-center gap-1">
+            <div class="bg-purple-400 rounded-sm h-3" style="width:77%"></div>
+            <span class="font-semibold text-amber-600">20d</span>
+            <span class="vs-team">/ 22d</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+          <span class="w-20 text-gray-500 text-right">Economical</span>
+          <div class="flex-1 flex items-center gap-1">
+            <div class="bg-indigo-400 rounded-sm h-3" style="width:54%"></div>
+            <span class="font-semibold">14d</span>
+            <span class="vs-team">/ 18d</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+          <span class="w-20 text-gray-500 text-right">Pricing</span>
+          <div class="flex-1 flex items-center gap-1">
+            <div class="bg-blue-500 rounded-sm h-3" style="width:42%"></div>
+            <span class="font-semibold">11d</span>
+            <span class="vs-team">/ 12d</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+          <span class="w-20 text-gray-500 text-right">Contract</span>
+          <div class="flex-1 flex items-center gap-1">
+            <div class="bg-green-500 rounded-sm h-3" style="width:27%"></div>
+            <span class="font-semibold">7d</span>
+            <span class="vs-team">/ 8d</span>
+          </div>
+        </div>
+      </div>
+      <div class="border-t border-gray-50 mt-3 pt-3">
+        <span class="text-xs font-semibold text-gray-700 uppercase tracking-wider">Win / Loss (30d)</span>
+        <div class="flex gap-2 mt-2">
+          <div class="flex-1 bg-green-50 rounded p-2 text-center">
+            <div class="text-lg font-bold text-green-700">2</div>
+            <div class="text-[10px] text-green-600">Won · €23.7K</div>
+          </div>
+          <div class="flex-1 bg-red-50 rounded p-2 text-center">
+            <div class="text-lg font-bold text-red-600">1</div>
+            <div class="text-[10px] text-red-500">Lost · €8.2K</div>
+          </div>
+          <div class="flex-1 bg-gray-50 rounded p-2 text-center">
+            <div class="text-lg font-bold text-gray-500">67%</div>
+            <div class="text-[10px] text-gray-400">Win rate</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 3: Deal Health (full-width dense table) -->
+  <div class="bg-white rounded-lg border border-gray-100 overflow-hidden mb-4">
+    <div class="px-3 py-2 border-b border-gray-50 flex items-center justify-between">
+      <span class="text-xs font-semibold text-gray-700 uppercase tracking-wider">All My Deals</span>
+      <span class="text-[10px] text-gray-400">31 active · sorted by MRR desc</span>
+    </div>
+    <table class="w-full">
+      <thead>
+        <tr class="text-[10px] text-gray-400 uppercase tracking-wider border-b border-gray-50">
+          <th class="text-left dense-row font-medium">Deal</th>
+          <th class="text-left dense-row font-medium w-24">Stage</th>
+          <th class="text-right dense-row font-medium">MRR</th>
+          <th class="text-right dense-row font-medium">Prob</th>
+          <th class="text-right dense-row font-medium">MEDDIC</th>
+          <th class="text-right dense-row font-medium">Days</th>
+          <th class="text-right dense-row font-medium">Last Contact</th>
+          <th class="text-center dense-row font-medium">Trend</th>
+          <th class="text-left dense-row font-medium">Signal</th>
+        </tr>
+      </thead>
+      <tbody class="text-xs">
+        <tr class="dense-row border-b border-gray-50/50">
+          <td class="dense-row font-medium">Iberdrola</td>
+          <td class="dense-row"><span class="stage-pill bg-cyan-100 text-cyan-700">Demo</span></td>
+          <td class="dense-row text-right font-medium">€18,500</td>
+          <td class="dense-row text-right"><span class="badge-prob bg-amber-100 text-amber-700">35%</span></td>
+          <td class="dense-row text-right">4.8</td>
+          <td class="dense-row text-right">5d</td>
+          <td class="dense-row text-right text-gray-500">Today</td>
+          <td class="dense-row text-center trend-up">+5</td>
+          <td class="dense-row text-green-600">Champion engaged</td>
+        </tr>
+        <tr class="dense-row border-b border-gray-50/50">
+          <td class="dense-row font-medium">Mapfre</td>
+          <td class="dense-row"><span class="stage-pill bg-purple-100 text-purple-700">MEDDPICC</span></td>
+          <td class="dense-row text-right font-medium">€15,000</td>
+          <td class="dense-row text-right"><span class="badge-prob bg-amber-100 text-amber-700">52%</span></td>
+          <td class="dense-row text-right">6.1</td>
+          <td class="dense-row text-right">9d</td>
+          <td class="dense-row text-right text-gray-500">2d ago</td>
+          <td class="dense-row text-center trend-up">+8</td>
+          <td class="dense-row text-green-600">DC clear, next: MAP</td>
+        </tr>
+        <tr class="dense-row border-b border-gray-50/50">
+          <td class="dense-row font-medium">Sacyr</td>
+          <td class="dense-row"><span class="stage-pill bg-blue-100 text-blue-700">FPA</span></td>
+          <td class="dense-row text-right font-medium">€14,200</td>
+          <td class="dense-row text-right"><span class="badge-prob bg-gray-100 text-gray-600">22%</span></td>
+          <td class="dense-row text-right">2.8</td>
+          <td class="dense-row text-right">3d</td>
+          <td class="dense-row text-right text-gray-500">3d ago</td>
+          <td class="dense-row text-center trend-flat">new</td>
+          <td class="dense-row text-blue-600">PBD handover done</td>
+        </tr>
+        <tr class="dense-row border-b border-gray-50/50">
+          <td class="dense-row font-medium">Grupo Dia</td>
+          <td class="dense-row"><span class="stage-pill bg-indigo-100 text-indigo-700">Econ.</span></td>
+          <td class="dense-row text-right font-medium">€11,800</td>
+          <td class="dense-row text-right"><span class="badge-prob bg-amber-100 text-amber-700">48%</span></td>
+          <td class="dense-row text-right">5.9</td>
+          <td class="dense-row text-right">14d</td>
+          <td class="dense-row text-right text-gray-500">5d ago</td>
+          <td class="dense-row text-center trend-down">-3</td>
+          <td class="dense-row text-amber-600">Waiting CFO</td>
+        </tr>
+        <tr class="dense-row border-b border-gray-50/50">
+          <td class="dense-row font-medium">Técnicas Reunidas</td>
+          <td class="dense-row"><span class="stage-pill bg-purple-100 text-purple-700">MEDDPICC</span></td>
+          <td class="dense-row text-right font-medium">€9,500</td>
+          <td class="dense-row text-right"><span class="badge-prob bg-amber-100 text-amber-700">40%</span></td>
+          <td class="dense-row text-right">5.2</td>
+          <td class="dense-row text-right">11d</td>
+          <td class="dense-row text-right text-gray-500">4d ago</td>
+          <td class="dense-row text-center trend-up">+2</td>
+          <td class="dense-row text-green-600">Fast decision process</td>
+        </tr>
+        <tr class="dense-row border-b border-gray-50/50 bg-red-50/30">
+          <td class="dense-row font-medium text-red-800">Europcar</td>
+          <td class="dense-row"><span class="stage-pill bg-purple-100 text-purple-700">MEDDPICC</span></td>
+          <td class="dense-row text-right font-medium">€8,900</td>
+          <td class="dense-row text-right"><span class="badge-prob bg-red-100 text-red-700">30%</span></td>
+          <td class="dense-row text-right text-red-600">3.8</td>
+          <td class="dense-row text-right text-red-600">28d</td>
+          <td class="dense-row text-right text-red-500">12d ago</td>
+          <td class="dense-row text-center trend-down">-28</td>
+          <td class="dense-row text-red-600">Champion left</td>
+        </tr>
+        <tr class="dense-row border-b border-gray-50/50 bg-red-50/30">
+          <td class="dense-row font-medium text-red-800">Meliá Hotels</td>
+          <td class="dense-row"><span class="stage-pill bg-cyan-100 text-cyan-700">Demo</span></td>
+          <td class="dense-row text-right font-medium">€8,200</td>
+          <td class="dense-row text-right"><span class="badge-prob bg-red-100 text-red-700">18%</span></td>
+          <td class="dense-row text-right text-red-600">3.2</td>
+          <td class="dense-row text-right text-red-600">21d</td>
+          <td class="dense-row text-right text-red-500">21d ago</td>
+          <td class="dense-row text-center trend-down">-12</td>
+          <td class="dense-row text-red-600">No reply ×3</td>
+        </tr>
+        <tr class="dense-row border-b border-gray-50/50">
+          <td class="dense-row font-medium">Almirall</td>
+          <td class="dense-row"><span class="stage-pill bg-blue-100 text-blue-700">FPA</span></td>
+          <td class="dense-row text-right font-medium">€7,500</td>
+          <td class="dense-row text-right"><span class="badge-prob bg-gray-100 text-gray-600">20%</span></td>
+          <td class="dense-row text-right">2.4</td>
+          <td class="dense-row text-right">6d</td>
+          <td class="dense-row text-right text-gray-500">1d ago</td>
+          <td class="dense-row text-center trend-up">+5</td>
+          <td class="dense-row text-blue-600">Discovery scheduled</td>
+        </tr>
+        <tr class="dense-row border-b border-gray-50/50">
+          <td class="dense-row font-medium">CIE Automotive</td>
+          <td class="dense-row"><span class="stage-pill bg-indigo-100 text-indigo-700">Econ.</span></td>
+          <td class="dense-row text-right font-medium">€7,200</td>
+          <td class="dense-row text-right"><span class="badge-prob bg-amber-100 text-amber-700">38%</span></td>
+          <td class="dense-row text-right">5.0</td>
+          <td class="dense-row text-right">18d</td>
+          <td class="dense-row text-right text-amber-500">8d ago</td>
+          <td class="dense-row text-center trend-flat">0</td>
+          <td class="dense-row text-amber-600">Close date passed</td>
+        </tr>
+        <tr class="dense-row border-b border-gray-50/50">
+          <td class="dense-row font-medium">Laboratorios Rovi</td>
+          <td class="dense-row"><span class="stage-pill bg-blue-100 text-blue-700">FPA</span></td>
+          <td class="dense-row text-right font-medium">€6,800</td>
+          <td class="dense-row text-right"><span class="badge-prob bg-gray-100 text-gray-600">15%</span></td>
+          <td class="dense-row text-right">1.8</td>
+          <td class="dense-row text-right">2d</td>
+          <td class="dense-row text-right text-gray-500">2d ago</td>
+          <td class="dense-row text-center trend-flat">new</td>
+          <td class="dense-row text-gray-500">First contact</td>
+        </tr>
+        <tr class="dense-row border-b border-gray-50/50">
+          <td class="dense-row font-medium">Fluidra</td>
+          <td class="dense-row"><span class="stage-pill bg-purple-100 text-purple-700">MEDDPICC</span></td>
+          <td class="dense-row text-right font-medium">€6,400</td>
+          <td class="dense-row text-right"><span class="badge-prob bg-amber-100 text-amber-700">45%</span></td>
+          <td class="dense-row text-right">5.6</td>
+          <td class="dense-row text-right">15d</td>
+          <td class="dense-row text-right text-gray-500">3d ago</td>
+          <td class="dense-row text-center trend-up">+4</td>
+          <td class="dense-row text-green-600">EB meeting set</td>
+        </tr>
+        <tr class="dense-row">
+          <td class="dense-row text-gray-400" colspan="9">+ 20 more deals...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Row 4: Improvements + Win/Loss detail -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+    <!-- Top Improvements -->
+    <div class="bg-white rounded-lg border border-gray-100 p-4">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-xs font-semibold text-gray-700 uppercase tracking-wider">Top Coaching Patterns</span>
+        <span class="text-[10px] text-gray-400">from last 15 audits</span>
+      </div>
+      <div class="space-y-2">
+        <div class="flex items-center gap-2 text-xs">
+          <span class="w-8 text-center bg-red-100 text-red-700 rounded-full py-0.5 font-bold">8×</span>
+          <span class="flex-1">Multi-thread beyond single champion</span>
+          <span class="text-[10px] text-gray-400">EB, DP pillars</span>
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+          <span class="w-8 text-center bg-amber-100 text-amber-700 rounded-full py-0.5 font-bold">6×</span>
+          <span class="flex-1">Quantify ROI with specific numbers in discovery</span>
+          <span class="text-[10px] text-gray-400">M pillar</span>
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+          <span class="w-8 text-center bg-amber-100 text-amber-700 rounded-full py-0.5 font-bold">5×</span>
+          <span class="flex-1">Ask explicitly for decision timeline and process</span>
+          <span class="text-[10px] text-gray-400">DP pillar</span>
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+          <span class="w-8 text-center bg-blue-100 text-blue-700 rounded-full py-0.5 font-bold">4×</span>
+          <span class="flex-1">Confirm next step with specific date before hanging up</span>
+          <span class="text-[10px] text-gray-400">general</span>
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+          <span class="w-8 text-center bg-blue-100 text-blue-700 rounded-full py-0.5 font-bold">3×</span>
+          <span class="flex-1">Proactively address competitor comparison</span>
+          <span class="text-[10px] text-gray-400">DC pillar</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Closed -->
+    <div class="bg-white rounded-lg border border-gray-100 p-4">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-xs font-semibold text-gray-700 uppercase tracking-wider">Closed Deals (30d)</span>
+      </div>
+      <div class="space-y-2">
+        <div class="flex items-center gap-3 text-xs p-2 bg-green-50 rounded">
+          <span class="w-12 font-bold text-green-700">WON</span>
+          <span class="flex-1 font-medium">Vidrala S.A.</span>
+          <span class="font-semibold">€14,200</span>
+          <span class="text-gray-400">32d cycle</span>
+          <span class="text-green-600">Strong champion + clear DC</span>
+        </div>
+        <div class="flex items-center gap-3 text-xs p-2 bg-green-50 rounded">
+          <span class="w-12 font-bold text-green-700">WON</span>
+          <span class="flex-1 font-medium">CAF S.A.</span>
+          <span class="font-semibold">€9,500</span>
+          <span class="text-gray-400">28d cycle</span>
+          <span class="text-green-600">Fast DP, 180-emp sweet spot</span>
+        </div>
+        <div class="flex items-center gap-3 text-xs p-2 bg-red-50 rounded">
+          <span class="w-12 font-bold text-red-600">LOST</span>
+          <span class="flex-1 font-medium">Codere</span>
+          <span class="font-semibold">€8,200</span>
+          <span class="text-gray-400">45d cycle</span>
+          <span class="text-red-600">Budget freeze — no EB access</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 1:1 TAB ====== -->
+<div id="panel-oneone" class="max-w-[1400px] mx-auto px-6 py-6 hidden fade-in">
+  <div class="flex items-center gap-4 mb-6">
+    <h2 class="text-lg font-semibold text-gray-800">1:1 Review</h2>
+    <select id="paeSelector" onchange="selectPae()" class="text-sm border border-gray-200 rounded-lg px-3 py-1.5">
+      <option value="">Select PAE...</option>
+      <option value="pol" selected>Pol Bartolomé</option>
+      <option value="xavi">Xavi Soler</option>
+      <option value="laura">Laura Sánchez</option>
+      <option value="marc">Marc Riera</option>
+      <option value="carlos">Carlos Martín</option>
+      <option value="ana">Ana Vidal</option>
+    </select>
+    <span class="text-sm text-gray-400">Santander · 31 active deals · €245K pipeline</span>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- Top Deals -->
+    <div class="lg:col-span-2">
+      <h3 class="font-semibold text-gray-800 mb-3">Top 5 Deals by MRR</h3>
+      <div class="space-y-3">
+        <div class="bg-white rounded-xl border border-gray-100 p-4">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-3">
+              <span class="text-sm font-semibold">1.</span>
+              <div>
+                <span class="font-medium">Iberdrola</span>
+                <span class="stage-pill bg-cyan-100 text-cyan-700 ml-2">Demo Booked</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-sm font-bold">€18,500</span>
+              <span class="badge-prob bg-amber-100 text-amber-700">35%</span>
+            </div>
+          </div>
+          <div class="text-xs text-gray-500">Champion engaged. Demo scheduled for today. Need to identify EB before pricing. MEDDIC 4.8</div>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 p-4">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-3">
+              <span class="text-sm font-semibold">2.</span>
+              <div>
+                <span class="font-medium">Mapfre</span>
+                <span class="stage-pill bg-purple-100 text-purple-700 ml-2">MEDDPICC</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-sm font-bold">€15,000</span>
+              <span class="badge-prob bg-amber-100 text-amber-700">52%</span>
+            </div>
+          </div>
+          <div class="text-xs text-gray-500">Strong discovery. Decision criteria clear. Needs mutual action plan to keep momentum. MEDDIC 6.1</div>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 p-4">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-3">
+              <span class="text-sm font-semibold">3.</span>
+              <div>
+                <span class="font-medium">Sacyr</span>
+                <span class="stage-pill bg-blue-100 text-blue-700 ml-2">FPA Started</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-sm font-bold">€14,200</span>
+              <span class="badge-prob bg-gray-100 text-gray-600">22%</span>
+            </div>
+          </div>
+          <div class="text-xs text-gray-500">Fresh handover from PBD. BANT complete. First PAE call scheduled for Thursday. MEDDIC 2.8</div>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 p-4">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-3">
+              <span class="text-sm font-semibold">4.</span>
+              <div>
+                <span class="font-medium">Grupo Dia</span>
+                <span class="stage-pill bg-indigo-100 text-indigo-700 ml-2">Economical</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-sm font-bold">€11,800</span>
+              <span class="badge-prob bg-amber-100 text-amber-700">48%</span>
+            </div>
+          </div>
+          <div class="text-xs text-gray-500">Pricing proposal sent. Waiting on CFO validation. Multi-threaded to 3 stakeholders. MEDDIC 5.9</div>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 p-4">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-3">
+              <span class="text-sm font-semibold">5.</span>
+              <div>
+                <span class="font-medium">Técnicas Reunidas</span>
+                <span class="stage-pill bg-purple-100 text-purple-700 ml-2">MEDDPICC</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-sm font-bold">€9,500</span>
+              <span class="badge-prob bg-amber-100 text-amber-700">40%</span>
+            </div>
+          </div>
+          <div class="text-xs text-gray-500">Good fit, small company. Decision process fast. Risk: limited budget. MEDDIC 5.2</div>
+        </div>
+      </div>
+
+      <!-- Red Flags -->
+      <h3 class="font-semibold text-gray-800 mt-6 mb-3">Red Flags</h3>
+      <div class="space-y-3">
+        <div class="bg-red-50 rounded-xl border border-red-100 p-4">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">!</span>
+            <span class="font-medium text-red-800">Europcar — Probability dropped 58% → 30%</span>
+          </div>
+          <div class="text-xs text-red-700">3 calls without progress. Champion moved to different department. No new champion identified. 28 days in MEDDPICC stage.</div>
+        </div>
+        <div class="bg-red-50 rounded-xl border border-red-100 p-4">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">!</span>
+            <span class="font-medium text-red-800">Meliá Hotels — No contact in 21 days</span>
+          </div>
+          <div class="text-xs text-red-700">€8,900 MRR. Was in Demo Booked, no follow-up after demo. 2 emails unanswered. Consider re-engagement strategy or deprioritize.</div>
+        </div>
+        <div class="bg-amber-50 rounded-xl border border-amber-100 p-4">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center text-white text-xs font-bold">?</span>
+            <span class="font-medium text-amber-800">CIE Automotive — Close date passed (May 15)</span>
+          </div>
+          <div class="text-xs text-amber-700">€7,200 MRR. Legal review delayed but deal still active. Needs updated close date and risk assessment.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right sidebar -->
+    <div>
+      <!-- MEDDIC Heatmap -->
+      <h3 class="font-semibold text-gray-800 mb-3">MEDDIC Heatmap</h3>
+      <div class="bg-white rounded-xl border border-gray-100 p-4 mb-6">
+        <div class="text-xs text-gray-400 mb-3">Average scores across 31 deals</div>
+        <div class="space-y-3">
+          <div>
+            <div class="flex justify-between text-sm mb-1"><span>Metrics</span><span class="font-bold text-meddic-m">6.4</span></div>
+            <div class="w-full bg-gray-100 rounded-full h-3"><div class="bg-meddic-m rounded-full h-3" style="width:64%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-sm mb-1"><span>Economic Buyer</span><span class="font-bold text-meddic-e">5.1</span></div>
+            <div class="w-full bg-gray-100 rounded-full h-3"><div class="bg-meddic-e rounded-full h-3" style="width:51%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-sm mb-1"><span>Decision Criteria</span><span class="font-bold text-meddic-dc">7.2</span></div>
+            <div class="w-full bg-gray-100 rounded-full h-3"><div class="bg-meddic-dc rounded-full h-3" style="width:72%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-sm mb-1"><span>Decision Process</span><span class="font-bold text-meddic-dp">4.8</span></div>
+            <div class="w-full bg-gray-100 rounded-full h-3"><div class="bg-meddic-dp rounded-full h-3" style="width:48%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-sm mb-1"><span>Identify Pain</span><span class="font-bold text-meddic-i">7.8</span></div>
+            <div class="w-full bg-gray-100 rounded-full h-3"><div class="bg-meddic-i rounded-full h-3" style="width:78%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-sm mb-1"><span>Champion</span><span class="font-bold text-meddic-c">5.5</span></div>
+            <div class="w-full bg-gray-100 rounded-full h-3"><div class="bg-meddic-c rounded-full h-3" style="width:55%"></div></div>
+          </div>
+        </div>
+        <div class="mt-4 p-3 bg-amber-50 rounded-lg">
+          <div class="text-xs font-medium text-amber-800 mb-1">Weakness Pattern</div>
+          <div class="text-xs text-amber-700">Decision Process (4.8) and Economic Buyer (5.1) consistently low. Focus 1:1 coaching on multi-threading and stakeholder mapping.</div>
+        </div>
+      </div>
+
+      <!-- Demo Coaching -->
+      <h3 class="font-semibold text-gray-800 mb-3">Recent Demo Coaching</h3>
+      <div class="bg-white rounded-xl border border-gray-100 p-4 mb-6">
+        <div class="text-sm font-medium mb-1">Mapfre Demo — May 21</div>
+        <div class="text-xs text-gray-400 mb-2">Score: 7.5/10</div>
+        <div class="text-xs text-gray-600 space-y-1">
+          <div class="text-green-700">+ Strong product-pain mapping in first 10 min</div>
+          <div class="text-green-700">+ Good objection handling on pricing</div>
+          <div class="text-red-700">- Skipped ROI slide — missed chance to quantify</div>
+          <div class="text-red-700">- Didn't ask about decision timeline</div>
+        </div>
+      </div>
+
+      <!-- Frequent Improvements -->
+      <h3 class="font-semibold text-gray-800 mb-3">Top Improvement Areas</h3>
+      <div class="bg-white rounded-xl border border-gray-100 p-4">
+        <div class="text-xs text-gray-400 mb-3">Pattern from last 15 audits</div>
+        <div class="space-y-2">
+          <div class="flex items-center gap-2">
+            <span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">8x</span>
+            <span class="text-sm">Multi-thread beyond champion</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">6x</span>
+            <span class="text-sm">Quantify ROI in discovery</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">5x</span>
+            <span class="text-sm">Ask for decision timeline</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">4x</span>
+            <span class="text-sm">Confirm next step with date</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">3x</span>
+            <span class="text-sm">Address competitor comparison</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JavaScript -->
+<script>
+function showTab(name) {
+  ['general','forecast','deals','analytics','oneone'].forEach(t => {
+    document.getElementById('panel-'+t).classList.add('hidden');
+    document.getElementById('tab-'+t).classList.remove('tab-active');
+  });
+  document.getElementById('panel-'+name).classList.remove('hidden');
+  document.getElementById('tab-'+name).classList.add('tab-active');
+
+  if (name === 'general') initGeneralCharts();
+  if (name === 'forecast') initForecastChart();
+  if (name === 'analytics') initAnalyticsCharts();
+}
+
+function openHistorico(dealId) {
+  document.getElementById('dealModal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  setTimeout(initModalCharts, 100);
+}
+function closeDealModal() {
+  document.getElementById('dealModal').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+function openNextSteps(dealId) {
+  document.getElementById('nextStepsModal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+function closeNextSteps() {
+  document.getElementById('nextStepsModal').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+function applyTeamFilter() {}
+function selectPae() {}
+
+function initGeneralCharts() {
+  const sparkOpts = (color) => ({
+    type: 'line', options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { display: false }, y: { display: false } },
+      elements: { point: { radius: 0 }, line: { borderWidth: 1.5, tension: 0.4 } }
+    },
+    data: { labels: ['','','','','','','',''], datasets: [{ borderColor: color, backgroundColor: color+'18', fill: true }] }
+  });
+  if (!window._spkC) {
+    const c = sparkOpts('#3b82f6'); c.data.datasets[0].data = [32,35,38,42,40,44,43,47];
+    window._spkC = new Chart(document.getElementById('sparkCalls'), c);
+  }
+  if (!window._spkS) {
+    const c = sparkOpts('#8b5cf6'); c.data.datasets[0].data = [51,53,55,54,58,59,61,63];
+    window._spkS = new Chart(document.getElementById('sparkScore'), c);
+  }
+  if (!window._spkD) {
+    const c = sparkOpts('#10b981'); c.data.datasets[0].data = [8,10,9,11,10,12,11,14];
+    window._spkD = new Chart(document.getElementById('sparkDemos'), c);
+  }
+  if (!window._spkP) {
+    const c = sparkOpts('#f59e0b'); c.data.datasets[0].data = [180,210,195,240,265,280,290,312];
+    window._spkP = new Chart(document.getElementById('sparkPipeline'), c);
+  }
+}
+setTimeout(initGeneralCharts, 200);
+function setForecastView(btn, view) {
+  btn.parentElement.querySelectorAll('button').forEach(b => {
+    b.className = 'px-3 py-1.5 text-sm bg-white text-gray-600 border rounded-lg hover:bg-gray-50';
+  });
+  btn.className = 'px-3 py-1.5 text-sm bg-brand-600 text-white rounded-lg';
+}
+
+let forecastChartInstance = null;
+function initForecastChart() {
+  if (forecastChartInstance) return;
+  const ctx = document.getElementById('forecastChart').getContext('2d');
+  forecastChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov'],
+      datasets: [
+        { label: 'Commit', data: [198, 145, 88, 62, 40, 25], backgroundColor: '#22c55e', borderRadius: 3, stack: 'forecast' },
+        { label: 'Best Case', data: [78, 112, 95, 68, 54, 42], backgroundColor: '#3b82f6', borderRadius: 3, stack: 'forecast' },
+        { label: 'Pipeline', data: [115, 180, 220, 195, 160, 130], backgroundColor: '#e2e8f0', borderRadius: 3, stack: 'forecast' },
+        { label: 'Closed Won', data: [45, 0, 0, 0, 0, 0], backgroundColor: 'rgba(22,163,74,0.3)', borderColor: '#16a34a', borderWidth: 2, borderRadius: 3, stack: 'actual' },
+        { label: 'Target', data: [320, 320, 320, 320, 320, 320], type: 'line', borderColor: '#ef4444', borderWidth: 1.5, borderDash: [6,4], pointRadius: 0, fill: false }
+      ]
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top', labels: { usePointStyle: true, padding: 16, font: { size: 11 } } },
+        tooltip: { callbacks: { label: (c) => c.dataset.label + ': €' + c.raw + 'K' } }
+      },
+      scales: {
+        x: { stacked: true, grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: { stacked: true, ticks: { callback: v => '€'+v+'K', font: { size: 11 } }, grid: { color: '#f1f5f9' } }
+      }
+    }
+  });
+}
+function setFScope(btn) {
+  btn.parentElement.querySelectorAll('button').forEach(b => { b.className = 'px-2.5 py-1 text-xs font-medium text-gray-500 rounded-md hover:text-gray-700'; });
+  btn.className = 'px-2.5 py-1 text-xs font-medium bg-white rounded-md shadow-sm text-gray-800';
+}
+function setFTime(btn) {
+  btn.parentElement.querySelectorAll('button').forEach(b => { b.className = 'px-2.5 py-1 text-xs font-medium text-gray-500 rounded-md hover:text-gray-700'; });
+  btn.className = 'px-2.5 py-1 text-xs font-medium bg-white rounded-md shadow-sm text-gray-800';
+}
+
+function initAnalyticsCharts() {
+  if (!window._actTrend) {
+    const ctx = document.getElementById('activityTrendChart').getContext('2d');
+    window._actTrend = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['W19','W20','W21','W22','W23','W24'],
+        datasets: [
+          { label: 'Calls', data: [3,4,2,5,4,4], borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.08)', fill: true, tension: 0.4, borderWidth: 1.5, pointRadius: 2 },
+          { label: 'Emails', data: [5,8,6,9,7,11], borderColor: '#8b5cf6', backgroundColor: 'rgba(139,92,246,0.08)', fill: true, tension: 0.4, borderWidth: 1.5, pointRadius: 2 },
+          { label: 'Meetings', data: [2,3,1,3,2,2], borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)', fill: true, tension: 0.4, borderWidth: 1.5, pointRadius: 2 }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'top', labels: { usePointStyle: true, font: { size: 10 }, padding: 8 } } },
+        scales: { x: { grid: { display: false }, ticks: { font: { size: 10 } } }, y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } } } }
+      }
+    });
+  }
+}
+
+function initModalCharts() {
+  // Radar
+  if (!window._radarModal) {
+    const ctx = document.getElementById('radarChart').getContext('2d');
+    window._radarModal = new Chart(ctx, {
+      type: 'radar',
+      data: {
+        labels: ['M','E','DC','DP','I','C'],
+        datasets: [{
+          data: [4,3,2,2,5,3],
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59,130,246,0.15)',
+          pointBackgroundColor: ['#8b5cf6','#06b6d4','#f59e0b','#ef4444','#10b981','#ec4899'],
+          pointRadius: 5,
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { r: { min: 0, max: 10, ticks: { stepSize: 2, display: false }, grid: { color: '#e2e8f0' }, pointLabels: { font: { size: 14, weight: '700' }, color: ['#8b5cf6','#06b6d4','#f59e0b','#ef4444','#10b981','#ec4899'] } } }
+      }
+    });
+  }
+
+  // Probability timeline
+  if (!window._probChart) {
+    const ctx = document.getElementById('probTimeline').getContext('2d');
+    window._probChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['May 18','May 20','May 22','May 24','May 26'],
+        datasets: [{
+          data: [10,12,15,15,15],
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59,130,246,0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 4,
+          pointBackgroundColor: '#3b82f6'
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false } },
+          y: { min: 0, max: 100, ticks: { callback: v => v+'%', stepSize: 25 }, grid: { color: '#f1f5f9' } }
+        }
+      }
+    });
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeDealModal();
+    closeNextSteps();
+  }
+});
+</script>
+
+</body>
+</html>
