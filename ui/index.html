@@ -792,7 +792,6 @@ tailwind.config = {
       <select id="paeFilter" onchange="renderKanban()" class="text-xs border border-gray-200 rounded-lg px-2 py-1.5">
         <option value="">All PAEs</option>
       </select>
-      <button onclick="clearCredentials()" class="text-[10px] text-gray-400 hover:text-gray-600 px-2" title="Change Supabase credentials">Settings</button>
     </div>
   </div>
 
@@ -1709,35 +1708,6 @@ tailwind.config = {
   </div>
 </div>
 
-<!-- Credentials Modal -->
-<div id="credentialsModal" class="fixed inset-0 z-[60] hidden">
-  <div class="modal-overlay absolute inset-0"></div>
-  <div class="absolute inset-0 flex items-center justify-center z-10">
-    <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md fade-in">
-      <div class="flex items-center gap-3 mb-6">
-        <div class="w-10 h-10 bg-brand-600 rounded-lg flex items-center justify-center">
-          <span class="text-white font-bold">C</span>
-        </div>
-        <div>
-          <h3 class="text-lg font-semibold text-gray-900">Connect to Supabase</h3>
-          <p class="text-xs text-gray-400">Credentials are stored in your browser only</p>
-        </div>
-      </div>
-      <div class="space-y-4">
-        <div>
-          <label class="text-xs font-medium text-gray-600 block mb-1">Supabase URL</label>
-          <input id="sbUrl" type="text" placeholder="https://xxxxx.supabase.co" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2">
-        </div>
-        <div>
-          <label class="text-xs font-medium text-gray-600 block mb-1">Service Role Key</label>
-          <input id="sbKey" type="password" placeholder="eyJhbGci..." class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2">
-        </div>
-        <button onclick="saveCredentials()" class="w-full bg-brand-600 text-white text-sm font-medium rounded-lg py-2.5 hover:bg-brand-700 transition-colors">Connect</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- JavaScript -->
 <script>
 function showTab(name) {
@@ -1929,7 +1899,6 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     closeDealModal();
     closeNextSteps();
-    closeCredentialsModal();
   }
 });
 
@@ -1948,43 +1917,12 @@ const STAGE_MAP = {
 const ACTIVE_STAGES = Object.keys(STAGE_MAP);
 const COL_ORDER = ['fpa','demo','meddpicc','economical','pricing','contract'];
 
-let _sb = null;
+const _sb = supabase.createClient(
+  'https://bqoepgcdgqylobkmqdur.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxb2VwZ2NkZ3F5bG9ia21xZHVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyNTUyMzQsImV4cCI6MjA5MzgzMTIzNH0.FXajdSSsz6BgX9RJ_UVgy7q_9cavJdQWP1PHX9_zVhk'
+);
 let _dealsCache = [];
 let _snapshotsCache = {};
-
-function getSupabase() {
-  if (_sb) return _sb;
-  const url = localStorage.getItem('claudio_sb_url');
-  const key = localStorage.getItem('claudio_sb_key');
-  if (!url || !key) return null;
-  _sb = supabase.createClient(url, key);
-  return _sb;
-}
-
-function showCredentialsModal() {
-  document.getElementById('credentialsModal').classList.remove('hidden');
-}
-function closeCredentialsModal() {
-  document.getElementById('credentialsModal').classList.add('hidden');
-}
-function saveCredentials() {
-  const url = document.getElementById('sbUrl').value.trim();
-  const key = document.getElementById('sbKey').value.trim();
-  if (!url || !key) return;
-  localStorage.setItem('claudio_sb_url', url);
-  localStorage.setItem('claudio_sb_key', key);
-  _sb = null;
-  closeCredentialsModal();
-  loadDeals();
-}
-function clearCredentials() {
-  localStorage.removeItem('claudio_sb_url');
-  localStorage.removeItem('claudio_sb_key');
-  _sb = null;
-  _dealsCache = [];
-  _snapshotsCache = {};
-  showCredentialsModal();
-}
 
 function probColor(p) {
   if (p == null) return { bg: 'bg-gray-100', text: 'text-gray-500' };
@@ -2000,8 +1938,7 @@ function formatMRR(amount) {
 }
 
 async function loadDeals() {
-  const sb = getSupabase();
-  if (!sb) { showCredentialsModal(); return; }
+  const sb = _sb;
 
   const statusEl = document.getElementById('dealsStatus');
   if (statusEl) statusEl.textContent = 'Loading...';
@@ -2253,7 +2190,7 @@ async function updateModalCharts(meddicScores, dealId) {
   }
 
   // Probability timeline from snapshot history
-  const sb = getSupabase();
+  const sb = _sb;
   if (sb && dealId) {
     const { data: history } = await sb
       .from('front_deal_snapshots')
