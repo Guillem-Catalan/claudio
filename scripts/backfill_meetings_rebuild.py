@@ -172,9 +172,12 @@ def main():
     print(f"\n{'='*60}")
     print(f"DONE: {_success} ok, {_errors} errors out of {total}")
     print(f"{'='*60}")
-    print(f"\nNext steps:")
-    print(f"  1. Verify deal_context includes MEETING entries")
-    print(f"  2. Reset front_deal_triggered_at = NULL to allow snapshots")
+
+    print("\n6. Unblocking snapshots (resetting front_deal_triggered_at) ...")
+    supabase.table("deal_confirmations").update(
+        {"front_deal_triggered_at": None}
+    ).not_.is_("front_deal_triggered_at", "null").execute()
+    print("   Snapshots unblocked")
 
 
 if __name__ == "__main__":
