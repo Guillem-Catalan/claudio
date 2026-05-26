@@ -27,28 +27,40 @@ def _throttle():
     _request_count += 1
 
 
-def get(path: str, params: dict | None = None) -> dict:
-    _throttle()
-    resp = requests.get(f"{BASE}{path}", headers=_headers(), params=params)
+_RETRYABLE = {401, 429, 500, 502, 503}
+_MAX_RETRIES = 3
+
+
+def _retry_wait(resp: requests.Response, attempt: int) -> float:
     if resp.status_code == 429:
-        wait = int(resp.headers.get("Retry-After", 10))
-        print(f"  [rate-limit] waiting {wait}s ...")
-        time.sleep(wait)
-        return get(path, params)
-    resp.raise_for_status()
-    return resp.json()
+        return float(resp.headers.get("Retry-After", 10))
+    return 2 ** attempt
+
+
+def get(path: str, params: dict | None = None) -> dict:
+    for attempt in range(_MAX_RETRIES):
+        _throttle()
+        resp = requests.get(f"{BASE}{path}", headers=_headers(), params=params)
+        if resp.status_code in _RETRYABLE and attempt < _MAX_RETRIES - 1:
+            wait = _retry_wait(resp, attempt)
+            print(f"  [hubspot {resp.status_code}] retry {attempt+1}/{_MAX_RETRIES} in {wait:.0f}s ...")
+            time.sleep(wait)
+            continue
+        resp.raise_for_status()
+        return resp.json()
 
 
 def post(path: str, body: dict) -> dict:
-    _throttle()
-    resp = requests.post(f"{BASE}{path}", headers=_headers(), json=body)
-    if resp.status_code == 429:
-        wait = int(resp.headers.get("Retry-After", 10))
-        print(f"  [rate-limit] waiting {wait}s ...")
-        time.sleep(wait)
-        return post(path, body)
-    resp.raise_for_status()
-    return resp.json()
+    for attempt in range(_MAX_RETRIES):
+        _throttle()
+        resp = requests.post(f"{BASE}{path}", headers=_headers(), json=body)
+        if resp.status_code in _RETRYABLE and attempt < _MAX_RETRIES - 1:
+            wait = _retry_wait(resp, attempt)
+            print(f"  [hubspot {resp.status_code}] retry {attempt+1}/{_MAX_RETRIES} in {wait:.0f}s ...")
+            time.sleep(wait)
+            continue
+        resp.raise_for_status()
+        return resp.json()
 
 
 def total_requests() -> int:
