@@ -6,6 +6,7 @@
 <title>Claudio — Sales Intelligence</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 tailwind.config = {
   theme: {
@@ -784,275 +785,19 @@ tailwind.config = {
   <div class="flex items-center justify-between mb-4">
     <div class="flex items-center gap-3">
       <h2 class="text-base font-semibold text-gray-800">Deals</h2>
-      <span class="text-xs text-gray-400">203 open deals · 6 stages</span>
+      <span id="dealsStatus" class="text-xs text-gray-400">Loading...</span>
     </div>
     <div class="flex gap-2">
-      <input type="text" placeholder="Search deals..." class="text-xs border border-gray-200 rounded-lg px-3 py-1.5 w-52">
-      <select class="text-xs border border-gray-200 rounded-lg px-2 py-1.5">
-        <option>All PAEs</option>
-        <option>Xavi Soler</option>
-        <option>Pol Bartolomé</option>
-        <option>Laura Sánchez</option>
-        <option>Marc Riera</option>
-        <option>Carlos Martín</option>
-        <option>Ana Vidal</option>
+      <input id="dealSearch" type="text" placeholder="Search deals..." oninput="renderKanban()" class="text-xs border border-gray-200 rounded-lg px-3 py-1.5 w-52">
+      <select id="paeFilter" onchange="renderKanban()" class="text-xs border border-gray-200 rounded-lg px-2 py-1.5">
+        <option value="">All PAEs</option>
       </select>
+      <button onclick="clearCredentials()" class="text-[10px] text-gray-400 hover:text-gray-600 px-2" title="Change Supabase credentials">Settings</button>
     </div>
   </div>
 
-  <div class="flex gap-3 overflow-x-auto pb-4">
-
-    <!-- FPA Started -->
-    <div class="kanban-col flex-shrink-0">
-      <div class="flex items-center justify-between mb-2.5 px-1">
-        <div class="flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-blue-300"></span>
-          <span class="text-xs font-semibold text-gray-700">FPA Started</span>
-        </div>
-        <span class="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">68</span>
-      </div>
-      <div class="space-y-2">
-        <div class="deal-card bg-white rounded-lg p-3 border border-gray-100 shadow-sm">
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-xs font-semibold text-gray-900">Solaria Energía</span>
-            <span class="badge-prob bg-gray-100 text-gray-600">15%</span>
-          </div>
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-bold text-gray-800">€8,200</span>
-            <span class="text-[10px] text-gray-400">8d in stage</span>
-          </div>
-          <div class="flex gap-1.5 pt-2 border-t border-gray-50">
-            <button onclick="openHistorico('solaria')" class="flex-1 text-[10px] font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded py-1.5 text-center transition-colors">Histórico</button>
-            <button onclick="openNextSteps('solaria')" class="flex-1 text-[10px] font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 rounded py-1.5 text-center transition-colors">Next Steps</button>
-          </div>
-        </div>
-        <div class="deal-card bg-white rounded-lg p-3 border border-gray-100 shadow-sm">
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-xs font-semibold text-gray-900">Grupo Catalana</span>
-            <span class="badge-prob bg-gray-100 text-gray-600">20%</span>
-          </div>
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-bold text-gray-800">€6,800</span>
-            <span class="text-[10px] text-gray-400">3d in stage</span>
-          </div>
-          <div class="flex gap-1.5 pt-2 border-t border-gray-50">
-            <button onclick="openHistorico('catalana')" class="flex-1 text-[10px] font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded py-1.5 text-center transition-colors">Histórico</button>
-            <button onclick="openNextSteps('catalana')" class="flex-1 text-[10px] font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 rounded py-1.5 text-center transition-colors">Next Steps</button>
-          </div>
-        </div>
-        <div class="deal-card bg-white rounded-lg p-3 border border-gray-100 shadow-sm">
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-xs font-semibold text-gray-900">Laboratorios Rovi</span>
-            <span class="badge-prob bg-gray-100 text-gray-600">15%</span>
-          </div>
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-bold text-gray-800">€6,800</span>
-            <span class="text-[10px] text-gray-400">2d in stage</span>
-          </div>
-          <div class="flex gap-1.5 pt-2 border-t border-gray-50">
-            <button onclick="openHistorico('rovi')" class="flex-1 text-[10px] font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded py-1.5 text-center transition-colors">Histórico</button>
-            <button onclick="openNextSteps('rovi')" class="flex-1 text-[10px] font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 rounded py-1.5 text-center transition-colors">Next Steps</button>
-          </div>
-        </div>
-        <div class="text-center text-[10px] text-gray-300 py-1">+65 more</div>
-      </div>
-    </div>
-
-    <!-- Demo Booked -->
-    <div class="kanban-col flex-shrink-0">
-      <div class="flex items-center justify-between mb-2.5 px-1">
-        <div class="flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
-          <span class="text-xs font-semibold text-gray-700">Demo Booked</span>
-        </div>
-        <span class="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">49</span>
-      </div>
-      <div class="space-y-2">
-        <div class="deal-card bg-white rounded-lg p-3 border border-gray-100 shadow-sm">
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-xs font-semibold text-gray-900">Iberdrola</span>
-            <span class="badge-prob bg-amber-100 text-amber-700">35%</span>
-          </div>
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-bold text-gray-800">€18,500</span>
-            <span class="text-[10px] text-gray-400">5d in stage</span>
-          </div>
-          <div class="flex gap-1.5 pt-2 border-t border-gray-50">
-            <button onclick="openHistorico('iberdrola')" class="flex-1 text-[10px] font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded py-1.5 text-center transition-colors">Histórico</button>
-            <button onclick="openNextSteps('iberdrola')" class="flex-1 text-[10px] font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 rounded py-1.5 text-center transition-colors">Next Steps</button>
-          </div>
-        </div>
-        <div class="deal-card bg-white rounded-lg p-3 border border-gray-100 shadow-sm">
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-xs font-semibold text-gray-900">Endesa Distribución</span>
-            <span class="badge-prob bg-amber-100 text-amber-700">40%</span>
-          </div>
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-bold text-gray-800">€14,200</span>
-            <span class="text-[10px] text-gray-400">12d in stage</span>
-          </div>
-          <div class="flex gap-1.5 pt-2 border-t border-gray-50">
-            <button onclick="openHistorico('endesa')" class="flex-1 text-[10px] font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded py-1.5 text-center transition-colors">Histórico</button>
-            <button onclick="openNextSteps('endesa')" class="flex-1 text-[10px] font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 rounded py-1.5 text-center transition-colors">Next Steps</button>
-          </div>
-        </div>
-        <div class="text-center text-[10px] text-gray-300 py-1">+47 more</div>
-      </div>
-    </div>
-
-    <!-- MEDDPICC -->
-    <div class="kanban-col flex-shrink-0">
-      <div class="flex items-center justify-between mb-2.5 px-1">
-        <div class="flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span>
-          <span class="text-xs font-semibold text-gray-700">MEDDPICC</span>
-        </div>
-        <span class="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">38</span>
-      </div>
-      <div class="space-y-2">
-        <div class="deal-card bg-white rounded-lg p-3 border border-gray-100 shadow-sm">
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-xs font-semibold text-gray-900">Repsol Exploración</span>
-            <span class="badge-prob bg-amber-100 text-amber-700">45%</span>
-          </div>
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-bold text-gray-800">€22,000</span>
-            <span class="text-[10px] text-gray-400">18d in stage</span>
-          </div>
-          <div class="flex gap-1.5 pt-2 border-t border-gray-50">
-            <button onclick="openHistorico('repsol')" class="flex-1 text-[10px] font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded py-1.5 text-center transition-colors">Histórico</button>
-            <button onclick="openNextSteps('repsol')" class="flex-1 text-[10px] font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 rounded py-1.5 text-center transition-colors">Next Steps</button>
-          </div>
-        </div>
-        <div class="deal-card bg-white rounded-lg p-3 border border-gray-100 shadow-sm">
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-xs font-semibold text-gray-900">Mapfre</span>
-            <span class="badge-prob bg-amber-100 text-amber-700">52%</span>
-          </div>
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-bold text-gray-800">€15,000</span>
-            <span class="text-[10px] text-gray-400">9d in stage</span>
-          </div>
-          <div class="flex gap-1.5 pt-2 border-t border-gray-50">
-            <button onclick="openHistorico('mapfre')" class="flex-1 text-[10px] font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded py-1.5 text-center transition-colors">Histórico</button>
-            <button onclick="openNextSteps('mapfre')" class="flex-1 text-[10px] font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 rounded py-1.5 text-center transition-colors">Next Steps</button>
-          </div>
-        </div>
-        <div class="text-center text-[10px] text-gray-300 py-1">+36 more</div>
-      </div>
-    </div>
-
-    <!-- Economical -->
-    <div class="kanban-col flex-shrink-0">
-      <div class="flex items-center justify-between mb-2.5 px-1">
-        <div class="flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-indigo-400"></span>
-          <span class="text-xs font-semibold text-gray-700">Economical</span>
-        </div>
-        <span class="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">26</span>
-      </div>
-      <div class="space-y-2">
-        <div class="deal-card bg-white rounded-lg p-3 border border-gray-100 shadow-sm">
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-xs font-semibold text-gray-900">Naturgy</span>
-            <span class="badge-prob bg-amber-100 text-amber-700">55%</span>
-          </div>
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-bold text-gray-800">€28,000</span>
-            <span class="text-[10px] text-gray-400">14d in stage</span>
-          </div>
-          <div class="flex gap-1.5 pt-2 border-t border-gray-50">
-            <button onclick="openHistorico('naturgy')" class="flex-1 text-[10px] font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded py-1.5 text-center transition-colors">Histórico</button>
-            <button onclick="openNextSteps('naturgy')" class="flex-1 text-[10px] font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 rounded py-1.5 text-center transition-colors">Next Steps</button>
-          </div>
-        </div>
-        <div class="deal-card bg-white rounded-lg p-3 border border-red-200 shadow-sm bg-red-50/30">
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-xs font-semibold text-red-800">Gestamp</span>
-            <span class="badge-prob bg-red-100 text-red-700">25%</span>
-          </div>
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-bold text-gray-800">€19,000</span>
-            <span class="text-[10px] text-red-500">31d in stage</span>
-          </div>
-          <div class="flex gap-1.5 pt-2 border-t border-red-100">
-            <button onclick="openHistorico('gestamp')" class="flex-1 text-[10px] font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded py-1.5 text-center transition-colors">Histórico</button>
-            <button onclick="openNextSteps('gestamp')" class="flex-1 text-[10px] font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 rounded py-1.5 text-center transition-colors">Next Steps</button>
-          </div>
-        </div>
-        <div class="text-center text-[10px] text-gray-300 py-1">+24 more</div>
-      </div>
-    </div>
-
-    <!-- Pricing -->
-    <div class="kanban-col flex-shrink-0">
-      <div class="flex items-center justify-between mb-2.5 px-1">
-        <div class="flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-          <span class="text-xs font-semibold text-gray-700">Pricing</span>
-        </div>
-        <span class="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">15</span>
-      </div>
-      <div class="space-y-2">
-        <div class="deal-card bg-white rounded-lg p-3 border border-gray-100 shadow-sm">
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-xs font-semibold text-gray-900">Acciona Energía</span>
-            <span class="badge-prob bg-green-100 text-green-700">75%</span>
-          </div>
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-bold text-gray-800">€32,000</span>
-            <span class="text-[10px] text-gray-400">7d in stage</span>
-          </div>
-          <div class="flex gap-1.5 pt-2 border-t border-gray-50">
-            <button onclick="openHistorico('acciona')" class="flex-1 text-[10px] font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded py-1.5 text-center transition-colors">Histórico</button>
-            <button onclick="openNextSteps('acciona')" class="flex-1 text-[10px] font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 rounded py-1.5 text-center transition-colors">Next Steps</button>
-          </div>
-        </div>
-        <div class="text-center text-[10px] text-gray-300 py-1">+14 more</div>
-      </div>
-    </div>
-
-    <!-- Contract Sent -->
-    <div class="kanban-col flex-shrink-0">
-      <div class="flex items-center justify-between mb-2.5 px-1">
-        <div class="flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
-          <span class="text-xs font-semibold text-gray-700">Contract Sent</span>
-        </div>
-        <span class="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">7</span>
-      </div>
-      <div class="space-y-2">
-        <div class="deal-card bg-white rounded-lg p-3 border border-green-100 shadow-sm bg-green-50/20">
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-xs font-semibold text-gray-900">Ferrovial Servicios</span>
-            <span class="badge-prob bg-green-100 text-green-700">88%</span>
-          </div>
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-bold text-gray-800">€45,000</span>
-            <span class="text-[10px] text-gray-400">4d in stage</span>
-          </div>
-          <div class="flex gap-1.5 pt-2 border-t border-green-50">
-            <button onclick="openHistorico('ferrovial')" class="flex-1 text-[10px] font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded py-1.5 text-center transition-colors">Histórico</button>
-            <button onclick="openNextSteps('ferrovial')" class="flex-1 text-[10px] font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 rounded py-1.5 text-center transition-colors">Next Steps</button>
-          </div>
-        </div>
-        <div class="deal-card bg-white rounded-lg p-3 border border-green-100 shadow-sm bg-green-50/20">
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-xs font-semibold text-gray-900">ACS Servicios</span>
-            <span class="badge-prob bg-green-100 text-green-700">82%</span>
-          </div>
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-bold text-gray-800">€21,500</span>
-            <span class="text-[10px] text-gray-400">6d in stage</span>
-          </div>
-          <div class="flex gap-1.5 pt-2 border-t border-green-50">
-            <button onclick="openHistorico('acs')" class="flex-1 text-[10px] font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded py-1.5 text-center transition-colors">Histórico</button>
-            <button onclick="openNextSteps('acs')" class="flex-1 text-[10px] font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 rounded py-1.5 text-center transition-colors">Next Steps</button>
-          </div>
-        </div>
-        <div class="text-center text-[10px] text-gray-300 py-1">+5 more</div>
-      </div>
-    </div>
+  <div id="kanbanContainer" class="flex gap-3 overflow-x-auto pb-4">
+    <div class="w-full text-center text-sm text-gray-400 py-12">Click the Deals tab to load data from Supabase</div>
   </div>
 </div>
 
@@ -1964,6 +1709,35 @@ tailwind.config = {
   </div>
 </div>
 
+<!-- Credentials Modal -->
+<div id="credentialsModal" class="fixed inset-0 z-[60] hidden">
+  <div class="modal-overlay absolute inset-0"></div>
+  <div class="absolute inset-0 flex items-center justify-center z-10">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md fade-in">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 bg-brand-600 rounded-lg flex items-center justify-center">
+          <span class="text-white font-bold">C</span>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900">Connect to Supabase</h3>
+          <p class="text-xs text-gray-400">Credentials are stored in your browser only</p>
+        </div>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="text-xs font-medium text-gray-600 block mb-1">Supabase URL</label>
+          <input id="sbUrl" type="text" placeholder="https://xxxxx.supabase.co" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2">
+        </div>
+        <div>
+          <label class="text-xs font-medium text-gray-600 block mb-1">Service Role Key</label>
+          <input id="sbKey" type="password" placeholder="eyJhbGci..." class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2">
+        </div>
+        <button onclick="saveCredentials()" class="w-full bg-brand-600 text-white text-sm font-medium rounded-lg py-2.5 hover:bg-brand-700 transition-colors">Connect</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- JavaScript -->
 <script>
 function showTab(name) {
@@ -2155,8 +1929,367 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     closeDealModal();
     closeNextSteps();
+    closeCredentialsModal();
   }
 });
+
+// ── Supabase connection ──────────────────────────────────────────────────
+
+const STAGE_MAP = {
+  'Factorial Project Alignment started': { col: 'fpa', label: 'FPA Started', color: 'blue-300' },
+  'Demo Booked': { col: 'demo', label: 'Demo Booked', color: 'cyan-400' },
+  'Meeting Booked': { col: 'demo', label: 'Demo Booked', color: 'cyan-400' },
+  'MEDDPICC Criteria Validation Started': { col: 'meddpicc', label: 'MEDDPICC', color: 'purple-400' },
+  'Economical Allignment Started': { col: 'economical', label: 'Economical', color: 'indigo-400' },
+  'Pricing and Packaging': { col: 'pricing', label: 'Pricing', color: 'blue-500' },
+  'Pricing & Packaging': { col: 'pricing', label: 'Pricing', color: 'blue-500' },
+  'Contract Sent': { col: 'contract', label: 'Contract Sent', color: 'green-500' },
+};
+const ACTIVE_STAGES = Object.keys(STAGE_MAP);
+const COL_ORDER = ['fpa','demo','meddpicc','economical','pricing','contract'];
+
+let _sb = null;
+let _dealsCache = [];
+let _snapshotsCache = {};
+
+function getSupabase() {
+  if (_sb) return _sb;
+  const url = localStorage.getItem('claudio_sb_url');
+  const key = localStorage.getItem('claudio_sb_key');
+  if (!url || !key) return null;
+  _sb = supabase.createClient(url, key);
+  return _sb;
+}
+
+function showCredentialsModal() {
+  document.getElementById('credentialsModal').classList.remove('hidden');
+}
+function closeCredentialsModal() {
+  document.getElementById('credentialsModal').classList.add('hidden');
+}
+function saveCredentials() {
+  const url = document.getElementById('sbUrl').value.trim();
+  const key = document.getElementById('sbKey').value.trim();
+  if (!url || !key) return;
+  localStorage.setItem('claudio_sb_url', url);
+  localStorage.setItem('claudio_sb_key', key);
+  _sb = null;
+  closeCredentialsModal();
+  loadDeals();
+}
+function clearCredentials() {
+  localStorage.removeItem('claudio_sb_url');
+  localStorage.removeItem('claudio_sb_key');
+  _sb = null;
+  _dealsCache = [];
+  _snapshotsCache = {};
+  showCredentialsModal();
+}
+
+function probColor(p) {
+  if (p == null) return { bg: 'bg-gray-100', text: 'text-gray-500' };
+  if (p >= 70) return { bg: 'bg-green-100', text: 'text-green-700' };
+  if (p >= 30) return { bg: 'bg-amber-100', text: 'text-amber-700' };
+  return { bg: 'bg-red-100', text: 'text-red-700' };
+}
+
+function formatMRR(amount) {
+  if (!amount) return '—';
+  if (amount >= 1000) return '€' + (amount / 1000).toFixed(amount % 1000 === 0 ? 0 : 1) + 'K';
+  return '€' + amount;
+}
+
+async function loadDeals() {
+  const sb = getSupabase();
+  if (!sb) { showCredentialsModal(); return; }
+
+  const statusEl = document.getElementById('dealsStatus');
+  if (statusEl) statusEl.textContent = 'Loading...';
+
+  const { data: deals, error: dErr } = await sb
+    .from('deals')
+    .select('id, deal_id, deal_name, amount, deal_stage, pae, pbd, deal_age_days, close_date, forecast_category, contacts_info, rep_next_step')
+    .in('deal_stage', ACTIVE_STAGES)
+    .not('deal_name', 'ilike', '%session%')
+    .order('amount', { ascending: false, nullsFirst: false })
+    .limit(1000);
+
+  if (dErr) {
+    console.error('Deals query error:', dErr);
+    if (statusEl) statusEl.textContent = 'Error loading deals — check credentials';
+    return;
+  }
+
+  _dealsCache = deals || [];
+  const dealIds = _dealsCache.map(d => d.id);
+
+  // Fetch snapshots in batches of 200 (Supabase .in() limit)
+  let allSnapshots = [];
+  for (let i = 0; i < dealIds.length; i += 200) {
+    const batch = dealIds.slice(i, i + 200);
+    const { data: snaps } = await sb
+      .from('front_deal_snapshots')
+      .select('deal_id, close_probability, m_score, e_score, dc_score, dp_score, i_score, c_score, deal_summary, buyer_signals, live_blockers, objections, next_step, claudio_forecast, snapshot_date, m_accumulate, e_accumulate, dc_accumulate, dp_accumulate, i_accumulate, c_accumulate, deal_strengths, improvements')
+      .in('deal_id', batch)
+      .order('snapshot_date', { ascending: false })
+      .limit(5000);
+    if (snaps) allSnapshots = allSnapshots.concat(snaps);
+  }
+
+  _snapshotsCache = {};
+  for (const s of allSnapshots) {
+    if (!_snapshotsCache[s.deal_id]) _snapshotsCache[s.deal_id] = s;
+  }
+
+  populatePaeFilter();
+  renderKanban();
+}
+
+function populatePaeFilter() {
+  const select = document.getElementById('paeFilter');
+  if (!select) return;
+  const paes = [...new Set(_dealsCache.map(d => d.pae).filter(Boolean))].sort();
+  select.innerHTML = '<option value="">All PAEs</option>' + paes.map(p => `<option value="${p}">${p}</option>`).join('');
+}
+
+function getFilteredDeals() {
+  const search = (document.getElementById('dealSearch')?.value || '').toLowerCase();
+  const pae = document.getElementById('paeFilter')?.value || '';
+  return _dealsCache.filter(d => {
+    if (search && !(d.deal_name || '').toLowerCase().includes(search)) return false;
+    if (pae && d.pae !== pae) return false;
+    return true;
+  });
+}
+
+function renderKanban() {
+  const deals = getFilteredDeals();
+  const grouped = {};
+  COL_ORDER.forEach(c => grouped[c] = []);
+  for (const d of deals) {
+    const stage = STAGE_MAP[d.deal_stage];
+    if (stage) grouped[stage.col].push(d);
+  }
+
+  const container = document.getElementById('kanbanContainer');
+  if (!container) return;
+  const statusEl = document.getElementById('dealsStatus');
+
+  const totalDeals = deals.length;
+  if (statusEl) statusEl.textContent = `${totalDeals} open deals · ${COL_ORDER.length} stages`;
+
+  const colMeta = {
+    fpa: { label: 'FPA Started', dot: 'bg-blue-300' },
+    demo: { label: 'Demo Booked', dot: 'bg-cyan-400' },
+    meddpicc: { label: 'MEDDPICC', dot: 'bg-purple-400' },
+    economical: { label: 'Economical', dot: 'bg-indigo-400' },
+    pricing: { label: 'Pricing', dot: 'bg-blue-500' },
+    contract: { label: 'Contract Sent', dot: 'bg-green-500' },
+  };
+
+  container.innerHTML = COL_ORDER.map(col => {
+    const meta = colMeta[col];
+    const colDeals = grouped[col];
+    const visible = colDeals.slice(0, 8);
+    const remaining = colDeals.length - visible.length;
+
+    const cardsHtml = visible.map(d => {
+      const snap = _snapshotsCache[d.id];
+      const prob = snap?.close_probability;
+      const pc = probColor(prob);
+      const mrr = formatMRR(d.amount);
+      const daysInStage = d.deal_age_days != null ? d.deal_age_days + 'd' : '—';
+      const isAtRisk = prob != null && prob < 30;
+      const borderClass = isAtRisk ? 'border-red-200' : col === 'contract' ? 'border-green-100' : 'border-gray-100';
+      const bgClass = isAtRisk ? 'bg-red-50/30' : col === 'contract' ? 'bg-green-50/20' : 'bg-white';
+      const nameClass = isAtRisk ? 'text-red-800' : 'text-gray-900';
+      const daysClass = (d.deal_age_days != null && d.deal_age_days > 25) ? 'text-red-500' : 'text-gray-400';
+
+      return `<div class="deal-card ${bgClass} rounded-lg p-3 border ${borderClass} shadow-sm">
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-xs font-semibold ${nameClass} truncate mr-2">${d.deal_name || '—'}</span>
+          <span class="badge-prob ${pc.bg} ${pc.text}">${prob != null ? prob + '%' : '—'}</span>
+        </div>
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-bold text-gray-800">${mrr}</span>
+          <span class="text-[10px] ${daysClass}">${daysInStage} in stage</span>
+        </div>
+        <div class="flex gap-1.5 pt-2 border-t ${isAtRisk ? 'border-red-100' : col === 'contract' ? 'border-green-50' : 'border-gray-50'}">
+          <button onclick="openHistorico('${d.id}')" class="flex-1 text-[10px] font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded py-1.5 text-center transition-colors">Histórico</button>
+          <button onclick="openNextSteps('${d.id}')" class="flex-1 text-[10px] font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 rounded py-1.5 text-center transition-colors">Next Steps</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    const moreHtml = remaining > 0 ? `<div class="text-center text-[10px] text-gray-300 py-1">+${remaining} more</div>` : '';
+
+    return `<div class="kanban-col flex-shrink-0">
+      <div class="flex items-center justify-between mb-2.5 px-1">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full ${meta.dot}"></span>
+          <span class="text-xs font-semibold text-gray-700">${meta.label}</span>
+        </div>
+        <span class="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">${colDeals.length}</span>
+      </div>
+      <div class="space-y-2">${cardsHtml}${moreHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Histórico modal with real data ───────────────────────────────────────
+
+const _historicoOrig = {
+  openHistorico: null
+};
+
+// Override openHistorico to use real data
+_historicoOrig.openHistorico = openHistorico;
+openHistorico = function(dealId) {
+  const deal = _dealsCache.find(d => d.id === dealId);
+  const snap = _snapshotsCache[dealId];
+  if (!deal) { _historicoOrig.openHistorico(dealId); return; }
+
+  // Populate header
+  const modal = document.getElementById('dealModal');
+  modal.querySelector('h2').textContent = deal.deal_name || '—';
+  const stageInfo = STAGE_MAP[deal.deal_stage] || {};
+  const metaLine = modal.querySelector('h2').nextElementSibling;
+  metaLine.innerHTML = `
+    <span class="stage-pill bg-blue-100 text-blue-700">${stageInfo.label || deal.deal_stage}</span>
+    <span class="text-sm text-gray-400">PAE: ${deal.pae || '—'} · PBD: ${deal.pbd || '—'}</span>
+    <span class="text-sm text-gray-400">· Deal age: ${deal.deal_age_days || '—'} days</span>
+  `;
+
+  // Top stats
+  const statsGrid = modal.querySelectorAll('.grid.grid-cols-2.md\\:grid-cols-5 > div');
+  if (statsGrid.length >= 5) {
+    statsGrid[0].querySelector('.text-lg').textContent = formatMRR(deal.amount);
+    const probEl = statsGrid[1].querySelector('.text-lg');
+    const prob = snap?.close_probability;
+    probEl.textContent = prob != null ? prob + '%' : '—';
+    probEl.className = 'text-lg font-bold ' + (prob >= 70 ? 'text-green-600' : prob >= 30 ? 'text-amber-600' : 'text-red-600');
+    statsGrid[2].querySelector('.text-lg').textContent = deal.close_date || '—';
+    statsGrid[3].querySelector('.text-lg').textContent = snap?.claudio_forecast || deal.forecast_category || '—';
+    statsGrid[4].querySelector('.text-lg').textContent = '—';
+  }
+
+  // MEDDIC scores
+  const scores = [
+    { key: 'm', val: snap?.m_score, acc: snap?.m_accumulate },
+    { key: 'e', val: snap?.e_score, acc: snap?.e_accumulate },
+    { key: 'dc', val: snap?.dc_score, acc: snap?.dc_accumulate },
+    { key: 'dp', val: snap?.dp_score, acc: snap?.dp_accumulate },
+    { key: 'i', val: snap?.i_score, acc: snap?.i_accumulate },
+    { key: 'c', val: snap?.c_score, acc: snap?.c_accumulate },
+  ];
+  const meddicItems = modal.querySelectorAll('.space-y-2 .flex.items-center.gap-2');
+  scores.forEach((s, i) => {
+    if (!meddicItems[i]) return;
+    const scoreEl = meddicItems[i].querySelector('.text-sm.font-bold');
+    if (scoreEl) scoreEl.textContent = s.val != null ? s.val + '/10' : '—';
+    const descEl = meddicItems[i].querySelector('.text-xs.text-gray-400');
+    if (descEl) descEl.textContent = s.acc || '—';
+  });
+
+  // Deal summary
+  const summaryEl = modal.querySelector('.bg-gray-50.rounded-lg.p-4.text-sm');
+  if (summaryEl) summaryEl.textContent = snap?.deal_summary || 'No summary available.';
+
+  // Buyer signals
+  const signalsContainer = modal.querySelector('h3 + .space-y-2.mb-4');
+  if (signalsContainer && snap?.buyer_signals) {
+    const signals = snap.buyer_signals.split('\n').filter(s => s.trim());
+    signalsContainer.innerHTML = signals.map(s =>
+      `<div class="flex items-start gap-2 p-2 bg-green-50 rounded-lg">
+        <span class="text-green-500 mt-0.5">+</span>
+        <span class="text-sm text-green-800">${s.replace(/^[-•+]\s*/, '')}</span>
+      </div>`
+    ).join('');
+  }
+
+  // Live blockers
+  const blockersHeader = [...modal.querySelectorAll('h3')].find(h => h.textContent.includes('Live Blockers'));
+  if (blockersHeader && snap?.live_blockers) {
+    const blockersContainer = blockersHeader.nextElementSibling;
+    const blockers = snap.live_blockers.split('\n').filter(b => b.trim());
+    blockersContainer.innerHTML = blockers.map(b =>
+      `<div class="flex items-start gap-2 p-2 bg-red-50 rounded-lg">
+        <span class="text-red-500 mt-0.5">!</span>
+        <span class="text-sm text-red-800">${b.replace(/^[-•!]\s*/, '')}</span>
+      </div>`
+    ).join('');
+  }
+
+  // Contacts
+  const contactsHeader = [...modal.querySelectorAll('h3')].find(h => h.textContent.includes('Contacts'));
+  if (contactsHeader && deal.contacts_info) {
+    const contactsContainer = contactsHeader.nextElementSibling;
+    contactsContainer.innerHTML = `<div class="p-3 bg-gray-50 rounded-lg text-sm text-gray-700 whitespace-pre-line">${deal.contacts_info}</div>`;
+  }
+
+  modal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  updateModalCharts(scores.map(s => s.val || 0), dealId);
+}
+
+async function updateModalCharts(meddicScores, dealId) {
+  // Radar chart
+  if (window._radarModal) {
+    window._radarModal.data.datasets[0].data = meddicScores;
+    window._radarModal.update();
+  } else {
+    setTimeout(() => {
+      const ctx = document.getElementById('radarChart')?.getContext('2d');
+      if (!ctx) return;
+      window._radarModal = new Chart(ctx, {
+        type: 'radar',
+        data: {
+          labels: ['M','E','DC','DP','I','C'],
+          datasets: [{ data: meddicScores, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.15)', pointBackgroundColor: ['#8b5cf6','#06b6d4','#f59e0b','#ef4444','#10b981','#ec4899'], pointRadius: 5, borderWidth: 2 }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { r: { min: 0, max: 10, ticks: { stepSize: 2, display: false }, grid: { color: '#e2e8f0' }, pointLabels: { font: { size: 14, weight: '700' }, color: ['#8b5cf6','#06b6d4','#f59e0b','#ef4444','#10b981','#ec4899'] } } } }
+      });
+    }, 100);
+  }
+
+  // Probability timeline from snapshot history
+  const sb = getSupabase();
+  if (sb && dealId) {
+    const { data: history } = await sb
+      .from('front_deal_snapshots')
+      .select('snapshot_date, close_probability')
+      .eq('deal_id', dealId)
+      .order('snapshot_date', { ascending: true })
+      .limit(30);
+
+    if (history && history.length > 0) {
+      const labels = history.map(h => h.snapshot_date);
+      const data = history.map(h => h.close_probability);
+      if (window._probChart) {
+        window._probChart.data.labels = labels;
+        window._probChart.data.datasets[0].data = data;
+        window._probChart.update();
+      } else {
+        setTimeout(() => {
+          const ctx = document.getElementById('probTimeline')?.getContext('2d');
+          if (!ctx) return;
+          window._probChart = new Chart(ctx, {
+            type: 'line',
+            data: { labels, datasets: [{ data, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#3b82f6' }] },
+            options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { min: 0, max: 100, ticks: { callback: v => v+'%', stepSize: 25 }, grid: { color: '#f1f5f9' } } } }
+          });
+        }, 100);
+      }
+    }
+  }
+}
+
+// ── Load deals when tab is shown ──────────────────────────────────────
+const _origShowTab = showTab;
+showTab = function(name) {
+  _origShowTab(name);
+  if (name === 'deals' && _dealsCache.length === 0) loadDeals();
+};
 </script>
 
 </body>
