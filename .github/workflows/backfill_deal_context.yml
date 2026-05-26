@@ -14,9 +14,9 @@ on:
         default: "0"
         type: string
       workers:
-        description: "Concurrent workers (default 10)"
+        description: "Concurrent workers (default 3)"
         required: false
-        default: "10"
+        default: "3"
         type: string
       model:
         description: "Claude model override (e.g. claude-sonnet-4-6)"

@@ -512,7 +512,7 @@ def run(deal_uuid: str, hs_deal_id: str, *, owners: dict[str, dict] | None = Non
             sub = get_subteam(owner_email) if owner_email else None
 
             duration_ms = p.get("hs_call_duration")
-            duration_s = int(int(duration_ms) / 1000) if duration_ms else None
+            duration_s = int(float(duration_ms) / 1000) if duration_ms else None
             duration_min = round(duration_s / 60) if duration_s else 0
 
             fecha = _parse_date(p.get("hs_timestamp"))
@@ -589,7 +589,7 @@ def run(deal_uuid: str, hs_deal_id: str, *, owners: dict[str, dict] | None = Non
             owner_info = owners.get(owner_id, {})
             owner_name = owner_info.get("name", owner_info.get("email", "?"))
             duration_ms = p.get("hs_call_duration")
-            duration_min = round(int(int(duration_ms) / 1000) / 60) if duration_ms else 0
+            duration_min = round(int(float(duration_ms) / 1000) / 60) if duration_ms else 0
             date = p.get("hs_timestamp") or ""
             items.append((date, "context", _format_call_context(
                 hs_id, p, owner_name or "?", duration_min
