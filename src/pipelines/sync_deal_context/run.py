@@ -13,6 +13,8 @@ import re
 from src.config import PAE_TAGS, PBD_TAGS, get_role, get_subteam
 from src.db.client import supabase
 from src.integrations import hubspot
+from src.pipelines.modjo_calls.api_client import fetch_call_details as modjo_fetch_details
+from src.pipelines.modjo_calls.fetch import normalize as modjo_normalize
 
 EMAIL_PROPS = [
     "hs_timestamp",
@@ -342,6 +344,20 @@ def _insert_and_audit(deal_uuid: str, call_data: dict) -> bool:
 # ── Readiness check ──────────────────────────────────────────────────────
 
 
+def _check_has_audit(call_id: str) -> bool:
+    for table in ("pbd_audits", "pae_audits"):
+        result = (
+            supabase.table(table)
+            .select("id")
+            .eq("call_id", call_id)
+            .limit(1)
+            .execute()
+        )
+        if result.data:
+            return True
+    return False
+
+
 def _all_calls_audited(deal_uuid: str) -> bool:
     result = supabase.rpc("check_calls_ready", {"p_deal_id": deal_uuid}).execute()
     return bool(result.data)
@@ -442,6 +458,7 @@ def run(deal_uuid: str, hs_deal_id: str, *, owners: dict[str, dict] | None = Non
     if new_meeting_ids:
         meeting_objects = _batch_read("meetings", new_meeting_ids, MEETING_PROPS)
         included = 0
+        modjo_auditable = 0
         for obj in meeting_objects:
             p = obj.get("properties", {})
             hs_id = str(obj.get("id", ""))
@@ -449,9 +466,71 @@ def run(deal_uuid: str, hs_deal_id: str, *, owners: dict[str, dict] | None = Non
             if outcome not in ("COMPLETED", "NO_SHOW"):
                 continue
             date = p.get("hs_timestamp") or p.get("hs_meeting_start_time") or ""
-            items.append((date, "context", _format_meeting(hs_id, p, owners)))
-            included += 1
-        print(f"   {len(new_meeting_ids)} new meetings, {included} included (COMPLETED/NO_SHOW)")
+
+            notes_raw = p.get("hs_internal_meeting_notes") or ""
+            modjo_match = _MODJO_RE.search(notes_raw) if outcome == "COMPLETED" else None
+
+            if modjo_match:
+                modjo_id = modjo_match.group(1)
+                existing_call = (
+                    supabase.table("calls")
+                    .select("call_id, transcript, rol, deal_id, hs_deal_id, crm_id, titulo, fecha, owner_email, owner_nombre, tags, duracion_segundos, subteam")
+                    .eq("call_id", modjo_id)
+                    .maybe_single()
+                    .execute()
+                )
+
+                if existing_call.data:
+                    c = existing_call.data
+                    if _check_has_audit(modjo_id):
+                        items.append((date, "context", _format_meeting(hs_id, p, owners)))
+                        included += 1
+                    elif c.get("transcript") and len(c["transcript"]) >= 200 and c.get("rol"):
+                        items.append((date, "auditable", {
+                            "call_id": modjo_id,
+                            "hs_call_id": c.get("hs_call_id"),
+                            "deal_id": deal_uuid,
+                            "hs_deal_id": hs_deal_id,
+                            "crm_id": crm_id,
+                            "titulo": c.get("titulo") or p.get("hs_meeting_title") or "",
+                            "fecha": c.get("fecha") or _parse_date(date),
+                            "owner_email": c.get("owner_email"),
+                            "owner_nombre": c.get("owner_nombre"),
+                            "rol": c["rol"],
+                            "tags": c.get("tags") or [],
+                            "team": "Partners",
+                            "duracion_segundos": c.get("duracion_segundos"),
+                            "transcript": c["transcript"],
+                            "subteam": c.get("subteam"),
+                            "source": "modjo",
+                        }))
+                        modjo_auditable += 1
+                    else:
+                        items.append((date, "context", _format_meeting(hs_id, p, owners)))
+                        included += 1
+                else:
+                    try:
+                        raw_calls = modjo_fetch_details([int(modjo_id)])
+                        normalized = modjo_normalize(raw_calls[0]) if raw_calls else None
+                    except Exception as e:
+                        print(f"      Modjo fetch {modjo_id} failed: {e}")
+                        normalized = None
+
+                    if normalized and normalized.get("transcript") and len(normalized["transcript"]) >= 200:
+                        normalized["deal_id"] = deal_uuid
+                        normalized["hs_deal_id"] = hs_deal_id
+                        normalized["crm_id"] = crm_id
+                        if not normalized.get("titulo"):
+                            normalized["titulo"] = p.get("hs_meeting_title") or ""
+                        items.append((date, "auditable", normalized))
+                        modjo_auditable += 1
+                    else:
+                        items.append((date, "context", _format_meeting(hs_id, p, owners)))
+                        included += 1
+            else:
+                items.append((date, "context", _format_meeting(hs_id, p, owners)))
+                included += 1
+        print(f"   {len(new_meeting_ids)} new meetings, {included} context, {modjo_auditable} auditable (Modjo)")
     else:
         print(f"   {len(meeting_ids)} meetings — all tracked")
 
