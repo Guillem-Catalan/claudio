@@ -455,6 +455,8 @@ def run(deal_uuid: str, hs_deal_id: str, *, owners: dict[str, dict] | None = Non
     meeting_ids = _fetch_associations(hs_deal_id, "meetings")
     new_meeting_ids = [mid for mid in meeting_ids if mid not in existing_hs_ids]
 
+    modjo_ids_from_meetings: set[str] = set()
+
     if new_meeting_ids:
         meeting_objects = _batch_read("meetings", new_meeting_ids, MEETING_PROPS)
         included = 0
@@ -472,6 +474,7 @@ def run(deal_uuid: str, hs_deal_id: str, *, owners: dict[str, dict] | None = Non
 
             if modjo_match:
                 modjo_id = modjo_match.group(1)
+                modjo_ids_from_meetings.add(modjo_id)
                 existing_call = (
                     supabase.table("calls")
                     .select("call_id, transcript, rol, deal_id, hs_deal_id, crm_id, titulo, fecha, owner_email, owner_nombre, tags, duracion_segundos, subteam")
@@ -597,6 +600,9 @@ def run(deal_uuid: str, hs_deal_id: str, *, owners: dict[str, dict] | None = Non
             fecha = _parse_date(p.get("hs_timestamp"))
             date_sort = p.get("hs_timestamp") or ""
 
+            if modjo_id and modjo_id in modjo_ids_from_meetings:
+                continue
+
             if modjo_id and modjo_id in modjo_map:
                 modjo_updates.append({
                     "id": modjo_map[modjo_id],
@@ -687,6 +693,7 @@ def run(deal_uuid: str, hs_deal_id: str, *, owners: dict[str, dict] | None = Non
     modjo_only_new = [
         c for c in modjo_only
         if f"[modjo:{c['call_id']}]" not in current_context
+        and c["call_id"] not in modjo_ids_from_meetings
     ]
     for c in modjo_only_new:
         dur_s = c.get("duracion_segundos") or 0
