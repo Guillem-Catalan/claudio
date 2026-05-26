@@ -13,6 +13,16 @@ on:
         required: false
         default: "0"
         type: string
+      workers:
+        description: "Concurrent workers (default 10)"
+        required: false
+        default: "10"
+        type: string
+      model:
+        description: "Claude model override (e.g. claude-sonnet-4-6)"
+        required: false
+        default: ""
+        type: string
 
 jobs:
   backfill:
@@ -34,5 +44,10 @@ jobs:
           HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
           AZURE_CLAUDE_ENDPOINT: ${{ secrets.AZURE_CLAUDE_ENDPOINT }}
           AZURE_CLAUDE_API_KEY: ${{ secrets.AZURE_CLAUDE_API_KEY }}
-          AZURE_CLAUDE_DEPLOYMENT: ${{ secrets.AZURE_CLAUDE_DEPLOYMENT }}
-        run: python -m scripts.backfill_deal_context --offset ${{ inputs.offset }} --limit ${{ inputs.limit }}
+          AZURE_CLAUDE_DEPLOYMENT: ${{ inputs.model || secrets.AZURE_CLAUDE_DEPLOYMENT }}
+        run: >-
+          python -m scripts.backfill_deal_context
+          --offset ${{ inputs.offset }}
+          --limit ${{ inputs.limit }}
+          --workers ${{ inputs.workers }}
+          ${{ inputs.model && format('--model {0}', inputs.model) || '' }}

@@ -1,4 +1,5 @@
 import os
+import threading
 import time
 
 import requests
@@ -8,6 +9,7 @@ BASE = "https://api.hubapi.com"
 _MIN_INTERVAL = 0.12
 _last_request_at = 0.0
 _request_count = 0
+_lock = threading.Lock()
 
 
 def _headers() -> dict:
@@ -19,12 +21,13 @@ def _headers() -> dict:
 
 def _throttle():
     global _last_request_at, _request_count
-    now = time.monotonic()
-    wait = _MIN_INTERVAL - (now - _last_request_at)
-    if wait > 0:
-        time.sleep(wait)
-    _last_request_at = time.monotonic()
-    _request_count += 1
+    with _lock:
+        now = time.monotonic()
+        wait = _MIN_INTERVAL - (now - _last_request_at)
+        if wait > 0:
+            time.sleep(wait)
+        _last_request_at = time.monotonic()
+        _request_count += 1
 
 
 _RETRYABLE = {401, 429, 500, 502, 503}
