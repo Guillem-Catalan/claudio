@@ -8,3 +8,12 @@ dist/
 build/
 .pytest_cache/
 .DS_Store
+_analyze*
+_backfill_*
+_create_*
+_discover_*
+_verify_*
+_test_*
+_report_*
+_calls_*
+_missing_*
