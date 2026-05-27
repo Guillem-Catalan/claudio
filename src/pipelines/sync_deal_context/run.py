@@ -344,18 +344,90 @@ def _insert_and_audit(deal_uuid: str, call_data: dict) -> bool:
 # ── Readiness check ──────────────────────────────────────────────────────
 
 
-def _check_has_audit(call_id: str) -> bool:
+_AUDIT_FIELDS = (
+    "win_rate_score,forecast_flag,partner_leverage_score,lead_temperature,"
+    "deal_context,biggest_gap,next_call_objective,objections,buying_signals,blockers,"
+    "bant_budget_status,bant_budget_evidence,"
+    "bant_authority_status,bant_authority_evidence,"
+    "bant_need_status,bant_need_evidence,"
+    "bant_timing_status,bant_timing_evidence,"
+    "meddic_metrics_status,meddic_metrics_evidence,"
+    "meddic_economic_buyer_status,meddic_economic_buyer_evidence,"
+    "meddic_decision_criteria_status,meddic_decision_criteria_evidence,"
+    "meddic_decision_process_status,meddic_decision_process_evidence,"
+    "meddic_champion_status,meddic_champion_evidence,"
+    "meddic_competition_status,meddic_competition_evidence"
+)
+
+
+def _format_audit_entry(call: dict, audit: dict) -> str:
+    fecha = (call.get("fecha") or "?")[:10]
+    rol = call.get("rol") or "?"
+    tags = call.get("tags") or []
+    tags_str = ", ".join(tags) if tags else "untagged"
+    dur = round((call.get("duracion_segundos") or 0) / 60)
+    rep = call.get("owner_nombre") or call.get("owner_email") or "?"
+    call_id = call.get("call_id") or "?"
+
+    parts = [f"[{fecha}] CALL AUDITED — {rol} {rep} — Tags: [{tags_str}] ({dur}min) [call:{call_id}]"]
+
+    wrs = audit.get("win_rate_score")
+    ff = audit.get("forecast_flag") or "—"
+    pl = audit.get("partner_leverage_score") or "—"
+    lt = audit.get("lead_temperature") or "—"
+    parts.append(f"  Win rate: {wrs} | Forecast: {ff} | Partner leverage: {pl} | Temperature: {lt}")
+
+    dc = audit.get("deal_context")
+    if dc:
+        parts.append(f"  Narrative: {dc[:500]}")
+    gap = audit.get("biggest_gap")
+    if gap:
+        parts.append(f"  Biggest gap: {gap}")
+    nco = audit.get("next_call_objective")
+    if nco:
+        parts.append(f"  Next objective: {nco}")
+    obj = audit.get("objections")
+    if obj:
+        parts.append(f"  Objections: {obj[:300]}")
+    sig = audit.get("buying_signals")
+    if sig:
+        parts.append(f"  Buying signals: {sig[:300]}")
+    blk = audit.get("blockers")
+    if blk:
+        parts.append(f"  Blockers: {blk[:300]}")
+
+    for prefix, pillars in [
+        ("bant", ("budget", "authority", "need", "timing")),
+        ("meddic", ("metrics", "economic_buyer", "decision_criteria", "decision_process", "champion", "competition")),
+    ]:
+        pillar_lines = []
+        for p in pillars:
+            status = audit.get(f"{prefix}_{p}_status")
+            if status and status != "Missing":
+                evidence = audit.get(f"{prefix}_{p}_evidence") or ""
+                line = f"    {p.replace('_', ' ').title()}: {status}"
+                if evidence:
+                    line += f' — "{evidence[:150]}"'
+                pillar_lines.append(line)
+        if pillar_lines:
+            parts.append(f"  {prefix.upper()}:")
+            parts.extend(pillar_lines)
+
+    return "\n".join(parts)
+
+
+def _fetch_existing_audit(call_id: str, call: dict) -> str | None:
     for table in ("pbd_audits", "pae_audits"):
         result = (
             supabase.table(table)
-            .select("id")
+            .select(_AUDIT_FIELDS)
             .eq("call_id", call_id)
             .limit(1)
             .execute()
         )
         if result.data:
-            return True
-    return False
+            return _format_audit_entry(call, result.data[0])
+    return None
 
 
 def _all_calls_audited(deal_uuid: str) -> bool:
@@ -485,8 +557,10 @@ def run(deal_uuid: str, hs_deal_id: str, *, owners: dict[str, dict] | None = Non
 
                 if existing_call.data:
                     c = existing_call.data[0]
-                    if _check_has_audit(modjo_id):
-                        items.append((date, "context", _format_meeting(hs_id, p, owners)))
+                    audit_text = _fetch_existing_audit(modjo_id, c)
+                    if audit_text:
+                        meeting_header = _format_meeting(hs_id, p, owners)
+                        items.append((date, "context", f"{meeting_header}\n\n{audit_text}"))
                         included += 1
                     elif c.get("transcript") and len(c["transcript"]) >= 200 and c.get("rol"):
                         items.append((date, "auditable", {
