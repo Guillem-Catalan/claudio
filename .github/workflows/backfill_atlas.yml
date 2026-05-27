@@ -10,9 +10,9 @@ on:
         description: "Claude model"
         type: choice
         options:
-          - claude-sonnet-4-20250514
+          - claude-sonnet-4-6
           - claude-opus-4-6
-        default: claude-sonnet-4-20250514
+        default: claude-sonnet-4-6
       dry_run:
         description: "Dry run (list targets only)"
         type: boolean
