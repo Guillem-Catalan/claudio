@@ -61,6 +61,16 @@ def run(limit: int | None = None, dry_run: bool = False):
                 row["deal_id"] = deal_uuid
             meeting_rows.append(row)
 
+    seen: set[str] = set()
+    unique_rows: list[dict] = []
+    for row in meeting_rows:
+        mid = row["hs_meeting_id"]
+        if mid not in seen:
+            seen.add(mid)
+            unique_rows.append(row)
+    print(f"   {len(meeting_rows)} total, {len(unique_rows)} unique by hs_meeting_id")
+    meeting_rows = unique_rows
+
     if limit:
         meeting_rows = meeting_rows[:limit]
 

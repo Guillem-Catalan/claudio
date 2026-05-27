@@ -179,13 +179,18 @@ def run(full: bool = False, since_hours: int = 48):
             for r in existing.data or []:
                 deal_uuid_map[r["deal_id"]] = r["id"]
 
+        seen_meetings: set[str] = set()
         meeting_rows: list[dict] = []
         for hs_did, meetings in meeting_details.items():
             deal_uuid = deal_uuid_map.get(hs_did)
             for m in meetings:
+                mid = m.get("hs_meeting_id")
+                if not mid or mid in seen_meetings:
+                    continue
+                seen_meetings.add(mid)
                 row = {
                     "hs_deal_id": hs_did,
-                    "hs_meeting_id": m["hs_meeting_id"],
+                    "hs_meeting_id": mid,
                     "meeting_start": m.get("meeting_start"),
                     "meeting_end": m.get("meeting_end"),
                     "title": m.get("title", ""),
