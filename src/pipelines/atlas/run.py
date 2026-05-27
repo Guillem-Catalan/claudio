@@ -34,7 +34,7 @@ from src.pipelines.atlas.prompt_builder import (
 )
 
 
-_ATLAS_MODEL = "claude-sonnet-4-20250514"
+_ATLAS_MODEL = "claude-sonnet-4-6"
 
 
 def generate(atlas_id: str, crm_id: str, owners: dict[str, str] | None = None, model: str | None = None):
