@@ -283,6 +283,47 @@ def fetch_contacts_info(contact_ids: list[str]) -> dict[str, dict]:
     return contacts
 
 
+MEETING_PROPS = [
+    "hs_meeting_start_time",
+    "hs_meeting_end_time",
+    "hs_meeting_title",
+    "hs_meeting_outcome",
+]
+
+
+def fetch_meeting_details(deal_ids: list[str]) -> dict[str, list[dict]]:
+    """Fetch meeting associations per deal, then batch-read meeting properties."""
+    print("    fetching meeting associations ...")
+    meeting_assocs = _batch_associations(deal_ids, "meetings")
+
+    all_meeting_ids = list({mid for mids in meeting_assocs.values() for mid in mids})
+    if not all_meeting_ids:
+        return {}
+
+    print(f"    reading properties for {len(all_meeting_ids)} meetings ...")
+    meetings_by_id: dict[str, dict] = {}
+    for i in range(0, len(all_meeting_ids), 100):
+        batch = all_meeting_ids[i : i + 100]
+        data = hubspot.post(
+            "/crm/v3/objects/meetings/batch/read",
+            {"inputs": [{"id": mid} for mid in batch], "properties": MEETING_PROPS},
+        )
+        for result in data.get("results", []):
+            p = result.get("properties", {})
+            meetings_by_id[result["id"]] = {
+                "hs_meeting_id": result["id"],
+                "meeting_start": p.get("hs_meeting_start_time"),
+                "meeting_end": p.get("hs_meeting_end_time"),
+                "title": p.get("hs_meeting_title") or "",
+                "outcome": p.get("hs_meeting_outcome") or "SCHEDULED",
+            }
+
+    result: dict[str, list[dict]] = {}
+    for did, meeting_ids in meeting_assocs.items():
+        result[did] = [meetings_by_id[mid] for mid in meeting_ids if mid in meetings_by_id]
+    return result
+
+
 def format_contacts_info(contact_ids: list[str], contacts: dict[str, dict]) -> str:
     if not contact_ids:
         return ""

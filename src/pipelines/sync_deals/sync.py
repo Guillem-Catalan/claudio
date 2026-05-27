@@ -16,6 +16,7 @@ from src.pipelines.sync_deals.properties import (
     fetch_contact_associations,
     fetch_contacts_info,
     fetch_engagement_counts,
+    fetch_meeting_details,
     format_contacts_info,
 )
 
@@ -115,6 +116,11 @@ def run(full: bool = False, since_hours: int = 48):
     print("\n8. Counting engagements (notes, emails, calls) ...")
     engagement_counts = fetch_engagement_counts(deal_id_list)
 
+    print("\n8b. Fetching meeting details ...")
+    meeting_details = fetch_meeting_details(deal_id_list)
+    total_meetings = sum(len(v) for v in meeting_details.values())
+    print(f"    {total_meetings} meetings across {len(meeting_details)} deals")
+
     # 5. Resolve atlas IDs
     crm_ids = {company_map[did] for did in deal_id_list if did in company_map}
     print(f"\n9. Resolving atlas IDs for {len(crm_ids)} companies ...")
@@ -155,5 +161,49 @@ def run(full: bool = False, since_hours: int = 48):
     print(f"\n11. Upserting {len(rows)} deals to Supabase ...")
     written = _upsert(rows)
     print(f"    {written} deals upserted")
+
+    # 8. Upsert meetings
+    if meeting_details:
+        print(f"\n12. Upserting {total_meetings} meetings to Supabase ...")
+
+        hs_deal_ids_with_meetings = list(meeting_details.keys())
+        deal_uuid_map: dict[str, str] = {}
+        for i in range(0, len(hs_deal_ids_with_meetings), 200):
+            batch = hs_deal_ids_with_meetings[i : i + 200]
+            existing = (
+                supabase.table("deals")
+                .select("id, deal_id")
+                .in_("deal_id", batch)
+                .execute()
+            )
+            for r in existing.data or []:
+                deal_uuid_map[r["deal_id"]] = r["id"]
+
+        meeting_rows: list[dict] = []
+        for hs_did, meetings in meeting_details.items():
+            deal_uuid = deal_uuid_map.get(hs_did)
+            for m in meetings:
+                row = {
+                    "hs_deal_id": hs_did,
+                    "hs_meeting_id": m["hs_meeting_id"],
+                    "meeting_start": m.get("meeting_start"),
+                    "meeting_end": m.get("meeting_end"),
+                    "title": m.get("title", ""),
+                    "outcome": m.get("outcome", "SCHEDULED"),
+                }
+                if deal_uuid:
+                    row["deal_id"] = deal_uuid
+                meeting_rows.append(row)
+
+        written_meetings = 0
+        for i in range(0, len(meeting_rows), 500):
+            batch = meeting_rows[i : i + 500]
+            result = (
+                supabase.table("deal_meetings")
+                .upsert(batch, on_conflict="hs_meeting_id")
+                .execute()
+            )
+            written_meetings += len(result.data or [])
+        print(f"    {written_meetings} meetings upserted")
 
     print(f"\n    HubSpot API requests: {hubspot.total_requests()}")
