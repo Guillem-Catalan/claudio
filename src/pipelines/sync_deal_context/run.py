@@ -479,12 +479,12 @@ def run(deal_uuid: str, hs_deal_id: str, *, owners: dict[str, dict] | None = Non
                     supabase.table("calls")
                     .select("call_id, transcript, rol, deal_id, hs_deal_id, crm_id, titulo, fecha, owner_email, owner_nombre, tags, duracion_segundos, subteam")
                     .eq("call_id", modjo_id)
-                    .maybe_single()
+                    .limit(1)
                     .execute()
                 )
 
                 if existing_call.data:
-                    c = existing_call.data
+                    c = existing_call.data[0]
                     if _check_has_audit(modjo_id):
                         items.append((date, "context", _format_meeting(hs_id, p, owners)))
                         included += 1
