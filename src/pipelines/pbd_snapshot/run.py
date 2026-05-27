@@ -13,7 +13,7 @@ from src.db.client import supabase
 from src.integrations.claude import analyze
 
 _PROMPT = (Path(__file__).resolve().parent.parent.parent / "prompts/pbd_snapshot.txt").read_text()
-_MODEL = None  # uses default from AZURE_CLAUDE_DEPLOYMENT
+_MODEL = "claude-sonnet-4-6"
 
 PBD_STAGES = frozenset({
     "Research & Outreach",
