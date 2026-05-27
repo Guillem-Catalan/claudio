@@ -4,6 +4,23 @@ Fetch company info, deals, and contacts from HubSpot for atlas generation.
 
 from src.integrations import hubspot
 
+GENERIC_DOMAINS = frozenset({
+    "gmail.com", "hotmail.com", "outlook.com", "yahoo.com", "yahoo.es",
+    "live.com", "icloud.com", "me.com", "protonmail.com", "gmx.com",
+    "mail.com", "aol.com", "zoho.com", "yandex.com", "tutanota.com",
+    "telefonica.net", "telefonica.com", "movistar.es", "orange.es",
+    "vodafone.es", "jazztel.es", "ono.com",
+    "msn.com", "terra.es", "terra.com", "wanadoo.es",
+    "yopmail.com", "mailinator.com", "guerrillamail.com",
+    "factorialhr.com", "factorial.co",
+    "seg-social.es", "aeat.es", "gob.es",
+    "empresite.eleconomista.es", "empresia.es", "einforma.com",
+    "icab.cat", "icab.es",
+    "docs.hackerone.com", "visitandorra.com",
+    "gruposantander.es", "santander.com",
+    "hormail.com", "cmheia.com", "omeie.com",
+})
+
 COMPANY_PROPS = [
     "name",
     "industry",
@@ -128,6 +145,33 @@ def fetch_contact_properties(contact_ids: list[str]) -> list[dict]:
                 "phone": p.get("phone") or "",
             })
     return results
+
+
+def _normalize_domain(raw: str) -> str:
+    d = raw.strip().lower().rstrip("/")
+    d = d.replace("https://", "").replace("http://", "").replace("www.", "")
+    return d.split("/")[0]
+
+
+def fetch_sibling_company_ids(domain: str, exclude_crm_id: str) -> list[str]:
+    normalized = _normalize_domain(domain)
+    if not normalized or normalized in GENERIC_DOMAINS:
+        return []
+    data = hubspot.post(
+        "/crm/v3/objects/companies/search",
+        {
+            "filterGroups": [
+                {"filters": [{"propertyName": "domain", "operator": "EQ", "value": normalized}]}
+            ],
+            "properties": ["name"],
+            "limit": 50,
+        },
+    )
+    return [
+        r["id"]
+        for r in data.get("results", [])
+        if str(r["id"]) != str(exclude_crm_id)
+    ]
 
 
 def fetch_owners() -> dict[str, str]:

@@ -5,7 +5,7 @@ Recibirás:
 - Lista completa de deals asociados (nombre, stage, amount, fechas, owner, resultado)
 - Lista completa de contactos asociados (nombre, email, cargo)
 
-Debes generar un JSON con exactamente 3 campos:
+Debes generar un JSON con exactamente 5 campos:
 
 1. "deal_history": Resumen estructurado del historial de deals.
    - Para cada deal relevante: qué pasó, en qué stage se quedó, cuánto duró, por qué se ganó o se perdió (si hay señales en el stage o la duración).
@@ -31,5 +31,48 @@ Debes generar un JSON con exactamente 3 campos:
    - ¿Qué debería tener en cuenta el rep en la próxima interacción? Contexto accionable.
 
    Sé directo, concreto y accionable. Nada de frases genéricas. Si no hay suficiente información para una conclusión, dilo explícitamente en vez de inventar.
+
+4. "company_card": Ficha estructurada de la empresa para dashboard visual. JSON con estos campos exactos:
+   {
+     "headline": "1-2 frases: quién es la empresa y qué hacen. No repetir datos de key_facts.",
+     "fit": {
+       "score": "alto" | "medio" | "bajo",
+       "reason": "1 frase corta: por qué ese nivel de fit con Factorial"
+     },
+     "key_facts": [
+       { "label": "Industria", "value": "..." },
+       { "label": "Revenue", "value": "..." },
+       { "label": "Sede", "value": "..." },
+       { "label": "Empleados", "value": "..." }
+     ],
+     "history_summary": "1 línea: X deals en Y años, Z ganados, W perdidos, N activos",
+     "warnings": ["Alertas concretas sobre la empresa o el historial CRM. Array vacío si no hay."]
+   }
+   Reglas:
+   - key_facts: máximo 4 items. Solo incluir los que tengan datos reales de HubSpot. Label siempre en español.
+   - fit.score: "alto" si el perfil operativo encaja con Factorial (turnos, nóminas, control horario, +50 empleados), "medio" si encaja parcialmente, "bajo" si no encaja.
+   - warnings: máximo 5. Incluir: naming incorrecto en CRM, deals duplicados, empresa pidió aplazar, ciclos muy largos sin avance, cualquier anomalía detectada. Array vacío [] si no hay warnings.
+   - headline: NO incluir el nombre de la empresa (ya se muestra en el header).
+
+5. "deal_insights": Análisis estructurado de señales y blockers históricos para dashboard visual. JSON con estos campos exactos:
+   {
+     "buying_signals": [
+       { "signal": "La señal concreta, 1 frase", "source": "Nombre del deal o 'General' o 'Contactos'", "strength": "fuerte" | "moderada" | "débil" }
+     ],
+     "blockers": [
+       { "blocker": "El blocker concreto, 1 frase", "source": "Nombre del deal o contexto", "severity": "crítico" | "alto" | "medio" }
+     ],
+     "loss_reasons": [
+       { "reason": "Motivo sintetizado", "deals": "Deals afectados separados por coma" }
+     ],
+     "patterns": ["Patrones transversales como frases cortas"]
+   }
+   Reglas:
+   - buying_signals: señales positivas detectadas en cualquier deal o contacto. Máximo 5.
+   - blockers: obstáculos recurrentes o críticos. Máximo 5.
+   - loss_reasons: motivos concretos por los que se perdieron deals. Solo incluir si hay deals perdidos. Sintetizar — no repetir un motivo por deal.
+   - patterns: patrones que se repiten entre deals. Máximo 4. Frases cortas (3-6 palabras).
+   - Si no hay deals perdidos, loss_reasons = []. Si no hay señales detectables, buying_signals = [].
+   - Sé concreto y específico a ESTA empresa. Nada genérico.
 
 Responde ÚNICAMENTE con el JSON válido, sin bloques markdown, sin explicaciones, sin texto antes o después.

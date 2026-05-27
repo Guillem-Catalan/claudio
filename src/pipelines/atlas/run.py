@@ -23,6 +23,7 @@ from src.pipelines.atlas.hubspot_fetcher import (
     fetch_deal_ids,
     fetch_deal_properties,
     fetch_owners,
+    fetch_sibling_company_ids,
 )
 from src.pipelines.atlas.prompt_builder import (
     build_user_prompt,
@@ -45,19 +46,42 @@ def generate(atlas_id: str, crm_id: str, owners: dict[str, str] | None = None):
     else:
         print("2. Owners (cached)")
 
-    print("3. Fetching deals for this company ...")
-    deal_ids = fetch_deal_ids(crm_id)
-    print(f"   {len(deal_ids)} deals found")
+    domain = company.get("website") or ""
+    sibling_ids: list[str] = []
+    if domain:
+        print("3. Searching sibling companies (same domain) ...")
+        sibling_ids = fetch_sibling_company_ids(domain, crm_id)
+        if sibling_ids:
+            print(f"   {len(sibling_ids)} siblings found")
+        else:
+            print("   No siblings")
+
+    all_crm_ids = [crm_id] + sibling_ids
+    print(f"4. Fetching deals for {len(all_crm_ids)} company(ies) ...")
+    deal_ids: list[str] = []
+    seen_deal_ids: set[str] = set()
+    for cid in all_crm_ids:
+        for did in fetch_deal_ids(cid):
+            if did not in seen_deal_ids:
+                seen_deal_ids.add(did)
+                deal_ids.append(did)
+    print(f"   {len(deal_ids)} deals found (deduped)")
 
     deals = fetch_deal_properties(deal_ids, owners) if deal_ids else []
 
-    print("4. Fetching contacts for this company ...")
-    contact_ids = fetch_contact_ids(crm_id)
-    print(f"   {len(contact_ids)} contacts found")
+    print(f"5. Fetching contacts for {len(all_crm_ids)} company(ies) ...")
+    contact_ids: list[str] = []
+    seen_contact_ids: set[str] = set()
+    for cid in all_crm_ids:
+        for cid_contact in fetch_contact_ids(cid):
+            if cid_contact not in seen_contact_ids:
+                seen_contact_ids.add(cid_contact)
+                contact_ids.append(cid_contact)
+    print(f"   {len(contact_ids)} contacts found (deduped)")
 
     contacts = fetch_contact_properties(contact_ids) if contact_ids else []
 
-    print("5. Building prompts ...")
+    print("6. Building prompts ...")
     company_info_text = format_company_info(company)
     deals_breakdown_text = format_deals_breakdown(deals)
     contacts_breakdown_text = format_contacts_breakdown(contacts)
@@ -71,10 +95,10 @@ def generate(atlas_id: str, crm_id: str, owners: dict[str, str] | None = None):
         n_contacts=len(contacts),
     )
 
-    print("6. Calling Claude ...")
+    print("7. Calling Claude ...")
     raw_response = claude.analyze(system_prompt, user_prompt)
 
-    print("7. Parsing response ...")
+    print("8. Parsing response ...")
     text = re.sub(r"^```(?:json)?\s*", "", raw_response)
     text = re.sub(r"\s*```$", "", text).strip()
     if not text:
@@ -83,9 +107,11 @@ def generate(atlas_id: str, crm_id: str, owners: dict[str, str] | None = None):
     deal_history = parsed.get("deal_history", "")
     contacts_map = parsed.get("contacts_map", "")
     company_context = parsed.get("company_context", "")
+    company_card = parsed.get("company_card")
+    deal_insights = parsed.get("deal_insights")
 
-    print("8. Writing to Supabase ...")
-    supabase.table("atlas").update({
+    print("9. Writing to Supabase ...")
+    row = {
         "company_name": company_name,
         "industry": company.get("industry") or None,
         "company_size": company.get("numberofemployees") or None,
@@ -98,8 +124,14 @@ def generate(atlas_id: str, crm_id: str, owners: dict[str, str] | None = None):
         "deal_history": deal_history,
         "contacts_map": contacts_map,
         "company_context": company_context,
+        "sibling_crm_ids": sibling_ids if sibling_ids else None,
         "last_generated": datetime.now(timezone.utc).isoformat(),
-    }).eq("id", atlas_id).execute()
+    }
+    if company_card and isinstance(company_card, dict):
+        row["company_card"] = json.dumps(company_card, ensure_ascii=False)
+    if deal_insights and isinstance(deal_insights, dict):
+        row["deal_insights"] = json.dumps(deal_insights, ensure_ascii=False)
+    supabase.table("atlas").update(row).eq("id", atlas_id).execute()
 
     print(f"   Atlas generated for {company_name}")
     print(f"   HubSpot API requests: {hubspot.total_requests()}")
