@@ -34,6 +34,9 @@ from src.pipelines.atlas.prompt_builder import (
 )
 
 
+_ATLAS_MODEL = "claude-sonnet-4-20250514"
+
+
 def generate(atlas_id: str, crm_id: str, owners: dict[str, str] | None = None, model: str | None = None):
     print(f"1. Fetching company {crm_id} from HubSpot ...")
     company = fetch_company(crm_id)
@@ -96,7 +99,7 @@ def generate(atlas_id: str, crm_id: str, owners: dict[str, str] | None = None, m
     )
 
     print("7. Calling Claude ...")
-    raw_response = claude.analyze(system_prompt, user_prompt, model=model)
+    raw_response = claude.analyze(system_prompt, user_prompt, model=model or _ATLAS_MODEL)
 
     print("8. Parsing response ...")
     text = re.sub(r"^```(?:json)?\s*", "", raw_response)
