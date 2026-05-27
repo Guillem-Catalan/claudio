@@ -5,13 +5,15 @@ Regenerates company_card + deal_insights (structured JSONB) and
 aggregates sibling companies (same domain) for richer context.
 
 Usage:
-    python -m src.pipelines.atlas.backfill [--limit N] [--resume-from ATLAS_ID] [--dry-run]
+    python -m src.pipelines.atlas.backfill [--limit N] [--resume-from ATLAS_ID] [--dry-run] [--workers N]
 """
 
 import argparse
 import json
+import threading
 import time
 import traceback
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
 from src.db.client import supabase
@@ -85,7 +87,10 @@ def get_backfill_targets() -> list[dict]:
     return targets
 
 
-def run_backfill(limit: int | None = None, resume_from: str | None = None, dry_run: bool = False, model: str | None = None):
+_counter_lock = threading.Lock()
+
+
+def run_backfill(limit: int | None = None, resume_from: str | None = None, dry_run: bool = False, model: str | None = None, workers: int = 1):
     print("Fetching backfill targets ...")
     targets = get_backfill_targets()
     print(f"  {len(targets)} atlas to backfill")
@@ -122,7 +127,9 @@ def run_backfill(limit: int | None = None, resume_from: str | None = None, dry_r
     failed = 0
     start_time = time.time()
 
-    for i, target in enumerate(targets):
+    def _process(idx_target):
+        nonlocal success, failed
+        i, target = idx_target
         atlas_id = target["id"]
         crm_id = target["crm_id"]
         name = target["company_name"] or "(sin nombre)"
@@ -131,23 +138,39 @@ def run_backfill(limit: int | None = None, resume_from: str | None = None, dry_r
 
         try:
             generate(atlas_id, crm_id, owners=owners, model=model)
-            success += 1
-            progress["completed"].append(atlas_id)
-            progress["last_id"] = atlas_id
+            with _counter_lock:
+                success += 1
+                progress["completed"].append(atlas_id)
+                progress["last_id"] = atlas_id
+                _save_progress(progress)
+                current = success + failed
+                if current % 10 == 0:
+                    elapsed = time.time() - start_time
+                    avg = elapsed / current
+                    remaining = avg * (total - current)
+                    print(f"\n--- Progress: {success} OK, {failed} failed, ~{int(remaining / 60)}min remaining ---\n")
         except Exception as e:
-            failed += 1
-            progress["failed"].append({"id": atlas_id, "crm_id": crm_id, "error": str(e)})
-            print(f"  ERROR: {e}")
+            with _counter_lock:
+                failed += 1
+                progress["failed"].append({"id": atlas_id, "crm_id": crm_id, "error": str(e)})
+                _save_progress(progress)
+            print(f"  ERROR [{name}]: {e}")
             traceback.print_exc()
+            time.sleep(5)
 
-        _save_progress(progress)
-
-        elapsed = time.time() - start_time
-        avg = elapsed / (i + 1)
-        remaining = avg * (total - i - 1)
-        print(f"  Progress: {success} OK, {failed} failed, ~{int(remaining / 60)}min remaining")
-
-        time.sleep(2)
+    if workers <= 1:
+        for item in enumerate(targets):
+            _process(item)
+            time.sleep(2)
+    else:
+        print(f"\nUsing {workers} parallel workers")
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = {
+                executor.submit(_process, (i, t)): t
+                for i, t in enumerate(targets)
+            }
+            for future in as_completed(futures):
+                future.result()
 
     print(f"\n{'=' * 50}")
     print(f"BACKFILL COMPLETE")
@@ -163,6 +186,7 @@ if __name__ == "__main__":
     parser.add_argument("--limit", type=int, help="Max entries to process")
     parser.add_argument("--resume-from", type=str, help="Atlas ID to resume from")
     parser.add_argument("--dry-run", action="store_true", help="Show targets without processing")
-    parser.add_argument("--model", type=str, help="Claude model override (e.g. claude-sonnet-4-20250514)")
+    parser.add_argument("--model", type=str, help="Claude model override (e.g. claude-sonnet-4-6)")
+    parser.add_argument("--workers", type=int, default=1, help="Parallel workers (default 1, max 4)")
     args = parser.parse_args()
-    run_backfill(limit=args.limit, resume_from=args.resume_from, dry_run=args.dry_run, model=args.model)
+    run_backfill(limit=args.limit, resume_from=args.resume_from, dry_run=args.dry_run, model=args.model, workers=args.workers)
