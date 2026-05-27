@@ -21,6 +21,7 @@ CREATE TABLE pbd_snapshots (
     bant_t_status   TEXT,
     bant_t_evidence TEXT,
 
+    pbd             TEXT,
     pbd_summary     TEXT,
 
     created_at TIMESTAMPTZ DEFAULT now(),

@@ -99,6 +99,7 @@ def _run_skip_stage_check(deal_uuid: str, hs_deal_id: str):
         "deal_id": deal_uuid,
         "hs_deal_id": hs_deal_id,
         "snapshot_date": date.today().isoformat(),
+        "pbd": d.get("pbd"),
         "bant_b_status": out.get("bant_b_status"),
         "bant_b_evidence": out.get("bant_b_evidence"),
         "bant_a_status": out.get("bant_a_status"),
@@ -111,7 +112,7 @@ def _run_skip_stage_check(deal_uuid: str, hs_deal_id: str):
     }
     snapshot = {k: v for k, v in snapshot.items() if v is not None}
 
-    print(f"   B={snapshot.get('bant_b_status')} A={snapshot.get('bant_a_status')} "
+    print(f"   PBD={d.get('pbd')} B={snapshot.get('bant_b_status')} A={snapshot.get('bant_a_status')} "
           f"N={snapshot.get('bant_n_status')} T={snapshot.get('bant_t_status')}")
 
     supabase.table("pbd_snapshots").upsert(
