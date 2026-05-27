@@ -85,7 +85,7 @@ def get_backfill_targets() -> list[dict]:
     return targets
 
 
-def run_backfill(limit: int | None = None, resume_from: str | None = None, dry_run: bool = False):
+def run_backfill(limit: int | None = None, resume_from: str | None = None, dry_run: bool = False, model: str | None = None):
     print("Fetching backfill targets ...")
     targets = get_backfill_targets()
     print(f"  {len(targets)} atlas to backfill")
@@ -130,7 +130,7 @@ def run_backfill(limit: int | None = None, resume_from: str | None = None, dry_r
         print(f"\n[{i + 1}/{total}] {name} (crm={crm_id})")
 
         try:
-            generate(atlas_id, crm_id, owners=owners)
+            generate(atlas_id, crm_id, owners=owners, model=model)
             success += 1
             progress["completed"].append(atlas_id)
             progress["last_id"] = atlas_id
@@ -163,5 +163,6 @@ if __name__ == "__main__":
     parser.add_argument("--limit", type=int, help="Max entries to process")
     parser.add_argument("--resume-from", type=str, help="Atlas ID to resume from")
     parser.add_argument("--dry-run", action="store_true", help="Show targets without processing")
+    parser.add_argument("--model", type=str, help="Claude model override (e.g. claude-sonnet-4-20250514)")
     args = parser.parse_args()
-    run_backfill(limit=args.limit, resume_from=args.resume_from, dry_run=args.dry_run)
+    run_backfill(limit=args.limit, resume_from=args.resume_from, dry_run=args.dry_run, model=args.model)
