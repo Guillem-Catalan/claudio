@@ -888,67 +888,44 @@ tailwind.config = {
           <div class="bg-gray-50 rounded-xl p-4 mb-4">
             <canvas id="radarChart" width="280" height="280"></canvas>
           </div>
-          <div class="space-y-2">
-            <div class="flex items-center gap-2">
-              <span class="w-6 h-6 rounded-md bg-meddic-m text-white text-xs flex items-center justify-center font-bold">M</span>
-              <div class="flex-1">
-                <div class="flex justify-between">
-                  <span class="text-sm font-medium">Metrics</span>
-                  <span class="text-sm font-bold text-meddic-m">4/10</span>
-                </div>
-                <div class="text-xs text-gray-400">ROI not yet quantified. Mentioned "reducing manual time" but no numbers.</div>
-              </div>
+          <div id="meddicScoreBadges" class="flex flex-wrap gap-2 mb-1">
+            <button class="meddic-badge flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer border border-transparent" data-idx="0">
+              <span class="w-5 h-5 rounded bg-meddic-m text-white text-[10px] flex items-center justify-center font-bold">M</span>
+              <span class="text-xs font-bold text-meddic-m">4</span>
+            </button>
+            <button class="meddic-badge flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer border border-transparent" data-idx="1">
+              <span class="w-5 h-5 rounded bg-meddic-e text-white text-[10px] flex items-center justify-center font-bold">E</span>
+              <span class="text-xs font-bold text-meddic-e">3</span>
+            </button>
+            <button class="meddic-badge flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer border border-transparent" data-idx="2">
+              <span class="w-5 h-5 rounded bg-meddic-dc text-white text-[10px] flex items-center justify-center font-bold">DC</span>
+              <span class="text-xs font-bold text-meddic-dc">2</span>
+            </button>
+            <button class="meddic-badge flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer border border-transparent" data-idx="3">
+              <span class="w-5 h-5 rounded bg-meddic-dp text-white text-[10px] flex items-center justify-center font-bold">DP</span>
+              <span class="text-xs font-bold text-meddic-dp">2</span>
+            </button>
+            <button class="meddic-badge flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer border border-transparent" data-idx="4">
+              <span class="w-5 h-5 rounded bg-meddic-i text-white text-[10px] flex items-center justify-center font-bold">I</span>
+              <span class="text-xs font-bold text-meddic-i">5</span>
+            </button>
+            <button class="meddic-badge flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer border border-transparent" data-idx="5">
+              <span class="w-5 h-5 rounded bg-meddic-c text-white text-[10px] flex items-center justify-center font-bold">C</span>
+              <span class="text-xs font-bold text-meddic-c">3</span>
+            </button>
+          </div>
+          <div id="meddicDetail" class="hidden bg-gray-50 rounded-lg p-3 mb-3">
+            <div class="flex justify-between items-center mb-1">
+              <span id="meddicDetailLabel" class="text-sm font-semibold"></span>
+              <span id="meddicDetailScore" class="text-sm font-bold"></span>
             </div>
-            <div class="flex items-center gap-2">
-              <span class="w-6 h-6 rounded-md bg-meddic-e text-white text-xs flex items-center justify-center font-bold">E</span>
-              <div class="flex-1">
-                <div class="flex justify-between">
-                  <span class="text-sm font-medium">Economic Buyer</span>
-                  <span class="text-sm font-bold text-meddic-e">3/10</span>
-                </div>
-                <div class="text-xs text-gray-400">Identified CHRO but no direct access yet. Working through HR Manager.</div>
-              </div>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="w-6 h-6 rounded-md bg-meddic-dc text-white text-xs flex items-center justify-center font-bold">DC</span>
-              <div class="flex-1">
-                <div class="flex justify-between">
-                  <span class="text-sm font-medium">Decision Criteria</span>
-                  <span class="text-sm font-bold text-meddic-dc">2/10</span>
-                </div>
-                <div class="text-xs text-gray-400">Unclear what they'll evaluate. Need to understand RFP process.</div>
-              </div>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="w-6 h-6 rounded-md bg-meddic-dp text-white text-xs flex items-center justify-center font-bold">DP</span>
-              <div class="flex-1">
-                <div class="flex justify-between">
-                  <span class="text-sm font-medium">Decision Process</span>
-                  <span class="text-sm font-bold text-meddic-dp">2/10</span>
-                </div>
-                <div class="text-xs text-gray-400">Unknown timeline. Need to map stakeholders and approval chain.</div>
-              </div>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="w-6 h-6 rounded-md bg-meddic-i text-white text-xs flex items-center justify-center font-bold">I</span>
-              <div class="flex-1">
-                <div class="flex justify-between">
-                  <span class="text-sm font-medium">Identify Pain</span>
-                  <span class="text-sm font-bold text-meddic-i">5/10</span>
-                </div>
-                <div class="text-xs text-gray-400">Manual payroll taking 3 days/month. Compliance gaps mentioned.</div>
-              </div>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="w-6 h-6 rounded-md bg-meddic-c text-white text-xs flex items-center justify-center font-bold">C</span>
-              <div class="flex-1">
-                <div class="flex justify-between">
-                  <span class="text-sm font-medium">Champion</span>
-                  <span class="text-sm font-bold text-meddic-c">3/10</span>
-                </div>
-                <div class="text-xs text-gray-400">HR Manager is engaged but lacks authority. Need to coach or find new champion.</div>
-              </div>
-            </div>
+            <p id="meddicDetailText" class="text-xs text-gray-500"></p>
+          </div>
+
+          <div id="bantSection" class="hidden mt-3">
+            <h3 class="font-semibold text-gray-800 mb-2">BANT <span class="text-xs font-normal text-gray-400">(PBD Qualification)</span></h3>
+            <div id="bantContent" class="space-y-1.5"></div>
+            <p id="bantSummary" class="text-xs text-gray-500 mt-2"></p>
           </div>
         </div>
 
@@ -1014,39 +991,9 @@ tailwind.config = {
             <canvas id="probTimeline" width="280" height="140"></canvas>
           </div>
 
-          <h3 class="font-semibold text-gray-800 mb-3">Activity History</h3>
-          <div class="space-y-3">
-            <div class="flex gap-3">
-              <div class="flex flex-col items-center">
-                <div class="w-2 h-2 bg-blue-400 rounded-full mt-1.5"></div>
-                <div class="w-px flex-1 bg-gray-200"></div>
-              </div>
-              <div class="pb-4">
-                <div class="text-sm font-medium">Discovery Call</div>
-                <div class="text-xs text-gray-400">May 22 · 28 min · MEDDIC 3.2</div>
-                <div class="text-xs text-gray-500 mt-1">Identified payroll pain. María engaged but couldn't confirm budget.</div>
-              </div>
-            </div>
-            <div class="flex gap-3">
-              <div class="flex flex-col items-center">
-                <div class="w-2 h-2 bg-green-400 rounded-full mt-1.5"></div>
-                <div class="w-px flex-1 bg-gray-200"></div>
-              </div>
-              <div class="pb-4">
-                <div class="text-sm font-medium">Email: Product deck sent</div>
-                <div class="text-xs text-gray-400">May 20 · Outbound</div>
-              </div>
-            </div>
-            <div class="flex gap-3">
-              <div class="flex flex-col items-center">
-                <div class="w-2 h-2 bg-purple-400 rounded-full mt-1.5"></div>
-              </div>
-              <div>
-                <div class="text-sm font-medium">PBD Handover</div>
-                <div class="text-xs text-gray-400">May 18 · BANT: 3/4 confirmed</div>
-                <div class="text-xs text-gray-500 mt-1">Budget tentative (€50-80K annual). Authority unclear. Need confirmed. Timeline Q4.</div>
-              </div>
-            </div>
+          <h3 class="font-semibold text-gray-800 mb-3">Stage Roadmap</h3>
+          <div id="stageRoadmap" class="space-y-0">
+            <div class="text-sm text-gray-400">Loading stages...</div>
           </div>
 
         </div>
@@ -1978,7 +1925,7 @@ async function loadDeals() {
 
   const { data: deals, error: dErr } = await sb
     .from('deals')
-    .select('id, deal_id, deal_name, amount, deal_stage, pae, pbd, deal_age_days, close_date, forecast_category, contacts_info, rep_next_step, atlas_id, deal_context')
+    .select('id, deal_id, deal_name, amount, deal_stage, pae, pbd, deal_age_days, close_date, forecast_category, contacts_info, rep_next_step, atlas_id, last_contacted_hs')
     .in('deal_stage', ACTIVE_STAGES)
     .not('deal_name', 'ilike', '%session%')
     .order('amount', { ascending: false, nullsFirst: false })
@@ -2337,6 +2284,144 @@ function closeAtlas() {
   document.body.style.overflow = '';
 }
 
+// ── Stage Roadmap ────────────────────────────────────────────────────────
+
+const STAGE_PROGRESSION = [
+  { col: 'sdr_prequalified',              label: 'Prequalified' },
+  { col: 'sdr_demo_booked',               label: 'SDR Demo Booked' },
+  { col: 'dist_new_deals',                label: 'New Deal' },
+  { col: 'dist_demo_booked',              label: 'Demo Booked' },
+  { col: 'dist_product_alignment',        label: 'Product Alignment' },
+  { col: 'dist_meddpicc_validation',      label: 'MEDDPICC Validation' },
+  { col: 'dist_pricing_and_packaging',    label: 'Pricing & Packaging' },
+  { col: 'dist_contracting',              label: 'Contracting' },
+  { col: 'dist_closed_pending_payment',   label: 'Closed Pending Payment' },
+  { col: 'dist_closed_won',               label: 'Closed Won' },
+  { col: 'dist_closed_lost',              label: 'Closed Lost' },
+];
+
+const STAGE_COLS = STAGE_PROGRESSION.flatMap(s => [`${s.col}_entered`, `${s.col}_exited`]).join(',');
+
+async function loadStageRoadmap(dealId, currentStage) {
+  const container = document.getElementById('stageRoadmap');
+  if (!container) return;
+  container.innerHTML = '<div class="text-sm text-gray-400">Loading stages...</div>';
+
+  const { data, error } = await sb
+    .from('deals')
+    .select(STAGE_COLS)
+    .eq('id', dealId)
+    .single();
+
+  if (error || !data) {
+    container.innerHTML = '<div class="text-sm text-gray-400">No stage data available.</div>';
+    return;
+  }
+
+  const visited = [];
+  for (const stage of STAGE_PROGRESSION) {
+    const entered = data[`${stage.col}_entered`];
+    if (!entered) continue;
+    const exited = data[`${stage.col}_exited`];
+    const enteredDate = new Date(entered);
+    const exitedDate = exited ? new Date(exited) : null;
+    const days = exitedDate
+      ? Math.round((exitedDate - enteredDate) / 86400000)
+      : Math.round((Date.now() - enteredDate) / 86400000);
+    visited.push({ label: stage.label, entered, exited, days });
+  }
+
+  if (!visited.length) {
+    container.innerHTML = '<div class="text-sm text-gray-400">No stage progression data.</div>';
+    return;
+  }
+
+  const fmtDate = d => {
+    const dt = new Date(d);
+    return dt.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+  };
+
+  container.innerHTML = visited.map((s, i) => {
+    const isLast = i === visited.length - 1;
+    const isCurrent = !s.exited;
+    const isWon = s.label === 'Closed Won';
+    const isLost = s.label === 'Closed Lost';
+    const dotColor = isWon ? 'bg-green-500 ring-2 ring-green-200'
+      : isLost ? 'bg-red-500 ring-2 ring-red-200'
+      : isCurrent ? 'bg-blue-500 ring-2 ring-blue-200'
+      : 'bg-green-500';
+    const textColor = isWon ? 'text-green-700' : isLost ? 'text-red-700' : isCurrent ? 'text-blue-700' : 'text-gray-700';
+    const durationText = s.days === 0 ? '<1d' : s.days + 'd';
+    const dateRange = s.exited
+      ? `${fmtDate(s.entered)} → ${fmtDate(s.exited)}`
+      : `${fmtDate(s.entered)} → now`;
+    const badge = isCurrent && !isWon && !isLost ? ' <span class="text-[10px] font-normal bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full ml-1">current</span>' : '';
+
+    return `<div class="flex gap-3">
+      <div class="flex flex-col items-center">
+        <div class="w-2.5 h-2.5 ${dotColor} rounded-full mt-1 shrink-0"></div>
+        ${!isLast ? '<div class="w-px flex-1 bg-gray-200 min-h-[20px]"></div>' : ''}
+      </div>
+      <div class="pb-3 min-w-0">
+        <div class="text-sm font-medium ${textColor}">${s.label}${badge}</div>
+        <div class="text-xs text-gray-400">${dateRange} · <span class="font-medium ${s.days > 14 ? 'text-amber-500' : 'text-gray-500'}">${durationText}</span></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── BANT Section ─────────────────────────────────────────────────────────
+
+const BANT_STATUS_MAP = {
+  confirmed:            { icon: '●', color: 'text-green-600', bg: 'bg-green-50', label: 'Confirmed' },
+  partially_confirmed:  { icon: '◐', color: 'text-amber-500', bg: 'bg-amber-50', label: 'Partial' },
+  not_confirmed:        { icon: '○', color: 'text-red-500',   bg: 'bg-red-50',   label: 'Not confirmed' },
+  not_discussed:        { icon: '—', color: 'text-gray-400',  bg: 'bg-gray-50',  label: 'Not discussed' },
+};
+
+async function loadBantSection(dealId) {
+  const section = document.getElementById('bantSection');
+  const content = document.getElementById('bantContent');
+  const summary = document.getElementById('bantSummary');
+  if (!section) return;
+  section.classList.add('hidden');
+
+  const { data, error } = await sb
+    .from('pbd_snapshots')
+    .select('bant_b_status,bant_b_evidence,bant_a_status,bant_a_evidence,bant_n_status,bant_n_evidence,bant_t_status,bant_t_evidence,pbd_summary')
+    .eq('deal_id', dealId)
+    .order('snapshot_date', { ascending: false })
+    .limit(1);
+
+  if (error || !data || !data.length) return;
+
+  const snap = data[0];
+  const pillars = [
+    { letter: 'B', status: snap.bant_b_status, evidence: snap.bant_b_evidence },
+    { letter: 'A', status: snap.bant_a_status, evidence: snap.bant_a_evidence },
+    { letter: 'N', status: snap.bant_n_status, evidence: snap.bant_n_evidence },
+    { letter: 'T', status: snap.bant_t_status, evidence: snap.bant_t_evidence },
+  ];
+
+  content.innerHTML = pillars.map(p => {
+    const s = BANT_STATUS_MAP[p.status] || BANT_STATUS_MAP.not_discussed;
+    return `<div class="flex items-start gap-2 p-2 ${s.bg} rounded-lg">
+      <span class="w-5 h-5 rounded bg-gray-700 text-white text-[10px] flex items-center justify-center font-bold shrink-0">${p.letter}</span>
+      <span class="${s.color} text-sm shrink-0">${s.icon}</span>
+      <span class="text-sm text-gray-700">${p.evidence || s.label}</span>
+    </div>`;
+  }).join('');
+
+  if (snap.pbd_summary) {
+    summary.textContent = snap.pbd_summary;
+    summary.classList.remove('hidden');
+  } else {
+    summary.classList.add('hidden');
+  }
+
+  section.classList.remove('hidden');
+}
+
 // ── Histórico modal with real data ───────────────────────────────────────
 
 const _historicoOrig = {
@@ -2356,7 +2441,7 @@ openHistorico = function(dealId) {
   metaLine.innerHTML = `
     <span class="stage-pill bg-blue-100 text-blue-700">${stageInfo.label || deal.deal_stage}</span>
     <span class="text-sm text-gray-400">PAE: ${deal.pae || '—'} · PBD: ${deal.pbd || '—'}</span>
-    <span class="text-sm text-gray-400">· Deal age: ${deal.deal_age_days || '—'} days</span>
+    <span class="text-sm text-gray-400">· Last contact: ${deal.last_contacted_hs || '—'}</span>
     <a href="https://app.hubspot.com/contacts/4960096/record/0-3/${deal.deal_id}" target="_blank" rel="noopener" class="ml-2 inline-flex items-center gap-1 text-xs text-orange-500 hover:text-orange-600">
       <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M18.16 5.67V3.39a1.71 1.71 0 0 0 1-1.55 1.72 1.72 0 0 0-3.44 0c0 .67.39 1.24.95 1.52v2.31a5.07 5.07 0 0 0-2.2 1.2l-6.6-5.14a2.11 2.11 0 0 0 .05-.45 2.08 2.08 0 1 0-2.08 2.08c.46 0 .89-.16 1.24-.42l6.47 5.04a5.1 5.1 0 0 0 .28 5.91l-1.92 1.92a1.64 1.64 0 0 0-.48-.08 1.65 1.65 0 1 0 1.65 1.65 1.63 1.63 0 0 0-.08-.48l1.9-1.9a5.12 5.12 0 1 0 4.16-9.83Zm-.44 7.62a2.85 2.85 0 1 1 0-5.7 2.85 2.85 0 0 1 0 5.7Z"/></svg>
       HubSpot
@@ -2380,23 +2465,48 @@ openHistorico = function(dealId) {
     });
   }
 
-  // MEDDIC scores
+  // Reset MEDDIC detail + BANT on each open
+  const detailBoxReset = modal.querySelector('#meddicDetail');
+  if (detailBoxReset) detailBoxReset.classList.add('hidden');
+  modal.querySelectorAll('#meddicScoreBadges .meddic-badge').forEach(b => b.classList.remove('border-blue-400', 'bg-blue-50'));
+  const bantSectionReset = modal.querySelector('#bantSection');
+  if (bantSectionReset) bantSectionReset.classList.add('hidden');
+
+  // MEDDIC scores — compact badges + clickable detail
   const scores = [
-    { key: 'm', val: snap?.m_score, acc: snap?.m_accumulate },
-    { key: 'e', val: snap?.e_score, acc: snap?.e_accumulate },
-    { key: 'dc', val: snap?.dc_score, acc: snap?.dc_accumulate },
-    { key: 'dp', val: snap?.dp_score, acc: snap?.dp_accumulate },
-    { key: 'i', val: snap?.i_score, acc: snap?.i_accumulate },
-    { key: 'c', val: snap?.c_score, acc: snap?.c_accumulate },
+    { key: 'm', label: 'Metrics', val: snap?.m_score, acc: snap?.m_accumulate },
+    { key: 'e', label: 'Economic Buyer', val: snap?.e_score, acc: snap?.e_accumulate },
+    { key: 'dc', label: 'Decision Criteria', val: snap?.dc_score, acc: snap?.dc_accumulate },
+    { key: 'dp', label: 'Decision Process', val: snap?.dp_score, acc: snap?.dp_accumulate },
+    { key: 'i', label: 'Identify Pain', val: snap?.i_score, acc: snap?.i_accumulate },
+    { key: 'c', label: 'Champion', val: snap?.c_score, acc: snap?.c_accumulate },
   ];
-  const meddicItems = modal.querySelectorAll('.space-y-2 .flex.items-center.gap-2');
-  scores.forEach((s, i) => {
-    if (!meddicItems[i]) return;
-    const scoreEl = meddicItems[i].querySelector('.text-sm.font-bold');
-    if (scoreEl) scoreEl.textContent = s.val != null ? s.val + '/10' : '—';
-    const descEl = meddicItems[i].querySelector('.text-xs.text-gray-400');
-    if (descEl) descEl.textContent = s.acc || '—';
+  const badges = modal.querySelectorAll('#meddicScoreBadges .meddic-badge');
+  const detailBox = modal.querySelector('#meddicDetail');
+  const detailLabel = modal.querySelector('#meddicDetailLabel');
+  const detailScore = modal.querySelector('#meddicDetailScore');
+  const detailText = modal.querySelector('#meddicDetailText');
+
+  badges.forEach((btn, i) => {
+    const scoreSpan = btn.querySelector('.text-xs.font-bold');
+    if (scoreSpan) scoreSpan.textContent = scores[i].val != null ? scores[i].val : '—';
+    btn.onclick = () => {
+      const wasActive = btn.classList.contains('border-blue-400');
+      badges.forEach(b => b.classList.remove('border-blue-400', 'bg-blue-50'));
+      if (wasActive) {
+        detailBox.classList.add('hidden');
+        return;
+      }
+      btn.classList.add('border-blue-400', 'bg-blue-50');
+      detailLabel.textContent = scores[i].label;
+      detailScore.textContent = scores[i].val != null ? scores[i].val + '/10' : '—';
+      detailText.textContent = scores[i].acc || 'No data available.';
+      detailBox.classList.remove('hidden');
+    };
   });
+
+  // BANT section — load from pbd_snapshots
+  loadBantSection(deal.id);
 
   // Deal summary
   const summaryEl = modal.querySelector('.bg-gray-50.rounded-lg.p-4.text-sm');
@@ -2434,33 +2544,8 @@ openHistorico = function(dealId) {
     contactsContainer.innerHTML = `<div class="p-3 bg-gray-50 rounded-lg text-sm text-gray-700 whitespace-pre-line">${deal.contacts_info}</div>`;
   }
 
-  // Activity History from deal_context (titles only)
-  const activityHeader = [...modal.querySelectorAll('h3')].find(h => h.textContent.includes('Activity History'));
-  if (activityHeader) {
-    const activityContainer = activityHeader.nextElementSibling;
-    if (deal.deal_context) {
-      const lines = deal.deal_context.split('\n').filter(l => l.trim());
-      const titles = lines
-        .map(l => l.replace(/^[-•]\s*/, '').trim())
-        .filter(l => l.length > 0)
-        .slice(0, 15);
-      activityContainer.innerHTML = titles.map((t, idx) => {
-        const colors = ['blue', 'green', 'purple', 'amber', 'cyan'];
-        const c = colors[idx % colors.length];
-        return `<div class="flex gap-3">
-          <div class="flex flex-col items-center">
-            <div class="w-2 h-2 bg-${c}-400 rounded-full mt-1.5"></div>
-            ${idx < titles.length - 1 ? '<div class="w-px flex-1 bg-gray-200"></div>' : ''}
-          </div>
-          <div class="pb-3">
-            <div class="text-sm text-gray-700">${t}</div>
-          </div>
-        </div>`;
-      }).join('');
-    } else {
-      activityContainer.innerHTML = '<div class="text-sm text-gray-400">No activity history available.</div>';
-    }
-  }
+  // Stage Roadmap — fetch dist_* dates for this deal
+  loadStageRoadmap(deal.id, deal.deal_stage);
 
   modal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
