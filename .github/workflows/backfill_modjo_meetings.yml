@@ -14,6 +14,10 @@ on:
         description: "Skip audit (insert calls only)"
         type: boolean
         default: false
+      include_closed:
+        description: "Include closed/lost deals (default: open only)"
+        type: boolean
+        default: false
 
 jobs:
   backfill:
@@ -42,4 +46,5 @@ jobs:
           if [ -n "${{ inputs.limit }}" ]; then ARGS="$ARGS --limit ${{ inputs.limit }}"; fi
           if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
           if [ "${{ inputs.no_audit }}" = "true" ]; then ARGS="$ARGS --no-audit"; fi
+          if [ "${{ inputs.include_closed }}" = "true" ]; then ARGS="$ARGS --include-closed"; fi
           python -m scripts.backfill_modjo_meetings $ARGS

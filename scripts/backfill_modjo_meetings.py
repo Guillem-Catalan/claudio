@@ -5,8 +5,10 @@ Finds Modjo links in deal_context where the call doesn't exist in the calls
 table, fetches from Modjo API, normalizes (with HubSpot meeting owner fallback),
 inserts into calls, audits with Claude, and appends audit to deal_context.
 
+By default only processes open deals (excludes lost/won/churned/closed).
+
 Usage:
-    python -m scripts.backfill_modjo_meetings [--dry-run] [--limit N] [--no-audit]
+    python -m scripts.backfill_modjo_meetings [--dry-run] [--limit N] [--no-audit] [--include-closed]
 """
 
 import argparse
@@ -18,11 +20,22 @@ from src.db.client import supabase
 from src.integrations import hubspot
 from src.pipelines.modjo_calls.api_client import fetch_call_details as modjo_fetch_details
 from src.pipelines.modjo_calls.fetch import normalize as modjo_normalize, build_transcript
-from src.pipelines.sync_deal_context.run import (
-    _fetch_existing_audit,
-    _format_meeting,
-    _MODJO_RE,
-)
+from src.pipelines.sync_deal_context.run import _MODJO_RE
+
+_CLOSED_KEYWORDS = ["closed", "lost", "won", "churned", "spam", "wrongly", "failed",
+                     "retained", "do not use", "churn confirmed"]
+
+
+def _is_closed_stage(stage: str) -> bool:
+    if not stage:
+        return True
+    sl = stage.lower().strip()
+    if any(kw in sl for kw in _CLOSED_KEYWORDS):
+        return True
+    if "onboarding completed" in sl and "converted" in sl:
+        return True
+    return False
+
 
 MEETING_PROPS = [
     "hs_timestamp",
@@ -70,17 +83,18 @@ def _normalize_fallback(raw_call, owner_email, owner_name, meeting_title):
     }
 
 
-def _find_missing_modjo_calls():
+def _find_missing_modjo_calls(*, include_closed: bool = False):
     """Scan deal_context for Modjo links whose call_id doesn't exist in calls table."""
     print("1. Scanning deal_context for Modjo references ...")
     offset = 0
     batch = 500
     all_refs = []
+    skipped_closed = 0
 
     while True:
         result = (
             supabase.table("deals")
-            .select("id, deal_id, deal_name, deal_context, crm_id")
+            .select("id, deal_id, deal_name, deal_context, crm_id, deal_stage")
             .not_.is_("deal_context", "null")
             .range(offset, offset + batch - 1)
             .execute()
@@ -88,6 +102,9 @@ def _find_missing_modjo_calls():
         if not result.data:
             break
         for d in result.data:
+            if not include_closed and _is_closed_stage(d.get("deal_stage") or ""):
+                skipped_closed += 1
+                continue
             ctx = d.get("deal_context") or ""
             for m in _MODJO_RE.finditer(ctx):
                 all_refs.append({
@@ -101,6 +118,8 @@ def _find_missing_modjo_calls():
         if len(result.data) < batch:
             break
 
+    if skipped_closed:
+        print(f"   {skipped_closed} closed deals skipped")
     print(f"   {len(all_refs)} Modjo references found")
 
     unique_call_ids = list({r["modjo_call_id"] for r in all_refs})
@@ -191,10 +210,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--no-audit", action="store_true")
+    parser.add_argument("--include-closed", action="store_true")
     parser.add_argument("--limit", type=int)
     args = parser.parse_args()
 
-    missing = _find_missing_modjo_calls()
+    missing = _find_missing_modjo_calls(include_closed=args.include_closed)
     if not missing:
         print("\nNo missing calls found.")
         return
@@ -219,7 +239,6 @@ def main():
     fetched = 0
     inserted = 0
     audited = 0
-    appended = 0
     no_transcript = 0
     modjo_failed = 0
     no_owner = 0
@@ -297,13 +316,6 @@ def main():
             result = run_single(modjo_id)
             if result:
                 audited += 1
-                audit_text = _fetch_existing_audit(modjo_id, normalized)
-                if audit_text:
-                    supabase.rpc(
-                        "append_deal_context",
-                        {"p_deal_id": deal_uuid, "p_text": audit_text},
-                    ).execute()
-                    appended += 1
         except Exception as e:
             print(f"      AUDIT failed: {e}")
 
@@ -314,7 +326,6 @@ def main():
     print(f"  Fetched from Modjo:  {fetched}")
     print(f"  Inserted to calls:   {inserted}")
     print(f"  Audited:             {audited}")
-    print(f"  Appended to context: {appended}")
     print(f"  No transcript:       {no_transcript}")
     print(f"  Modjo fetch failed:  {modjo_failed}")
     print(f"  No owner resolved:   {no_owner}")
