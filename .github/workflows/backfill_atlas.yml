@@ -1,12 +1,20 @@
-name: "Backfill Atlas (temporary)"
+name: "Backfill Atlas (active pipeline)"
 
 on:
   workflow_dispatch:
+    inputs:
+      limit:
+        description: "Max atlas to process (empty = all)"
+        required: false
+      dry_run:
+        description: "Dry run (list targets only)"
+        type: boolean
+        default: false
 
 jobs:
   backfill:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 720
     steps:
       - uses: actions/checkout@v4
 
@@ -16,7 +24,7 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - name: Generate atlas for all companies
+      - name: Backfill atlas (siblings + structured columns)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -24,4 +32,8 @@ jobs:
           AZURE_CLAUDE_API_KEY: ${{ secrets.AZURE_CLAUDE_API_KEY }}
           AZURE_CLAUDE_DEPLOYMENT: ${{ secrets.AZURE_CLAUDE_DEPLOYMENT }}
           HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
-        run: python -m scripts.backfill_atlas
+        run: |
+          ARGS=""
+          if [ -n "${{ inputs.limit }}" ]; then ARGS="$ARGS --limit ${{ inputs.limit }}"; fi
+          if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
+          python -m src.pipelines.atlas.backfill $ARGS
