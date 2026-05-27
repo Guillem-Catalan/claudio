@@ -344,20 +344,26 @@ def _insert_and_audit(deal_uuid: str, call_data: dict) -> bool:
 # ── Readiness check ──────────────────────────────────────────────────────
 
 
-_AUDIT_FIELDS = (
+_AUDIT_COMMON = (
     "win_rate_score,forecast_flag,partner_leverage_score,lead_temperature,"
-    "deal_context,biggest_gap,next_call_objective,objections,buying_signals,blockers,"
-    "bant_budget_status,bant_budget_evidence,"
+    "deal_context,biggest_gap,next_call_objective,objections,buying_signals,blockers"
+)
+_AUDIT_BANT = (
+    ",bant_budget_status,bant_budget_evidence,"
     "bant_authority_status,bant_authority_evidence,"
     "bant_need_status,bant_need_evidence,"
-    "bant_timing_status,bant_timing_evidence,"
-    "meddic_metrics_status,meddic_metrics_evidence,"
+    "bant_timing_status,bant_timing_evidence"
+)
+_AUDIT_MEDDIC = (
+    ",meddic_metrics_status,meddic_metrics_evidence,"
     "meddic_economic_buyer_status,meddic_economic_buyer_evidence,"
     "meddic_decision_criteria_status,meddic_decision_criteria_evidence,"
     "meddic_decision_process_status,meddic_decision_process_evidence,"
     "meddic_champion_status,meddic_champion_evidence,"
     "meddic_competition_status,meddic_competition_evidence"
 )
+_AUDIT_FIELDS_PBD = _AUDIT_COMMON + _AUDIT_BANT
+_AUDIT_FIELDS_PAE = _AUDIT_COMMON + _AUDIT_MEDDIC
 
 
 def _format_audit_entry(call: dict, audit: dict) -> str:
@@ -417,10 +423,13 @@ def _format_audit_entry(call: dict, audit: dict) -> str:
 
 
 def _fetch_existing_audit(call_id: str, call: dict) -> str | None:
-    for table in ("pbd_audits", "pae_audits"):
+    for table, fields in (
+        ("pbd_audits", _AUDIT_FIELDS_PBD),
+        ("pae_audits", _AUDIT_FIELDS_PAE),
+    ):
         result = (
             supabase.table(table)
-            .select(_AUDIT_FIELDS)
+            .select(fields)
             .eq("call_id", call_id)
             .limit(1)
             .execute()
