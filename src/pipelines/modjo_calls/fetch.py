@@ -21,7 +21,7 @@ from src.db.client import supabase
 MIN_TRANSCRIPT_LENGTH = 100
 
 
-def _build_transcript(lines: list[dict]) -> str:
+def build_transcript(lines: list[dict]) -> str:
     parts = []
     for t in lines:
         try:
@@ -85,7 +85,7 @@ def normalize(raw: dict) -> dict | None:
 
     tags = [t["name"] for t in rels.get("tags", [])]
 
-    transcript = _build_transcript(transcript_lines)
+    transcript = build_transcript(transcript_lines)
     if len(transcript.strip()) < MIN_TRANSCRIPT_LENGTH:
         return None
 

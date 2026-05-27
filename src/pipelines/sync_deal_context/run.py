@@ -14,7 +14,7 @@ from src.config import PAE_TAGS, PBD_TAGS, get_role, get_subteam
 from src.db.client import supabase
 from src.integrations import hubspot
 from src.pipelines.modjo_calls.api_client import fetch_call_details as modjo_fetch_details
-from src.pipelines.modjo_calls.fetch import normalize as modjo_normalize
+from src.pipelines.modjo_calls.fetch import normalize as modjo_normalize, build_transcript as modjo_build_transcript
 
 EMAIL_PROPS = [
     "hs_timestamp",
@@ -302,6 +302,45 @@ def _parse_tags(body: str) -> list[str]:
     return [t for t in tags if t]
 
 
+def _normalize_modjo_fallback(
+    raw_call: dict,
+    owner_email: str,
+    owner_name: str,
+    meeting_title: str,
+) -> dict | None:
+    """Fallback when modjo_normalize can't find a tracked user on the call."""
+    rels = raw_call.get("relations") or {}
+    transcript = modjo_build_transcript(rels.get("transcript", []))
+    if len(transcript.strip()) < 100:
+        return None
+
+    rol = get_role(owner_email) if owner_email else None
+    tags_raw = rels.get("tags", [])
+    tags = [t["name"] for t in tags_raw]
+
+    if not rol and tags:
+        if any(t in PAE_TAGS for t in tags):
+            rol = "PAE"
+        elif any(t in PBD_TAGS for t in tags):
+            rol = "PBD"
+
+    return {
+        "call_id": str(raw_call["callId"]),
+        "titulo": raw_call.get("title") or meeting_title or "",
+        "fecha": raw_call.get("startDate"),
+        "duracion_segundos": int(raw_call.get("duration", 0)),
+        "owner_email": owner_email,
+        "owner_nombre": owner_name,
+        "rol": rol,
+        "tags": tags,
+        "team": "Partners",
+        "crm_id": "",
+        "hs_deal_id": "",
+        "transcript": transcript,
+        "subteam": get_subteam(owner_email) if owner_email else None,
+    }
+
+
 # ── Context flush ────────────────────────────────────────────────────────
 
 
@@ -538,6 +577,8 @@ def run(deal_uuid: str, hs_deal_id: str, *, owners: dict[str, dict] | None = Non
 
     modjo_ids_from_meetings: set[str] = set()
 
+    meetings_skipped = 0
+
     if new_meeting_ids:
         meeting_objects = _batch_read("meetings", new_meeting_ids, MEETING_PROPS)
         included = 0
@@ -556,6 +597,14 @@ def run(deal_uuid: str, hs_deal_id: str, *, owners: dict[str, dict] | None = Non
             if modjo_match:
                 modjo_id = modjo_match.group(1)
                 modjo_ids_from_meetings.add(modjo_id)
+
+                meeting_owner_id = p.get("hubspot_owner_id") or ""
+                meeting_owner_info = owners.get(meeting_owner_id, {})
+                meeting_owner_email = meeting_owner_info.get("email", "") if isinstance(meeting_owner_info, dict) else ""
+                meeting_owner_name = meeting_owner_info.get("name", "") if isinstance(meeting_owner_info, dict) else ""
+                meeting_title = p.get("hs_meeting_title") or ""
+                meeting_header = _format_meeting(hs_id, p, owners)
+
                 existing_call = (
                     supabase.table("calls")
                     .select("call_id, transcript, rol, deal_id, hs_deal_id, crm_id, titulo, fecha, owner_email, owner_nombre, tags, duracion_segundos, subteam")
@@ -568,7 +617,6 @@ def run(deal_uuid: str, hs_deal_id: str, *, owners: dict[str, dict] | None = Non
                     c = existing_call.data[0]
                     audit_text = _fetch_existing_audit(modjo_id, c)
                     if audit_text:
-                        meeting_header = _format_meeting(hs_id, p, owners)
                         items.append((date, "context", f"{meeting_header}\n\n{audit_text}"))
                         included += 1
                     elif c.get("transcript") and len(c["transcript"]) >= 200 and c.get("rol"):
@@ -578,7 +626,7 @@ def run(deal_uuid: str, hs_deal_id: str, *, owners: dict[str, dict] | None = Non
                             "deal_id": deal_uuid,
                             "hs_deal_id": hs_deal_id,
                             "crm_id": crm_id,
-                            "titulo": c.get("titulo") or p.get("hs_meeting_title") or "",
+                            "titulo": c.get("titulo") or meeting_title,
                             "fecha": c.get("fecha") or _parse_date(date),
                             "owner_email": c.get("owner_email"),
                             "owner_nombre": c.get("owner_nombre"),
@@ -589,34 +637,50 @@ def run(deal_uuid: str, hs_deal_id: str, *, owners: dict[str, dict] | None = Non
                             "transcript": c["transcript"],
                             "subteam": c.get("subteam"),
                             "source": "modjo",
+                            "_meeting_header": meeting_header,
                         }))
                         modjo_auditable += 1
                     else:
-                        items.append((date, "context", _format_meeting(hs_id, p, owners)))
+                        items.append((date, "context", meeting_header))
                         included += 1
                 else:
+                    raw_calls = None
+                    normalized = None
                     try:
                         raw_calls = modjo_fetch_details([int(modjo_id)])
                         normalized = modjo_normalize(raw_calls[0]) if raw_calls else None
                     except Exception as e:
                         print(f"      Modjo fetch {modjo_id} failed: {e}")
-                        normalized = None
+
+                    if not normalized and raw_calls:
+                        normalized = _normalize_modjo_fallback(
+                            raw_calls[0], meeting_owner_email, meeting_owner_name, meeting_title,
+                        )
+                        if normalized:
+                            print(f"      Modjo {modjo_id}: fallback normalize OK (owner: {meeting_owner_name})")
 
                     if normalized and normalized.get("transcript") and len(normalized["transcript"]) >= 200:
                         normalized["deal_id"] = deal_uuid
                         normalized["hs_deal_id"] = hs_deal_id
                         normalized["crm_id"] = crm_id
                         if not normalized.get("titulo"):
-                            normalized["titulo"] = p.get("hs_meeting_title") or ""
+                            normalized["titulo"] = meeting_title
+                        normalized["_meeting_header"] = meeting_header
                         items.append((date, "auditable", normalized))
                         modjo_auditable += 1
+                    elif raw_calls:
+                        print(f"      Modjo {modjo_id}: transcript not ready — skipping meeting for retry")
+                        meetings_skipped += 1
                     else:
-                        items.append((date, "context", _format_meeting(hs_id, p, owners)))
+                        items.append((date, "context", meeting_header))
                         included += 1
             else:
                 items.append((date, "context", _format_meeting(hs_id, p, owners)))
                 included += 1
-        print(f"   {len(new_meeting_ids)} new meetings, {included} context, {modjo_auditable} auditable (Modjo)")
+        msg = f"   {len(new_meeting_ids)} new meetings, {included} context, {modjo_auditable} auditable (Modjo)"
+        if meetings_skipped:
+            msg += f", {meetings_skipped} skipped (pending transcript)"
+        print(msg)
     else:
         print(f"   {len(meeting_ids)} meetings — all tracked")
 
@@ -818,10 +882,19 @@ def run(deal_uuid: str, hs_deal_id: str, *, owners: dict[str, dict] | None = Non
 
             call_data = payload
             call_id = call_data["call_id"]
+            meeting_header = call_data.pop("_meeting_header", None)
             print(f"   [{i}/{len(items)}] AUDIT {call_id} ({_format_date(date_sort)}) ...")
             ok = _insert_and_audit(deal_uuid, call_data)
-            if not ok:
+            if ok and meeting_header:
+                audit_text = _fetch_existing_audit(call_id, call_data)
+                if audit_text:
+                    pending_context.append(f"{meeting_header}\n\n{audit_text}")
+                else:
+                    pending_context.append(meeting_header)
+            elif not ok:
                 audit_failures += 1
+                if meeting_header:
+                    pending_context.append(meeting_header)
 
     _flush_context(deal_uuid, pending_context)
 
@@ -834,7 +907,7 @@ def run(deal_uuid: str, hs_deal_id: str, *, owners: dict[str, dict] | None = Non
     update: dict = {
         "emails_ready": True,
         "notes_ready": True,
-        "meetings_ready": True,
+        "meetings_ready": meetings_skipped == 0,
     }
 
     if _all_calls_audited(deal_uuid):
