@@ -5,15 +5,20 @@ Finds Modjo links in deal_context where the call doesn't exist in the calls
 table, fetches from Modjo API, normalizes (with HubSpot meeting owner fallback),
 inserts into calls, audits with Claude, and appends audit to deal_context.
 
+Two-phase approach:
+  Phase 1: Batch-fetch from Modjo + normalize + upsert to calls (fast, no Azure)
+  Phase 2: Audit in parallel with --workers N (default 3)
+
 By default only processes open deals (excludes lost/won/churned/closed).
 
 Usage:
-    python -m scripts.backfill_modjo_meetings [--dry-run] [--limit N] [--no-audit] [--include-closed]
+    python -m scripts.backfill_modjo_meetings [--dry-run] [--limit N] [--no-audit] [--workers 3] [--include-closed]
 """
 
 import argparse
 import re
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from src.config import PAE_TAGS, PBD_TAGS, get_role, get_subteam
 from src.db.client import supabase
@@ -206,11 +211,22 @@ def _resolve_meeting_owner(modjo_call_id, hs_deal_id, owners):
     return None, None, None, None
 
 
+def _audit_one(call_id: str) -> tuple[bool, str]:
+    from src.pipelines.audit.run import run_single
+    try:
+        result = run_single(call_id)
+        return (True, call_id) if result else (False, call_id)
+    except Exception as e:
+        print(f"      AUDIT {call_id} failed: {e}")
+        return False, call_id
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--no-audit", action="store_true")
     parser.add_argument("--include-closed", action="store_true")
+    parser.add_argument("--workers", type=int, default=3)
     parser.add_argument("--limit", type=int)
     args = parser.parse_args()
 
@@ -232,71 +248,61 @@ def main():
             print(f"  ... and {len(missing) - 30} more")
         return
 
+    # ── Phase 1: Fetch from Modjo + normalize + upsert (no Azure) ────────
+
     print(f"\n2. Fetching HubSpot owners ...")
     owners = _fetch_owners()
     print(f"   {len(owners)} owners")
 
-    fetched = 0
-    inserted = 0
-    audited = 0
-    no_transcript = 0
-    modjo_failed = 0
-    no_owner = 0
+    print(f"\n3. Phase 1 — Batch fetch from Modjo + insert ({len(missing)} calls) ...")
 
-    from src.pipelines.audit.run import run_single
+    all_modjo_ids = [int(r["modjo_call_id"]) for r in missing]
+    ref_by_id = {r["modjo_call_id"]: r for r in missing}
 
-    print(f"\n3. Processing {len(missing)} missing calls ...")
-
-    for i, ref in enumerate(missing, 1):
-        modjo_id = ref["modjo_call_id"]
-        deal_uuid = ref["deal_uuid"]
-        hs_deal_id = ref["hs_deal_id"]
-        crm_id = ref.get("crm_id")
-        deal_name = (ref["deal_name"] or "?")[:40]
-
-        if i % 20 == 1 or i == len(missing):
-            print(
-                f"\n   [{i}/{len(missing)}] {deal_name} — modjo={modjo_id}"
-                f"  (fetched={fetched} inserted={inserted} audited={audited})"
-            )
-
+    raw_by_id: dict[str, dict] = {}
+    for i in range(0, len(all_modjo_ids), 50):
+        batch = all_modjo_ids[i : i + 50]
         try:
-            raw_calls = modjo_fetch_details([int(modjo_id)])
+            raw_calls = modjo_fetch_details(batch)
+            for rc in raw_calls:
+                raw_by_id[str(rc["callId"])] = rc
+            print(f"   Batch {i // 50 + 1}: {len(raw_calls)} fetched")
         except Exception as e:
-            print(f"      Modjo fetch failed: {e}")
-            modjo_failed += 1
-            time.sleep(1)
+            print(f"   Batch {i // 50 + 1} FAILED: {e}")
+
+    print(f"   {len(raw_by_id)} calls fetched from Modjo")
+
+    inserted_ids: list[str] = []
+    no_transcript = 0
+    no_owner = 0
+    modjo_failed = len(missing) - len(raw_by_id)
+
+    for modjo_id, raw in raw_by_id.items():
+        ref = ref_by_id.get(modjo_id)
+        if not ref:
             continue
 
-        if not raw_calls:
-            modjo_failed += 1
-            continue
-
-        fetched += 1
-        normalized = modjo_normalize(raw_calls[0])
+        normalized = modjo_normalize(raw)
 
         if not normalized:
             owner_email, owner_name, meeting_title, _ = _resolve_meeting_owner(
-                modjo_id, hs_deal_id, owners,
+                modjo_id, ref["hs_deal_id"], owners,
             )
             if owner_email:
-                normalized = _normalize_fallback(
-                    raw_calls[0], owner_email, owner_name, meeting_title,
-                )
+                normalized = _normalize_fallback(raw, owner_email, owner_name, meeting_title)
                 if normalized:
-                    print(f"      fallback OK (owner: {owner_name})")
+                    print(f"      {modjo_id}: fallback OK (owner: {owner_name})")
             else:
                 no_owner += 1
-                print(f"      no meeting owner found — skipping")
                 continue
 
         if not normalized or not normalized.get("transcript") or len(normalized["transcript"]) < 200:
             no_transcript += 1
             continue
 
-        normalized["deal_id"] = deal_uuid
-        normalized["hs_deal_id"] = hs_deal_id
-        normalized["crm_id"] = crm_id
+        normalized["deal_id"] = ref["deal_uuid"]
+        normalized["hs_deal_id"] = ref["hs_deal_id"]
+        normalized["crm_id"] = ref.get("crm_id")
         normalized["source"] = "modjo"
 
         try:
@@ -304,28 +310,46 @@ def main():
                 {k: v for k, v in normalized.items() if not k.startswith("_")},
                 on_conflict="call_id",
             ).execute()
-            inserted += 1
+            inserted_ids.append(modjo_id)
         except Exception as e:
-            print(f"      INSERT failed: {e}")
-            continue
+            print(f"      {modjo_id} INSERT failed: {e}")
 
-        if args.no_audit:
-            continue
+    print(f"\n   Phase 1 done:")
+    print(f"     Inserted:       {len(inserted_ids)}")
+    print(f"     No transcript:  {no_transcript}")
+    print(f"     Modjo failed:   {modjo_failed}")
+    print(f"     No owner:       {no_owner}")
 
-        try:
-            result = run_single(modjo_id)
-            if result:
+    if args.no_audit or not inserted_ids:
+        print(f"\n{'=' * 60}")
+        print(f"DONE (phase 1 only)")
+        print(f"  HubSpot requests: {hubspot.total_requests()}")
+        return
+
+    # ── Phase 2: Parallel audits ─────────────────────────────────────────
+
+    print(f"\n4. Phase 2 — Auditing {len(inserted_ids)} calls ({args.workers} workers) ...")
+
+    audited = 0
+    failed = 0
+
+    with ThreadPoolExecutor(max_workers=args.workers) as pool:
+        futures = {pool.submit(_audit_one, cid): cid for cid in inserted_ids}
+        for i, future in enumerate(as_completed(futures), 1):
+            ok, cid = future.result()
+            if ok:
                 audited += 1
-        except Exception as e:
-            print(f"      AUDIT failed: {e}")
-
-        time.sleep(0.5)
+            else:
+                failed += 1
+            if i % 20 == 0 or i == len(inserted_ids):
+                print(f"   [{i}/{len(inserted_ids)}] audited={audited} failed={failed}")
 
     print(f"\n{'=' * 60}")
     print(f"DONE")
-    print(f"  Fetched from Modjo:  {fetched}")
-    print(f"  Inserted to calls:   {inserted}")
+    print(f"  Fetched from Modjo:  {len(raw_by_id)}")
+    print(f"  Inserted to calls:   {len(inserted_ids)}")
     print(f"  Audited:             {audited}")
+    print(f"  Audit failed:        {failed}")
     print(f"  No transcript:       {no_transcript}")
     print(f"  Modjo fetch failed:  {modjo_failed}")
     print(f"  No owner resolved:   {no_owner}")
