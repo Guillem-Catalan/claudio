@@ -830,27 +830,14 @@ tailwind.config = {
       <!-- Top row: Actions + Tools -->
       <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6">
 
-        <!-- Left: Acciones para avanzar (3 cols) -->
-        <div class="lg:col-span-3 space-y-4 max-h-[45vh] overflow-y-auto pr-1">
-          <div>
-            <div class="flex items-center gap-2 mb-3">
-              <span class="w-5 h-5 bg-brand-100 rounded flex items-center justify-center text-brand-600 text-[10px] font-bold">1</span>
-              <span class="text-xs font-semibold text-gray-700 uppercase tracking-wider">Acciones para avanzar</span>
-            </div>
-            <div id="nsActions" class="bg-gray-50 rounded-xl p-4 space-y-2">
-              <div class="text-sm text-gray-400">Cargando...</div>
-            </div>
+        <!-- Left: Next Steps (3 cols) -->
+        <div class="lg:col-span-3 max-h-[45vh] overflow-y-auto pr-1">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="w-5 h-5 bg-brand-100 rounded flex items-center justify-center text-brand-600 text-[10px] font-bold">→</span>
+            <span class="text-xs font-semibold text-gray-700 uppercase tracking-wider">Next Steps</span>
           </div>
-
-          <!-- Blockers -->
-          <div id="nsBlockersSection">
-            <div class="flex items-center gap-2 mb-3">
-              <span class="w-5 h-5 bg-red-100 rounded flex items-center justify-center text-red-600 text-[10px] font-bold">!</span>
-              <span class="text-xs font-semibold text-gray-700 uppercase tracking-wider">Blockers</span>
-            </div>
-            <div id="nsBlockers" class="bg-red-50/50 rounded-xl p-4 space-y-2">
-              <div class="text-sm text-gray-400">Sin blockers</div>
-            </div>
+          <div id="nsActions" class="bg-gray-50 rounded-xl p-3 space-y-1.5">
+            <div class="text-sm text-gray-400">Cargando...</div>
           </div>
         </div>
 
@@ -943,13 +930,15 @@ tailwind.config = {
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
             </span>
             <span class="text-xs font-semibold text-gray-700 uppercase tracking-wider">Comentarios</span>
-            <span class="text-[10px] text-gray-400">→ feedback interno</span>
+            <span class="text-[10px] text-gray-400">→ feedback interno + Slack</span>
           </div>
           <div class="bg-white border border-gray-200 rounded-xl p-4">
-            <textarea id="nsCommentText" rows="3" placeholder="Escribe un comentario o problema que hayas encontrado..." class="w-full text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-400" disabled></textarea>
+            <div id="nsCommentsList" class="space-y-2 mb-3 max-h-[120px] overflow-y-auto"></div>
+            <input id="nsCommentAuthor" type="text" placeholder="Tu nombre" class="w-full text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 mb-2 focus:outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-400">
+            <textarea id="nsCommentText" rows="2" placeholder="Escribe un comentario o problema que hayas encontrado..." class="w-full text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-400"></textarea>
             <div class="flex items-center justify-between mt-2">
-              <span class="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Requiere login</span>
-              <button disabled class="text-xs font-medium text-white bg-violet-400 rounded-lg px-4 py-1.5 cursor-not-allowed opacity-50">Enviar</button>
+              <span id="nsCommentStatus" class="text-[10px] text-gray-400"></span>
+              <button id="nsCommentBtn" onclick="submitComment()" class="text-xs font-medium text-white bg-violet-500 hover:bg-violet-600 rounded-lg px-4 py-1.5 transition-colors">Enviar</button>
             </div>
           </div>
         </div>
@@ -1877,32 +1866,13 @@ function openNextSteps(dealId) {
     actionsEl.innerHTML = lines.map((line, i) => {
       const clean = line.replace(/^[-•*\d.)\s]+/, '').trim();
       if (!clean) return '';
-      return `<div class="flex items-start gap-2.5 p-2.5 bg-white rounded-lg border border-gray-100">
-        <span class="w-5 h-5 bg-brand-100 rounded flex items-center justify-center text-brand-700 text-[10px] font-bold shrink-0 mt-0.5">${i + 1}</span>
-        <span class="text-sm text-gray-700 leading-relaxed">${clean}</span>
+      return `<div class="flex items-start gap-2 py-1.5 px-2 bg-white rounded-lg border border-gray-100">
+        <span class="w-4 h-4 bg-brand-100 rounded flex items-center justify-center text-brand-700 text-[9px] font-bold shrink-0 mt-0.5">${i + 1}</span>
+        <span class="text-xs text-gray-700 leading-relaxed">${clean}</span>
       </div>`;
     }).join('');
   } else {
-    actionsEl.innerHTML = '<div class="text-sm text-gray-400 italic">Sin acciones disponibles. Se generaran con el proximo snapshot.</div>';
-  }
-
-  // Blockers
-  const blockersSection = document.getElementById('nsBlockersSection');
-  const blockersEl = document.getElementById('nsBlockers');
-  const blockers = snap?.live_blockers;
-  if (blockers && blockers.trim()) {
-    const lines = blockers.split('\n').filter(l => l.trim());
-    blockersEl.innerHTML = lines.map(line => {
-      const clean = line.replace(/^[-•!*\s]+/, '').trim();
-      if (!clean) return '';
-      return `<div class="flex items-start gap-2.5 p-2.5 bg-white rounded-lg border border-red-100">
-        <span class="text-red-500 mt-0.5 shrink-0">!</span>
-        <span class="text-sm text-red-800 leading-relaxed">${clean}</span>
-      </div>`;
-    }).join('');
-    blockersSection.classList.remove('hidden');
-  } else {
-    blockersSection.classList.add('hidden');
+    actionsEl.innerHTML = '<div class="text-xs text-gray-400 italic">Sin acciones disponibles. Se generaran con el proximo snapshot.</div>';
   }
 
   // Email vs Handover
@@ -1958,13 +1928,96 @@ function openNextSteps(dealId) {
       </div>`;
   }
 
+  // Load existing comments
+  loadComments(dealId);
+
   modal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
 
+let _nsCurrentDealId = null;
+let _nsCurrentDealName = null;
+
 function closeNextSteps() {
   document.getElementById('nextStepsModal').classList.add('hidden');
   document.body.style.overflow = '';
+  _nsCurrentDealId = null;
+  _nsCurrentDealName = null;
+}
+
+async function loadComments(dealId) {
+  _nsCurrentDealId = dealId;
+  const deal = _dealsCache.find(d => d.id === dealId);
+  _nsCurrentDealName = deal ? cleanDealName(deal.deal_name) : '';
+
+  const listEl = document.getElementById('nsCommentsList');
+  listEl.innerHTML = '';
+
+  const { data, error } = await _sb
+    .from('deal_comments')
+    .select('author_name, body, created_at')
+    .eq('deal_id', dealId)
+    .order('created_at', { ascending: false });
+
+  if (error || !data || data.length === 0) {
+    listEl.innerHTML = '<div class="text-[10px] text-gray-300 italic">Sin comentarios</div>';
+    return;
+  }
+
+  listEl.innerHTML = data.map(c => {
+    const ago = daysAgo(c.created_at) || 'ahora';
+    return `<div class="flex items-start gap-2 p-2 bg-violet-50/50 rounded-lg border border-violet-100">
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2">
+          <span class="text-[11px] font-semibold text-violet-800">${c.author_name}</span>
+          <span class="text-[10px] text-gray-400">${ago}</span>
+        </div>
+        <div class="text-xs text-gray-700 mt-0.5">${c.body}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function submitComment() {
+  const authorEl = document.getElementById('nsCommentAuthor');
+  const bodyEl = document.getElementById('nsCommentText');
+  const btn = document.getElementById('nsCommentBtn');
+  const statusEl = document.getElementById('nsCommentStatus');
+
+  const author = authorEl.value.trim();
+  const body = bodyEl.value.trim();
+
+  if (!author) { statusEl.textContent = 'Escribe tu nombre'; statusEl.className = 'text-[10px] text-red-500'; return; }
+  if (!body) { statusEl.textContent = 'Escribe un comentario'; statusEl.className = 'text-[10px] text-red-500'; return; }
+  if (!_nsCurrentDealId) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+  statusEl.textContent = '';
+
+  const { error } = await _sb.from('deal_comments').insert({
+    deal_id: _nsCurrentDealId,
+    deal_name: _nsCurrentDealName,
+    author_name: author,
+    body: body,
+  });
+
+  if (error) {
+    statusEl.textContent = 'Error: ' + error.message;
+    statusEl.className = 'text-[10px] text-red-500';
+    btn.disabled = false;
+    btn.textContent = 'Enviar';
+    return;
+  }
+
+  bodyEl.value = '';
+  statusEl.textContent = 'Enviado';
+  statusEl.className = 'text-[10px] text-green-600';
+  btn.disabled = false;
+  btn.textContent = 'Enviar';
+  setTimeout(() => { statusEl.textContent = ''; }, 2000);
+
+  loadComments(_nsCurrentDealId);
 }
 
 function applyTeamFilter() {}
