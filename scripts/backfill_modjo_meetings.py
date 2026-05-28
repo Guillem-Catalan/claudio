@@ -228,9 +228,15 @@ def main():
     parser.add_argument("--include-closed", action="store_true")
     parser.add_argument("--workers", type=int, default=3)
     parser.add_argument("--limit", type=int)
+    parser.add_argument("--call-ids", help="Comma-separated Modjo call IDs to process")
     args = parser.parse_args()
 
     missing = _find_missing_modjo_calls(include_closed=args.include_closed)
+
+    if args.call_ids:
+        target_ids = set(args.call_ids.split(","))
+        missing = [r for r in missing if r["modjo_call_id"] in target_ids]
+        print(f"\n   Filtered to {len(missing)} calls by --call-ids")
     if not missing:
         print("\nNo missing calls found.")
         return

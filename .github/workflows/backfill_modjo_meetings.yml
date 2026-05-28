@@ -18,6 +18,9 @@ on:
         description: "Parallel audit workers (default 3)"
         required: false
         default: "3"
+      call_ids:
+        description: "Specific Modjo call IDs (comma-separated, empty = all)"
+        required: false
       include_closed:
         description: "Include closed/lost deals (default: open only)"
         type: boolean
@@ -51,5 +54,6 @@ jobs:
           if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
           if [ "${{ inputs.no_audit }}" = "true" ]; then ARGS="$ARGS --no-audit"; fi
           if [ -n "${{ inputs.workers }}" ]; then ARGS="$ARGS --workers ${{ inputs.workers }}"; fi
+          if [ -n "${{ inputs.call_ids }}" ]; then ARGS="$ARGS --call-ids ${{ inputs.call_ids }}"; fi
           if [ "${{ inputs.include_closed }}" = "true" ]; then ARGS="$ARGS --include-closed"; fi
           python -m scripts.backfill_modjo_meetings $ARGS
