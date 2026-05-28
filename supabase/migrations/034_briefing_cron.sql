@@ -30,6 +30,9 @@ BEGIN
     _repo := 'Guillem-Catalan/claudio';
   END IF;
 
+  -- Clean up all briefings from previous days
+  DELETE FROM briefings WHERE created_at < CURRENT_DATE;
+
   FOR deal IN
     SELECT id, id::TEXT AS deal_uuid, deal_name, deal_stage
     FROM deals
