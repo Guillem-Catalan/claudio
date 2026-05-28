@@ -1195,21 +1195,8 @@ tailwind.config = {
         <!-- Right: Timeline + Contacts -->
         <div>
           <h3 class="font-semibold text-gray-800 mb-3">Contacts</h3>
-          <div class="space-y-2 mb-6">
-            <div class="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
-              <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 text-xs font-bold">ML</div>
-              <div>
-                <div class="text-sm font-medium">María López</div>
-                <div class="text-xs text-gray-400">HR Manager · Champion candidate</div>
-              </div>
-            </div>
-            <div class="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
-              <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-xs font-bold">AG</div>
-              <div>
-                <div class="text-sm font-medium">Alberto García</div>
-                <div class="text-xs text-gray-400">CHRO · Economic Buyer (no contact)</div>
-              </div>
-            </div>
+          <div class="bg-gray-50 rounded-xl p-2 space-y-1.5 mb-6">
+            <div class="text-xs text-gray-400 p-3">Loading...</div>
           </div>
 
           <h3 class="font-semibold text-gray-800 mb-3">Probability Timeline</h3>
@@ -2559,33 +2546,7 @@ function initModalCharts() {
     });
   }
 
-  // Probability timeline
-  if (!window._probChart) {
-    const ctx = document.getElementById('probTimeline').getContext('2d');
-    window._probChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: ['May 18','May 20','May 22','May 24','May 26'],
-        datasets: [{
-          data: [10,12,15,15,15],
-          borderColor: '#3b82f6',
-          backgroundColor: 'rgba(59,130,246,0.1)',
-          fill: true,
-          tension: 0.3,
-          pointRadius: 4,
-          pointBackgroundColor: '#3b82f6'
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { grid: { display: false } },
-          y: { min: 0, max: 100, ticks: { callback: v => v+'%', stepSize: 25 }, grid: { color: '#f1f5f9' } }
-        }
-      }
-    });
-  }
+  // Probability timeline — initialized with real data in updateModalCharts
 }
 
 document.addEventListener('keydown', e => {
@@ -3750,11 +3711,29 @@ openHistorico = function(dealId) {
     ).join('');
   }
 
-  // Contacts
+  // Contacts — Atlas-style rendering
   const contactsHeader = [...modal.querySelectorAll('h3')].find(h => h.textContent.includes('Contacts'));
-  if (contactsHeader && deal.contacts_info) {
+  if (contactsHeader) {
     const contactsContainer = contactsHeader.nextElementSibling;
-    contactsContainer.innerHTML = `<div class="p-3 bg-gray-50 rounded-lg text-sm text-gray-700 whitespace-pre-line">${deal.contacts_info}</div>`;
+    if (deal.contacts_info) {
+      const parsed = deal.contacts_info.split('\n').filter(l => l.trim()).map(line => {
+        const parts = line.split('|').map(p => p.trim());
+        return { name: parts[0] || '—', role: parts[1] || '', email: parts[2] || '' };
+      });
+      contactsContainer.innerHTML = parsed.map(c => {
+        const initials = contactInitials(c.name);
+        return `<div class="flex items-start gap-2.5 p-2.5 rounded-lg hover:bg-gray-50">
+          <div class="w-7 h-7 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">${initials}</div>
+          <div class="flex-1 min-w-0">
+            <span class="text-xs font-semibold text-gray-800">${c.name}</span>
+            ${c.role ? '<div class="text-[11px] text-gray-500 mt-0.5">' + c.role + '</div>' : ''}
+            ${c.email ? '<div class="text-[10px] text-gray-400 mt-0.5">' + c.email + '</div>' : ''}
+          </div>
+        </div>`;
+      }).join('');
+    } else {
+      contactsContainer.innerHTML = '<div class="text-xs text-gray-400 p-3">Sin contactos.</div>';
+    }
   }
 
   // Stage Roadmap — fetch dist_* dates for this deal
@@ -3786,33 +3765,27 @@ async function updateModalCharts(meddicScores, dealId) {
   }
 
   // Probability timeline from snapshot history
-  const sb = _sb;
-  if (sb && dealId) {
-    const { data: history } = await sb
+  if (_sb && dealId) {
+    const { data: history } = await _sb
       .from('front_deal_snapshots')
       .select('snapshot_date, close_probability')
       .eq('deal_id', dealId)
       .order('snapshot_date', { ascending: true })
       .limit(30);
 
+    if (window._probChart) { window._probChart.destroy(); window._probChart = null; }
     if (history && history.length > 0) {
       const labels = history.map(h => h.snapshot_date);
       const data = history.map(h => h.close_probability);
-      if (window._probChart) {
-        window._probChart.data.labels = labels;
-        window._probChart.data.datasets[0].data = data;
-        window._probChart.update();
-      } else {
-        setTimeout(() => {
-          const ctx = document.getElementById('probTimeline')?.getContext('2d');
-          if (!ctx) return;
-          window._probChart = new Chart(ctx, {
-            type: 'line',
-            data: { labels, datasets: [{ data, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#3b82f6' }] },
-            options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { min: 0, max: 100, ticks: { callback: v => v+'%', stepSize: 25 }, grid: { color: '#f1f5f9' } } } }
-          });
-        }, 100);
-      }
+      setTimeout(() => {
+        const ctx = document.getElementById('probTimeline')?.getContext('2d');
+        if (!ctx) return;
+        window._probChart = new Chart(ctx, {
+          type: 'line',
+          data: { labels, datasets: [{ data, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#3b82f6' }] },
+          options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { font: { size: 10 } } }, y: { min: 0, max: 100, ticks: { callback: v => v+'%', stepSize: 25 }, grid: { color: '#f1f5f9' } } } }
+        });
+      }, 100);
     }
   }
 }
