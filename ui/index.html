@@ -895,14 +895,12 @@ tailwind.config = {
               <span class="text-xs font-semibold text-gray-700 uppercase tracking-wider">Email de follow up</span>
             </div>
             <div id="nsEmailBody" class="bg-white border border-gray-200 rounded-xl p-4">
-              <div class="flex items-center gap-2 mb-3">
-                <div class="w-2 h-2 rounded-full bg-amber-400"></div>
-                <span class="text-xs font-medium text-amber-700">Pendiente de generar</span>
-              </div>
-              <p class="text-xs text-gray-500 leading-relaxed">El email personalizado se generara automaticamente cuando el pipeline de Next Steps este activo. Incluira contexto del deal, acciones acordadas y tono adaptado al momento del ciclo de venta.</p>
-              <div class="mt-3 flex gap-2">
-                <button disabled class="text-[10px] font-medium text-gray-400 bg-gray-100 rounded-lg px-3 py-1.5 cursor-not-allowed">Copiar email</button>
-                <button disabled class="text-[10px] font-medium text-gray-400 bg-gray-100 rounded-lg px-3 py-1.5 cursor-not-allowed">Abrir en Gmail</button>
+              <div id="nsEmailContent">
+                <div class="flex items-center gap-2 mb-3">
+                  <div class="w-2 h-2 rounded-full bg-amber-400"></div>
+                  <span class="text-xs font-medium text-amber-700">Sin email generado</span>
+                </div>
+                <button onclick="generateEmailDraft()" class="text-xs font-medium text-white bg-cyan-500 hover:bg-cyan-600 rounded-lg px-4 py-2 transition-colors">Generar email de follow up</button>
               </div>
             </div>
           </div>
@@ -1948,6 +1946,7 @@ function openNextSteps(dealId) {
   document.getElementById('nsToolBriefing').classList.remove('ring-2', 'ring-blue-300');
 
   loadBriefing(dealId);
+  loadEmailDraft(dealId);
   loadComments(dealId);
 
   modal.classList.remove('hidden');
@@ -2015,6 +2014,113 @@ function openToolModal(title, sub, url) {
 function closeToolModal() {
   document.getElementById('toolModal').classList.add('hidden');
   document.getElementById('toolModalIframe').src = 'about:blank';
+}
+
+let _nsEmailDraft = null;
+
+async function loadEmailDraft(dealId) {
+  _nsEmailDraft = null;
+  const el = document.getElementById('nsEmailContent');
+  const deal = _dealsCache.find(d => d.id === dealId);
+
+  const { data, error } = await _sb
+    .from('email_drafts')
+    .select('*')
+    .eq('deal_id', dealId)
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  if (error || !data || data.length === 0) {
+    el.innerHTML = `
+      <div class="flex items-center gap-2 mb-3">
+        <div class="w-2 h-2 rounded-full bg-amber-400"></div>
+        <span class="text-xs font-medium text-amber-700">Sin email generado</span>
+      </div>
+      <button onclick="generateEmailDraft()" class="text-xs font-medium text-white bg-cyan-500 hover:bg-cyan-600 rounded-lg px-4 py-2 transition-colors">Generar email de follow up</button>`;
+    return;
+  }
+
+  _nsEmailDraft = data[0];
+  const hasNewContext = deal && deal.updated_at && _nsEmailDraft.context_snapshot_at
+    && new Date(deal.updated_at) > new Date(_nsEmailDraft.context_snapshot_at);
+
+  renderEmailDraft(_nsEmailDraft, hasNewContext);
+}
+
+function renderEmailDraft(draft, canRegenerate) {
+  const el = document.getElementById('nsEmailContent');
+  const contactEmail = extractContactEmail();
+  el.innerHTML = `
+    <div class="space-y-2 mb-3">
+      <div class="flex items-center gap-2 text-xs"><span class="font-semibold text-gray-500 w-12">Para:</span><span class="text-gray-700">${draft.recipient || '—'}</span></div>
+      <div class="flex items-center gap-2 text-xs"><span class="font-semibold text-gray-500 w-12">Cuando:</span><span class="text-gray-700">${draft.send_when || '—'}</span></div>
+      <div class="flex items-center gap-2 text-xs"><span class="font-semibold text-gray-500 w-12">Motivo:</span><span class="text-gray-700">${draft.reason || '—'}</span></div>
+    </div>
+    <div class="border-t border-gray-100 pt-3">
+      <input id="nsEmailSubject" value="${(draft.subject || '').replace(/"/g, '&quot;')}" class="w-full text-sm font-medium text-gray-800 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 mb-2 focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400" />
+      <textarea id="nsEmailBodyText" rows="6" class="w-full text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 leading-relaxed">${draft.body || ''}</textarea>
+    </div>
+    <div class="flex items-center gap-2 mt-3">
+      <button onclick="copyEmailDraft()" class="text-xs font-medium text-white bg-cyan-500 hover:bg-cyan-600 rounded-lg px-4 py-1.5 transition-colors">Copiar email</button>
+      <button onclick="openInGmail()" class="text-xs font-medium text-cyan-600 bg-cyan-50 hover:bg-cyan-100 rounded-lg px-4 py-1.5 transition-colors">Abrir en Gmail</button>
+      ${canRegenerate ? '<button onclick="generateEmailDraft()" class="ml-auto text-[10px] text-gray-400 hover:text-cyan-600 transition-colors">Nueva actividad — regenerar</button>' : '<span class="ml-auto text-[10px] text-gray-300">Se regenera cuando haya nueva actividad</span>'}
+    </div>
+    <span id="nsEmailCopyStatus" class="text-[10px] text-green-600 mt-1 hidden block">Copiado y guardado</span>`;
+}
+
+function extractContactEmail() {
+  const deal = _dealsCache.find(d => d.id === _nsCurrentDealId);
+  const contacts = deal?.contacts_info || '';
+  const match = contacts.match(/[\w.-]+@[\w.-]+\.\w+/);
+  return match ? match[0] : '';
+}
+
+async function generateEmailDraft() {
+  if (!_nsCurrentDealId) return;
+  const el = document.getElementById('nsEmailContent');
+  el.innerHTML = '<div class="flex items-center gap-2 py-4"><div class="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div><span class="text-xs text-gray-500">Generando email... ~15-30s</span></div>';
+
+  try {
+    const resp = await fetch('https://bqoepgcdgqylobkmqdur.supabase.co/functions/v1/email-draft', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _sb.supabaseKey },
+      body: JSON.stringify({ deal_id: _nsCurrentDealId }),
+    });
+    const data = await resp.json();
+    if (!resp.ok || data.error) {
+      el.innerHTML = '<div class="text-xs text-red-500">Error: ' + (data.error || 'unknown') + '</div>';
+      return;
+    }
+    _nsEmailDraft = { ...data, status: 'draft' };
+    renderEmailDraft(_nsEmailDraft, false);
+  } catch (e) {
+    el.innerHTML = '<div class="text-xs text-red-500">Error de conexion</div>';
+    console.error('Email draft error:', e);
+  }
+}
+
+async function copyEmailDraft() {
+  const subject = document.getElementById('nsEmailSubject').value;
+  const body = document.getElementById('nsEmailBodyText').value;
+  const text = `Asunto: ${subject}\n\n${body}`;
+  await navigator.clipboard.writeText(text);
+
+  if (_nsEmailDraft?.id) {
+    await _sb.from('email_drafts')
+      .update({ status: 'copied', copied_at: new Date().toISOString(), subject, body })
+      .eq('id', _nsEmailDraft.id);
+  }
+
+  const status = document.getElementById('nsEmailCopyStatus');
+  status.classList.remove('hidden');
+  setTimeout(() => status.classList.add('hidden'), 2000);
+}
+
+function openInGmail() {
+  const subject = encodeURIComponent(document.getElementById('nsEmailSubject').value);
+  const body = encodeURIComponent(document.getElementById('nsEmailBodyText').value);
+  const to = encodeURIComponent(extractContactEmail());
+  window.open(`https://mail.google.com/mail/?view=cm&to=${to}&su=${subject}&body=${body}`, '_blank');
 }
 
 async function requestBriefing() {
