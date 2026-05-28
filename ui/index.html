@@ -13,8 +13,7 @@ tailwind.config = {
     extend: {
       colors: {
         brand: { 50:'#eff6ff', 100:'#dbeafe', 200:'#bfdbfe', 500:'#3b82f6', 600:'#2563eb', 700:'#1d4ed8', 800:'#1e3a5f', 900:'#0f172a' },
-        meddic: { m:'#8b5cf6', e:'#06b6d4', dc:'#f59e0b', dp:'#ef4444', i:'#10b981', c:'#ec4899' },
-        bant: { b:'#475569', a:'#64748b', n:'#334155', t:'#1e293b' }
+        meddic: { m:'#8b5cf6', e:'#06b6d4', dc:'#f59e0b', dp:'#ef4444', i:'#10b981', c:'#ec4899' }
       }
     }
   }
@@ -1084,27 +1083,23 @@ tailwind.config = {
           </div>
 
           <div id="bantSection" class="hidden mt-4">
-            <div class="flex items-center gap-2 mb-3">
-              <div class="h-px flex-1 bg-gray-200"></div>
-              <span class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">BANT · PBD</span>
-              <div class="h-px flex-1 bg-gray-200"></div>
-            </div>
+            <h3 class="font-semibold text-gray-800 mb-3">BANT <span class="text-xs font-normal text-gray-400">(PBD Qualification)</span></h3>
             <div id="bantScoreBadges" class="flex flex-wrap gap-2 mb-1">
               <button class="bant-badge flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer border border-transparent" data-idx="0">
-                <span class="w-5 h-5 rounded bg-bant-b text-white text-[10px] flex items-center justify-center font-bold">B</span>
-                <span class="text-xs font-bold text-bant-b">—</span>
+                <span class="bant-sq w-5 h-5 rounded bg-gray-300 text-white text-[10px] flex items-center justify-center font-bold">B</span>
+                <span class="bant-icon text-xs font-bold text-gray-400">—</span>
               </button>
               <button class="bant-badge flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer border border-transparent" data-idx="1">
-                <span class="w-5 h-5 rounded bg-bant-a text-white text-[10px] flex items-center justify-center font-bold">A</span>
-                <span class="text-xs font-bold text-bant-a">—</span>
+                <span class="bant-sq w-5 h-5 rounded bg-gray-300 text-white text-[10px] flex items-center justify-center font-bold">A</span>
+                <span class="bant-icon text-xs font-bold text-gray-400">—</span>
               </button>
               <button class="bant-badge flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer border border-transparent" data-idx="2">
-                <span class="w-5 h-5 rounded bg-bant-n text-white text-[10px] flex items-center justify-center font-bold">N</span>
-                <span class="text-xs font-bold text-bant-n">—</span>
+                <span class="bant-sq w-5 h-5 rounded bg-gray-300 text-white text-[10px] flex items-center justify-center font-bold">N</span>
+                <span class="bant-icon text-xs font-bold text-gray-400">—</span>
               </button>
               <button class="bant-badge flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer border border-transparent" data-idx="3">
-                <span class="w-5 h-5 rounded bg-bant-t text-white text-[10px] flex items-center justify-center font-bold">T</span>
-                <span class="text-xs font-bold text-bant-t">—</span>
+                <span class="bant-sq w-5 h-5 rounded bg-gray-300 text-white text-[10px] flex items-center justify-center font-bold">T</span>
+                <span class="bant-icon text-xs font-bold text-gray-400">—</span>
               </button>
             </div>
             <div id="bantDetail" class="hidden bg-gray-50 rounded-lg p-3 mb-2">
@@ -3326,10 +3321,10 @@ async function loadStageRoadmap(dealId, currentStage) {
 // ── BANT Section ─────────────────────────────────────────────────────────
 
 const BANT_STATUS_MAP = {
-  confirmed:            { icon: '●', color: 'text-green-600', bg: 'bg-green-50', label: 'Confirmed' },
-  partially_confirmed:  { icon: '◐', color: 'text-amber-500', bg: 'bg-amber-50', label: 'Partial' },
-  not_confirmed:        { icon: '○', color: 'text-red-500',   bg: 'bg-red-50',   label: 'Not confirmed' },
-  not_discussed:        { icon: '—', color: 'text-gray-400',  bg: 'bg-gray-50',  label: 'Not discussed' },
+  confirmed:            { icon: '●', color: 'text-green-600', bg: 'bg-green-50', sq: 'bg-green-500', iconColor: 'text-green-600', label: 'Confirmed' },
+  partially_confirmed:  { icon: '◐', color: 'text-amber-500', bg: 'bg-amber-50', sq: 'bg-amber-500', iconColor: 'text-amber-500', label: 'Partial' },
+  not_confirmed:        { icon: '○', color: 'text-red-500',   bg: 'bg-red-50',   sq: 'bg-red-400',   iconColor: 'text-red-500',   label: 'Not confirmed' },
+  not_discussed:        { icon: '—', color: 'text-gray-400',  bg: 'bg-gray-50',  sq: 'bg-gray-300',  iconColor: 'text-gray-400',  label: 'Not discussed' },
 };
 
 async function loadBantSection(dealId) {
@@ -3363,17 +3358,18 @@ async function loadBantSection(dealId) {
 
   badges.forEach((btn, i) => {
     const s = BANT_STATUS_MAP[pillars[i].status] || BANT_STATUS_MAP.not_discussed;
-    const statusSpan = btn.querySelector('.text-xs.font-bold');
-    if (statusSpan) statusSpan.textContent = s.icon;
+    const sq = btn.querySelector('.bant-sq');
+    const iconSpan = btn.querySelector('.bant-icon');
+    if (sq) { sq.className = `bant-sq w-5 h-5 rounded ${s.sq} text-white text-[10px] flex items-center justify-center font-bold`; }
+    if (iconSpan) { iconSpan.textContent = s.icon; iconSpan.className = `bant-icon text-xs font-bold ${s.iconColor}`; }
     btn.onclick = () => {
-      const wasActive = btn.classList.contains('border-slate-400');
-      badges.forEach(b => b.classList.remove('border-slate-400', 'bg-slate-50'));
+      const wasActive = btn.classList.contains('border-gray-300');
+      badges.forEach(b => b.classList.remove('border-gray-300', 'bg-gray-100'));
       if (wasActive) { detailBox.classList.add('hidden'); return; }
-      btn.classList.add('border-slate-400', 'bg-slate-50');
-      const st = BANT_STATUS_MAP[pillars[i].status] || BANT_STATUS_MAP.not_discussed;
+      btn.classList.add('border-gray-300', 'bg-gray-100');
       detailLabel.textContent = pillars[i].label;
-      detailStatus.textContent = st.label;
-      detailStatus.className = `text-xs font-medium px-2 py-0.5 rounded-full ${st.bg} ${st.color}`;
+      detailStatus.textContent = s.label;
+      detailStatus.className = `text-xs font-medium px-2 py-0.5 rounded-full ${s.bg} ${s.color}`;
       detailText.textContent = pillars[i].evidence || 'No evidence available.';
       detailBox.classList.remove('hidden');
     };
@@ -3439,7 +3435,7 @@ openHistorico = function(dealId) {
   const bantSectionReset = modal.querySelector('#bantSection');
   if (bantSectionReset) {
     bantSectionReset.classList.add('hidden');
-    bantSectionReset.querySelectorAll('.bant-badge').forEach(b => b.classList.remove('border-slate-400', 'bg-slate-50'));
+    bantSectionReset.querySelectorAll('.bant-badge').forEach(b => b.classList.remove('border-gray-300', 'bg-gray-100'));
     const bantDetailReset = bantSectionReset.querySelector('#bantDetail');
     if (bantDetailReset) bantDetailReset.classList.add('hidden');
   }
