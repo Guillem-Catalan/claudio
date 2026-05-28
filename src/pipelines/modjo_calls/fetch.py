@@ -117,7 +117,7 @@ def normalize(raw: dict) -> dict | None:
         "duracion_segundos": int(raw.get("duration", 0)),
         "owner_email": owner_email,
         "owner_nombre": owner.get("name", ""),
-        "rol": role,
+        "rol": role or "PAE",
         "tags": tags,
         "team": "Partners",
         "crm_id": crm_id,
@@ -210,8 +210,6 @@ def run(since: datetime | None = None):
     audited = 0
     demos = 0
     for call in calls:
-        if not call["rol"]:
-            continue
         try:
             call_type = classify(call)
             if call_type == "skip":

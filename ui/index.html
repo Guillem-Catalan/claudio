@@ -2190,20 +2190,32 @@ function scoreLabel(deal) {
 
 // ── Classify deals for "Hoy" — meeting-based ──────────────────────────
 
+function _earliestMeetingToday(dealId) {
+  const ms = _meetingsTodayByDeal[dealId];
+  if (!ms || ms.length === 0) return null;
+  return ms.reduce((a, b) => (a.meeting_start < b.meeting_start ? a : b)).meeting_start;
+}
+
+function _earliestMeetingYesterday(dealId) {
+  const ms = _meetingsYesterdayByDeal[dealId];
+  if (!ms || ms.length === 0) return null;
+  return ms.reduce((a, b) => (a.meeting_start < b.meeting_start ? a : b)).meeting_start;
+}
+
 function classifyDealsForToday(deals) {
   const today = new Date().toISOString().slice(0, 10);
   const assigned = new Set();
 
   const firstDemos = [];
   for (const d of deals) {
-    if (d.first_meeting_at) {
-      const fma = d.first_meeting_at.slice(0, 10);
-      if (fma === today) {
-        firstDemos.push(d);
-        assigned.add(d.id);
-      }
+    if (!_meetingsTodayByDeal[d.id]?.length) continue;
+    const isFirst = d.first_meeting_at && d.first_meeting_at.slice(0, 10) === today;
+    if (isFirst) {
+      firstDemos.push(d);
+      assigned.add(d.id);
     }
   }
+  firstDemos.sort((a, b) => (_earliestMeetingToday(a.id) || '').localeCompare(_earliestMeetingToday(b.id) || ''));
 
   const otherMeetings = [];
   for (const d of deals) {
@@ -2213,6 +2225,7 @@ function classifyDealsForToday(deals) {
       assigned.add(d.id);
     }
   }
+  otherMeetings.sort((a, b) => (_earliestMeetingToday(a.id) || '').localeCompare(_earliestMeetingToday(b.id) || ''));
 
   const followUpYesterday = [];
   for (const d of deals) {
@@ -2222,6 +2235,7 @@ function classifyDealsForToday(deals) {
       assigned.add(d.id);
     }
   }
+  followUpYesterday.sort((a, b) => (_earliestMeetingYesterday(a.id) || '').localeCompare(_earliestMeetingYesterday(b.id) || ''));
 
   return { firstDemos, otherMeetings, followUpYesterday, assigned };
 }

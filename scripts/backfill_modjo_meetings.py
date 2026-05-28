@@ -78,7 +78,7 @@ def _normalize_fallback(raw_call, owner_email, owner_name, meeting_title):
         "duracion_segundos": int(raw_call.get("duration", 0)),
         "owner_email": owner_email,
         "owner_nombre": owner_name,
-        "rol": rol,
+        "rol": rol or "PAE",
         "tags": tags,
         "team": "Partners",
         "crm_id": "",

@@ -26,9 +26,7 @@ def run_single(call_id: str, classified_type: str | None = None) -> dict | None:
 
 
 def _already_audited(call: dict) -> bool:
-    role = call.get("rol")
-    if not role:
-        return False
+    role = call.get("rol") or "PAE"
     table = "pbd_audits" if role == "PBD" else "pae_audits"
     resp = (
         supabase.table(table)
@@ -43,10 +41,7 @@ def _already_audited(call: dict) -> bool:
 
 
 def _audit(call: dict, classified_type: str | None = None) -> dict | None:
-    role = call.get("rol")
-    if not role:
-        print(f"  Skipping call {call['call_id']} — no role assigned")
-        return None
+    role = call.get("rol") or "PAE"
 
     if call.get("deal_id"):
         deal_resp = (

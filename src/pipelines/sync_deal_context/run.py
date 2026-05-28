@@ -331,7 +331,7 @@ def _normalize_modjo_fallback(
         "duracion_segundos": int(raw_call.get("duration", 0)),
         "owner_email": owner_email,
         "owner_nombre": owner_name,
-        "rol": rol,
+        "rol": rol or "PAE",
         "tags": tags,
         "team": "Partners",
         "crm_id": "",
@@ -373,7 +373,7 @@ def _insert_and_audit(deal_uuid: str, call_data: dict) -> bool:
         if result:
             print(f"      Audit OK: win_rate={result.get('win_rate_score')}")
             return True
-        print(f"      Audit skipped (no role or not found)")
+        print(f"      Audit skipped (not found or onboarding deal)")
         return False
     except Exception as e:
         print(f"      Audit FAILED: {e}")
@@ -764,7 +764,7 @@ def run(deal_uuid: str, hs_deal_id: str, *, owners: dict[str, dict] | None = Non
             transcript = body_clean[:50000] if body_clean else None
             has_real_transcript = transcript and len(transcript) >= 200
 
-            if has_real_transcript and rol:
+            if has_real_transcript:
                 items.append((
                     date_sort,
                     "auditable",
@@ -778,7 +778,7 @@ def run(deal_uuid: str, hs_deal_id: str, *, owners: dict[str, dict] | None = Non
                         "fecha": fecha,
                         "owner_email": owner_email or None,
                         "owner_nombre": owner_name or None,
-                        "rol": rol,
+                        "rol": rol or "PAE",
                         "tags": tags if tags else [],
                         "team": "Partners",
                         "duracion_segundos": duration_s,
