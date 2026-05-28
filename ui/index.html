@@ -893,6 +893,9 @@ tailwind.config = {
             <div class="flex items-center gap-2 mb-3">
               <span class="w-5 h-5 bg-cyan-100 rounded flex items-center justify-center text-cyan-600 text-[10px] font-bold">@</span>
               <span class="text-xs font-semibold text-gray-700 uppercase tracking-wider">Email de follow up</span>
+              <button id="nsEmailExpandBtn" onclick="openEmailModal()" class="ml-auto w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100 text-gray-400 hover:text-cyan-600 transition-colors hidden" title="Expandir">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+              </button>
             </div>
             <div id="nsEmailBody" class="bg-white border border-gray-200 rounded-xl p-4">
               <div id="nsEmailContent">
@@ -988,6 +991,30 @@ tailwind.config = {
       </button>
     </div>
     <iframe id="toolModalIframe" class="flex-1 w-full border-0" src="about:blank"></iframe>
+  </div>
+</div>
+
+<!-- ====== EMAIL MODAL ====== -->
+<div id="emailModal" class="fixed inset-0 z-[60] hidden">
+  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeEmailModal()"></div>
+  <div class="absolute inset-6 md:inset-12 lg:inset-y-10 lg:inset-x-32 bg-white rounded-2xl shadow-2xl overflow-hidden z-10 fade-in flex flex-col">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 bg-cyan-100 rounded-lg flex items-center justify-center">
+          <span class="text-cyan-600 font-bold text-sm">@</span>
+        </div>
+        <div>
+          <h2 id="emailModalTitle" class="text-lg font-bold text-gray-900">Email de follow up</h2>
+          <span id="emailModalSub" class="text-xs text-gray-400"></span>
+        </div>
+      </div>
+      <button onclick="closeEmailModal()" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div id="emailModalBody" class="flex-1 overflow-y-auto px-8 py-6">
+      <div class="text-sm text-gray-400">Cargando...</div>
+    </div>
   </div>
 </div>
 
@@ -2031,6 +2058,8 @@ async function loadEmailDraft(dealId) {
     .limit(1);
 
   if (error || !data || data.length === 0) {
+    const expandBtn = document.getElementById('nsEmailExpandBtn');
+    if (expandBtn) expandBtn.classList.add('hidden');
     el.innerHTML = `
       <div class="flex items-center gap-2 mb-3">
         <div class="w-2 h-2 rounded-full bg-amber-400"></div>
@@ -2050,6 +2079,8 @@ async function loadEmailDraft(dealId) {
 function renderEmailDraft(draft, canRegenerate) {
   const el = document.getElementById('nsEmailContent');
   const contactEmail = extractContactEmail();
+  const expandBtn = document.getElementById('nsEmailExpandBtn');
+  if (expandBtn) expandBtn.classList.remove('hidden');
   el.innerHTML = `
     <div class="space-y-2 mb-3">
       <div class="flex items-center gap-2 text-xs"><span class="font-semibold text-gray-500 w-12">Para:</span><span class="text-gray-700">${draft.recipient || '—'}</span></div>
@@ -2117,10 +2148,89 @@ async function copyEmailDraft() {
 }
 
 function openInGmail() {
-  const subject = encodeURIComponent(document.getElementById('nsEmailSubject').value);
-  const body = encodeURIComponent(document.getElementById('nsEmailBodyText').value);
+  const subjectEl = document.getElementById('emEmailSubject') || document.getElementById('nsEmailSubject');
+  const bodyEl = document.getElementById('emEmailBodyText') || document.getElementById('nsEmailBodyText');
+  const subject = encodeURIComponent(subjectEl.value);
+  const body = encodeURIComponent(bodyEl.value);
   const to = encodeURIComponent(extractContactEmail());
   window.open(`https://mail.google.com/mail/?view=cm&to=${to}&su=${subject}&body=${body}`, '_blank');
+}
+
+function openEmailModal() {
+  if (!_nsEmailDraft) return;
+  const draft = _nsEmailDraft;
+  const deal = _dealsCache.find(d => d.id === _nsCurrentDealId);
+  const hasNewContext = deal && deal.updated_at && draft.context_snapshot_at
+    && new Date(deal.updated_at) > new Date(draft.context_snapshot_at);
+
+  document.getElementById('emailModalTitle').textContent = deal ? cleanDealName(deal.deal_name) : 'Email de follow up';
+  document.getElementById('emailModalSub').textContent = draft.recipient || '';
+
+  const el = document.getElementById('emailModalBody');
+  el.innerHTML = `
+    <div class="max-w-2xl mx-auto space-y-6">
+      <div class="grid grid-cols-3 gap-4">
+        <div class="bg-gray-50 rounded-xl p-4">
+          <div class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Para</div>
+          <div class="text-sm text-gray-800">${draft.recipient || '—'}</div>
+        </div>
+        <div class="bg-gray-50 rounded-xl p-4">
+          <div class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Cuando</div>
+          <div class="text-sm text-gray-800">${draft.send_when || '—'}</div>
+        </div>
+        <div class="bg-gray-50 rounded-xl p-4">
+          <div class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Motivo</div>
+          <div class="text-sm text-gray-800">${draft.reason || '—'}</div>
+        </div>
+      </div>
+      <div>
+        <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Asunto</label>
+        <input id="emEmailSubject" value="${(draft.subject || '').replace(/"/g, '&quot;')}" class="w-full text-base font-medium text-gray-800 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400" />
+      </div>
+      <div>
+        <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Cuerpo del email</label>
+        <textarea id="emEmailBodyText" rows="14" class="w-full text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 leading-relaxed">${draft.body || ''}</textarea>
+      </div>
+      <div class="flex items-center gap-3 pt-2">
+        <button onclick="copyEmailFromModal()" class="text-sm font-medium text-white bg-cyan-500 hover:bg-cyan-600 rounded-xl px-6 py-2.5 transition-colors">Copiar email</button>
+        <button onclick="openInGmail()" class="text-sm font-medium text-cyan-600 bg-cyan-50 hover:bg-cyan-100 rounded-xl px-6 py-2.5 transition-colors">Abrir en Gmail</button>
+        ${hasNewContext ? '<button onclick="closeEmailModal(); generateEmailDraft();" class="ml-auto text-xs text-gray-400 hover:text-cyan-600 transition-colors">Nueva actividad — regenerar</button>' : '<span class="ml-auto text-xs text-gray-300">Se regenera cuando haya nueva actividad</span>'}
+      </div>
+      <span id="emEmailCopyStatus" class="text-xs text-green-600 hidden">Copiado y guardado</span>
+    </div>`;
+
+  document.getElementById('emailModal').classList.remove('hidden');
+}
+
+function closeEmailModal() {
+  const subjectEl = document.getElementById('emEmailSubject');
+  const bodyEl = document.getElementById('emEmailBodyText');
+  if (subjectEl && bodyEl && _nsEmailDraft) {
+    _nsEmailDraft.subject = subjectEl.value;
+    _nsEmailDraft.body = bodyEl.value;
+    const deal = _dealsCache.find(d => d.id === _nsCurrentDealId);
+    const hasNewContext = deal && deal.updated_at && _nsEmailDraft.context_snapshot_at
+      && new Date(deal.updated_at) > new Date(_nsEmailDraft.context_snapshot_at);
+    renderEmailDraft(_nsEmailDraft, hasNewContext);
+  }
+  document.getElementById('emailModal').classList.add('hidden');
+}
+
+async function copyEmailFromModal() {
+  const subject = document.getElementById('emEmailSubject').value;
+  const body = document.getElementById('emEmailBodyText').value;
+  const text = `Asunto: ${subject}\n\n${body}`;
+  await navigator.clipboard.writeText(text);
+
+  if (_nsEmailDraft?.id) {
+    await _sb.from('email_drafts')
+      .update({ status: 'copied', copied_at: new Date().toISOString(), subject, body })
+      .eq('id', _nsEmailDraft.id);
+  }
+
+  const status = document.getElementById('emEmailCopyStatus');
+  status.classList.remove('hidden');
+  setTimeout(() => status.classList.add('hidden'), 2000);
 }
 
 async function requestBriefing() {
