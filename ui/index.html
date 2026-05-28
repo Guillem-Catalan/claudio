@@ -13,7 +13,8 @@ tailwind.config = {
     extend: {
       colors: {
         brand: { 50:'#eff6ff', 100:'#dbeafe', 200:'#bfdbfe', 500:'#3b82f6', 600:'#2563eb', 700:'#1d4ed8', 800:'#1e3a5f', 900:'#0f172a' },
-        meddic: { m:'#8b5cf6', e:'#06b6d4', dc:'#f59e0b', dp:'#ef4444', i:'#10b981', c:'#ec4899' }
+        meddic: { m:'#8b5cf6', e:'#06b6d4', dc:'#f59e0b', dp:'#ef4444', i:'#10b981', c:'#ec4899' },
+        bant: { b:'#475569', a:'#64748b', n:'#334155', t:'#1e293b' }
       }
     }
   }
@@ -1088,10 +1089,38 @@ tailwind.config = {
             <p id="meddicDetailText" class="text-xs text-gray-500"></p>
           </div>
 
-          <div id="bantSection" class="hidden mt-3">
-            <h3 class="font-semibold text-gray-800 mb-2">BANT <span class="text-xs font-normal text-gray-400">(PBD Qualification)</span></h3>
-            <div id="bantContent" class="space-y-1.5"></div>
-            <p id="bantSummary" class="text-xs text-gray-500 mt-2"></p>
+          <div id="bantSection" class="hidden mt-4">
+            <div class="flex items-center gap-2 mb-3">
+              <div class="h-px flex-1 bg-gray-200"></div>
+              <span class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">BANT · PBD</span>
+              <div class="h-px flex-1 bg-gray-200"></div>
+            </div>
+            <div id="bantScoreBadges" class="flex flex-wrap gap-2 mb-1">
+              <button class="bant-badge flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer border border-transparent" data-idx="0">
+                <span class="w-5 h-5 rounded bg-bant-b text-white text-[10px] flex items-center justify-center font-bold">B</span>
+                <span class="text-xs font-bold text-bant-b">—</span>
+              </button>
+              <button class="bant-badge flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer border border-transparent" data-idx="1">
+                <span class="w-5 h-5 rounded bg-bant-a text-white text-[10px] flex items-center justify-center font-bold">A</span>
+                <span class="text-xs font-bold text-bant-a">—</span>
+              </button>
+              <button class="bant-badge flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer border border-transparent" data-idx="2">
+                <span class="w-5 h-5 rounded bg-bant-n text-white text-[10px] flex items-center justify-center font-bold">N</span>
+                <span class="text-xs font-bold text-bant-n">—</span>
+              </button>
+              <button class="bant-badge flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer border border-transparent" data-idx="3">
+                <span class="w-5 h-5 rounded bg-bant-t text-white text-[10px] flex items-center justify-center font-bold">T</span>
+                <span class="text-xs font-bold text-bant-t">—</span>
+              </button>
+            </div>
+            <div id="bantDetail" class="hidden bg-gray-50 rounded-lg p-3 mb-2">
+              <div class="flex justify-between items-center mb-1">
+                <span id="bantDetailLabel" class="text-sm font-semibold text-gray-800"></span>
+                <span id="bantDetailStatus" class="text-xs font-medium px-2 py-0.5 rounded-full"></span>
+              </div>
+              <p id="bantDetailText" class="text-xs text-gray-500"></p>
+            </div>
+            <p id="bantSummary" class="hidden text-xs text-gray-500 mt-2"></p>
           </div>
         </div>
 
@@ -3319,8 +3348,6 @@ const BANT_STATUS_MAP = {
 
 async function loadBantSection(dealId) {
   const section = document.getElementById('bantSection');
-  const content = document.getElementById('bantContent');
-  const summary = document.getElementById('bantSummary');
   if (!section) return;
   section.classList.add('hidden');
 
@@ -3335,20 +3362,36 @@ async function loadBantSection(dealId) {
 
   const snap = data[0];
   const pillars = [
-    { letter: 'B', status: snap.bant_b_status, evidence: snap.bant_b_evidence },
-    { letter: 'A', status: snap.bant_a_status, evidence: snap.bant_a_evidence },
-    { letter: 'N', status: snap.bant_n_status, evidence: snap.bant_n_evidence },
-    { letter: 'T', status: snap.bant_t_status, evidence: snap.bant_t_evidence },
+    { letter: 'B', label: 'Budget', status: snap.bant_b_status, evidence: snap.bant_b_evidence },
+    { letter: 'A', label: 'Authority', status: snap.bant_a_status, evidence: snap.bant_a_evidence },
+    { letter: 'N', label: 'Need', status: snap.bant_n_status, evidence: snap.bant_n_evidence },
+    { letter: 'T', label: 'Timeline', status: snap.bant_t_status, evidence: snap.bant_t_evidence },
   ];
 
-  content.innerHTML = pillars.map(p => {
-    const s = BANT_STATUS_MAP[p.status] || BANT_STATUS_MAP.not_discussed;
-    return `<div class="flex items-start gap-2 p-2 ${s.bg} rounded-lg">
-      <span class="w-5 h-5 rounded bg-gray-700 text-white text-[10px] flex items-center justify-center font-bold shrink-0">${p.letter}</span>
-      <span class="${s.color} text-sm shrink-0">${s.icon}</span>
-      <span class="text-sm text-gray-700">${p.evidence || s.label}</span>
-    </div>`;
-  }).join('');
+  const badges = section.querySelectorAll('.bant-badge');
+  const detailBox = section.querySelector('#bantDetail');
+  const detailLabel = section.querySelector('#bantDetailLabel');
+  const detailStatus = section.querySelector('#bantDetailStatus');
+  const detailText = section.querySelector('#bantDetailText');
+  const summary = section.querySelector('#bantSummary');
+
+  badges.forEach((btn, i) => {
+    const s = BANT_STATUS_MAP[pillars[i].status] || BANT_STATUS_MAP.not_discussed;
+    const statusSpan = btn.querySelector('.text-xs.font-bold');
+    if (statusSpan) statusSpan.textContent = s.icon;
+    btn.onclick = () => {
+      const wasActive = btn.classList.contains('border-slate-400');
+      badges.forEach(b => b.classList.remove('border-slate-400', 'bg-slate-50'));
+      if (wasActive) { detailBox.classList.add('hidden'); return; }
+      btn.classList.add('border-slate-400', 'bg-slate-50');
+      const st = BANT_STATUS_MAP[pillars[i].status] || BANT_STATUS_MAP.not_discussed;
+      detailLabel.textContent = pillars[i].label;
+      detailStatus.textContent = st.label;
+      detailStatus.className = `text-xs font-medium px-2 py-0.5 rounded-full ${st.bg} ${st.color}`;
+      detailText.textContent = pillars[i].evidence || 'No evidence available.';
+      detailBox.classList.remove('hidden');
+    };
+  });
 
   if (snap.pbd_summary) {
     summary.textContent = snap.pbd_summary;
@@ -3408,7 +3451,12 @@ openHistorico = function(dealId) {
   if (detailBoxReset) detailBoxReset.classList.add('hidden');
   modal.querySelectorAll('#meddicScoreBadges .meddic-badge').forEach(b => b.classList.remove('border-blue-400', 'bg-blue-50'));
   const bantSectionReset = modal.querySelector('#bantSection');
-  if (bantSectionReset) bantSectionReset.classList.add('hidden');
+  if (bantSectionReset) {
+    bantSectionReset.classList.add('hidden');
+    bantSectionReset.querySelectorAll('.bant-badge').forEach(b => b.classList.remove('border-slate-400', 'bg-slate-50'));
+    const bantDetailReset = bantSectionReset.querySelector('#bantDetail');
+    if (bantDetailReset) bantDetailReset.classList.add('hidden');
+  }
 
   // MEDDIC scores — compact badges + clickable detail
   const scores = [
