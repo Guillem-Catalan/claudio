@@ -3770,6 +3770,7 @@ async function updateModalCharts(meddicScores, dealId) {
       .from('front_deal_snapshots')
       .select('snapshot_date, close_probability')
       .eq('deal_id', dealId)
+      .gte('snapshot_date', '2026-01-01')
       .order('snapshot_date', { ascending: true })
       .limit(30);
 
