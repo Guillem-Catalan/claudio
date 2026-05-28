@@ -978,9 +978,15 @@ tailwind.config = {
           <div id="atlasSubtitle" class="text-xs text-gray-400"></div>
         </div>
       </div>
-      <button onclick="closeAtlas()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
+      <div class="flex items-center gap-2">
+        <a id="atlasHubspotLink" href="#" target="_blank" rel="noopener" class="hidden items-center gap-1.5 text-[10px] font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg px-3 py-1.5 transition-colors">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="#ea580c"><path d="M18.16 5.67V3.39a1.71 1.71 0 0 0 1-1.55 1.72 1.72 0 0 0-3.44 0c0 .67.39 1.24.95 1.52v2.31a5.07 5.07 0 0 0-2.2 1.2l-6.6-5.14a2.11 2.11 0 0 0 .05-.45 2.08 2.08 0 1 0-2.08 2.08c.46 0 .89-.16 1.24-.42l6.47 5.04a5.1 5.1 0 0 0 .28 5.91l-1.92 1.92a1.64 1.64 0 0 0-.48-.08 1.65 1.65 0 1 0 1.65 1.65 1.63 1.63 0 0 0-.08-.48l1.9-1.9a5.12 5.12 0 1 0 4.16-9.83Zm-.44 7.62a2.85 2.85 0 1 1 0-5.7 2.85 2.85 0 0 1 0 5.7Z"/></svg>
+          HubSpot
+        </a>
+        <button onclick="closeAtlas()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
     </div>
     <div id="atlasBody" class="p-6"></div>
   </div>
@@ -3087,6 +3093,15 @@ function openAtlas(dealId) {
   body.innerHTML = '<div class="flex items-center justify-center py-12"><span class="text-sm text-gray-400">Cargando Atlas...</span></div>';
   document.getElementById('atlasCompanyName').textContent = cleanDealName(deal.deal_name);
   document.getElementById('atlasSubtitle').textContent = '';
+  const hsLink = document.getElementById('atlasHubspotLink');
+  if (deal.deal_id) {
+    hsLink.href = `https://app-eu1.hubspot.com/contacts/4960096/record/0-3/${deal.deal_id}`;
+    hsLink.classList.remove('hidden');
+    hsLink.classList.add('inline-flex');
+  } else {
+    hsLink.classList.add('hidden');
+    hsLink.classList.remove('inline-flex');
+  }
 
   modal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
@@ -3102,7 +3117,10 @@ function openAtlas(dealId) {
     document.getElementById('atlasSubtitle').innerHTML = pills.map(p => `<span class="inline-block bg-gray-100 text-gray-600 text-[10px] px-2 py-0.5 rounded-full">${p}</span>`).join('') + (atlas.website ? ` <a href="${atlas.website}" target="_blank" rel="noopener" class="inline-block text-[10px] text-brand-600 hover:underline ml-1">${atlas.website.replace(/^https?:\/\//, '')}</a>` : '');
 
     const contacts = parseContacts(atlas.contacts_map, atlas.contacts_breakdown, deal.contacts_info);
-    const deals = parseDeals(atlas.deals_breakdown);
+    const deals = parseDeals(atlas.deals_breakdown).sort((a, b) => {
+      const order = e => { const u = (e || '').toUpperCase(); return u.includes('GANADO') || u.includes('WON') ? 1 : u.includes('PERDIDO') || u.includes('LOST') || u.includes('CERRADO') ? 2 : 0; };
+      return order(a.estado) - order(b.estado);
+    });
     let card = atlas.company_card;
     let insights = atlas.deal_insights;
     if (typeof card === 'string') try { card = JSON.parse(card); } catch { card = null; }
