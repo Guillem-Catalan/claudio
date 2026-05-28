@@ -65,6 +65,7 @@ def _build_user_prompt(deal: dict, deal_context: str, prev: dict | None) -> str:
         for field in [
             "deal_summary", "m_score", "e_score", "dc_score",
             "dp_score", "i_score", "c_score", "live_blockers", "next_step",
+            "action_signal",
         ]:
             val = prev.get(field)
             if val is not None and val != "":
@@ -174,6 +175,7 @@ def run(deal_uuid: str, hs_deal_id: str):
         "improvements": _to_str(claude_out.get("improvements")),
         "deal_strengths": _to_str(claude_out.get("deal_strengths")),
         "next_step": _to_str(claude_out.get("next_step")),
+        "action_signal": _to_str(claude_out.get("action_signal")),
     }
     snapshot = {k: v for k, v in snapshot.items() if v is not None and v != ""}
 

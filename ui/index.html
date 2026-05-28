@@ -2219,6 +2219,66 @@ const STAGE_MAP = {
   'Hot Nurturing': { label: 'Hot Nurt.', bg: 'bg-orange-100', text: 'text-orange-700' },
 };
 
+const PIPELINE_PHASES = [
+  { key: 'closing', label: 'Closing', headerBg: 'bg-green-50', headerBorder: 'border-green-100', headerText: 'text-green-800', staleDays: 7,
+    stages: ['Economical Allignment Started', 'Pricing and Packaging', 'Pricing & Packaging', 'Contract Sent'] },
+  { key: 'evaluating', label: 'Evaluating', headerBg: 'bg-blue-50', headerBorder: 'border-blue-100', headerText: 'text-blue-800', staleDays: 10,
+    stages: ['Factorial Project Alignment started', 'MEDDPICC Criteria Validation Started', 'Product Alignment'] },
+  { key: 'demo', label: 'Demo', headerBg: 'bg-cyan-50', headerBorder: 'border-cyan-100', headerText: 'text-cyan-800', staleDays: 7,
+    stages: ['Demo Booked', 'Meeting Booked', 'Meeting scheduled', 'Discovery'] },
+  { key: 'nurturing', label: 'Nurturing', headerBg: 'bg-amber-50', headerBorder: 'border-amber-100', headerText: 'text-amber-800', staleDays: 21,
+    stages: ['Nurturing', 'Sales Nurturing', 'Hot Nurturing', 'Long Nurturing', 'To reschedule'] },
+  { key: 'qualifying', label: 'Qualifying', headerBg: 'bg-slate-100', headerBorder: 'border-slate-200', headerText: 'text-slate-700', staleDays: 10,
+    stages: ['Attempting to contact', 'Attempted to contact', 'Client Contacted', 'Connected - Not Engaged', 'Engaged', 'Pre-qualified'] },
+  { key: 'prospecting', label: 'Prospecting', headerBg: 'bg-slate-50', headerBorder: 'border-slate-100', headerText: 'text-slate-600', staleDays: 14,
+    stages: ['New', 'New Deals', 'Research & Outreach', 'Associating the partner', 'Opportunity detected'] },
+  { key: 'onhold', label: 'On Hold', headerBg: 'bg-amber-50', headerBorder: 'border-amber-100', headerText: 'text-amber-800', staleDays: 30,
+    stages: ['On Hold'] },
+];
+
+const _STAGE_TO_PHASE = {};
+for (const phase of PIPELINE_PHASES) {
+  for (const s of phase.stages) _STAGE_TO_PHASE[s] = phase.key;
+}
+
+let _collapsedPhases = new Set();
+
+function _daysSinceContact(deal) {
+  if (!deal.last_contacted_hs) return Infinity;
+  return Math.floor((Date.now() - new Date(deal.last_contacted_hs).getTime()) / 86400000);
+}
+
+function _isStale(deal) {
+  const phase = PIPELINE_PHASES.find(p => p.key === (_STAGE_TO_PHASE[deal.deal_stage] || 'other'));
+  const threshold = phase ? phase.staleDays : 14;
+  return _daysSinceContact(deal) > threshold;
+}
+
+function pipelineSignal(deal) {
+  const snap = getSnap(deal.id);
+  const days = _daysSinceContact(deal);
+  if (_isStale(deal)) return { text: `Sin contacto hace ${days === Infinity ? '?' : days} d`, cls: 'text-red-600 font-medium' };
+  if (snap?.action_signal) {
+    const sig = snap.action_signal.trim();
+    if (sig) return { text: sig.length > 60 ? sig.slice(0, 57) + '...' : sig, cls: 'text-brand-700 font-medium' };
+  }
+  if (snap?.live_blockers) {
+    const first = snap.live_blockers.split('\n')[0].replace(/^[-•!*\s]+/, '').trim();
+    if (first) return { text: 'Blocker: ' + (first.length > 50 ? first.slice(0, 47) + '...' : first), cls: 'text-amber-700' };
+  }
+  if (snap?.next_step) {
+    const first = snap.next_step.split('\n')[0].replace(/^[-•]\s*/, '').trim();
+    if (first) return { text: first.length > 55 ? first.slice(0, 52) + '...' : first, cls: 'text-gray-600' };
+  }
+  if (snap?.buyer_signals) {
+    const first = snap.buyer_signals.split('\n')[0].replace(/^[-•+]\s*/, '').trim();
+    if (first) return { text: first.length > 55 ? first.slice(0, 52) + '...' : first, cls: 'text-green-600' };
+  }
+  const phaseKey = _STAGE_TO_PHASE[deal.deal_stage] || 'other';
+  const defaults = { closing: 'En negociacion final', evaluating: 'En evaluacion', demo: 'Demo pendiente', nurturing: 'En seguimiento', qualifying: 'Contacto inicial', prospecting: 'Pendiente de primer contacto', onhold: 'Deal pausado' };
+  return { text: defaults[phaseKey] || '—', cls: 'text-gray-400 italic' };
+}
+
 const EXCLUDE_STAGES = new Set([
   'Opportunity lost', 'Closed lost', 'Closed Lost', 'Closed won', 'Closed Won',
   'Closed Won - Finance Only', 'Opportunity Lost', 'Opportunity Lost ',
@@ -2253,8 +2313,8 @@ function probColor(p) {
 
 function formatMRR(amount) {
   if (!amount && amount !== 0) return '—';
-  if (amount >= 1000) return '€' + (amount / 1000).toFixed(amount % 1000 === 0 ? 0 : 1) + 'K';
-  return '€' + amount;
+  if (amount >= 1000) return '€' + (Math.round(amount / 100) / 10) + 'K';
+  return '€' + Math.round(amount);
 }
 
 function cleanDealName(name) {
@@ -2301,7 +2361,7 @@ async function loadDeals() {
     const batch = dealIds.slice(i, i + 50);
     const { data: snaps } = await _sb
       .from('front_deal_snapshots')
-      .select('deal_id, close_probability, m_score, e_score, dc_score, dp_score, i_score, c_score, deal_summary, buyer_signals, live_blockers, objections, next_step, claudio_forecast, snapshot_date, m_accumulate, e_accumulate, dc_accumulate, dp_accumulate, i_accumulate, c_accumulate, deal_strengths, improvements')
+      .select('deal_id, close_probability, m_score, e_score, dc_score, dp_score, i_score, c_score, deal_summary, buyer_signals, live_blockers, objections, next_step, claudio_forecast, snapshot_date, m_accumulate, e_accumulate, dc_accumulate, dp_accumulate, i_accumulate, c_accumulate, deal_strengths, improvements, action_signal')
       .in('deal_id', batch)
       .order('snapshot_date', { ascending: false })
       .limit(5000);
@@ -2371,23 +2431,32 @@ function populatePaeFilter() {
   }
   const stageSelect = document.getElementById('stageFilter');
   if (stageSelect) {
-    const stages = [...new Set(_dealsCache.map(d => d.deal_stage).filter(Boolean))].sort();
-    stageSelect.innerHTML = '<option value="">All Stages</option>' + stages.map(s => {
-      const m = STAGE_MAP[s];
-      const label = m ? m.label : s.slice(0, 20);
-      return `<option value="${s}">${label}</option>`;
+    const phaseOptions = PIPELINE_PHASES.map(p => {
+      const count = _dealsCache.filter(d => _STAGE_TO_PHASE[d.deal_stage] === p.key).length;
+      return count > 0 ? `<option value="phase:${p.key}">${p.label} (${count})</option>` : '';
     }).join('');
+    const otherCount = _dealsCache.filter(d => !_STAGE_TO_PHASE[d.deal_stage]).length;
+    const otherOpt = otherCount > 0 ? `<option value="phase:other">Other (${otherCount})</option>` : '';
+    stageSelect.innerHTML = '<option value="">All Stages</option>' + phaseOptions + otherOpt;
   }
 }
 
 function getFilteredDeals() {
   const search = (document.getElementById('dealSearch')?.value || '').toLowerCase();
   const owner = document.getElementById('paeFilter')?.value || '';
-  const stage = document.getElementById('stageFilter')?.value || '';
+  const stageVal = document.getElementById('stageFilter')?.value || '';
   return _dealsCache.filter(d => {
     if (search && !(d.deal_name || '').toLowerCase().includes(search)) return false;
     if (owner && d.pae !== owner && d.pbd !== owner) return false;
-    if (stage && d.deal_stage !== stage) return false;
+    if (stageVal) {
+      if (stageVal.startsWith('phase:')) {
+        const phaseKey = stageVal.slice(6);
+        const dealPhase = _STAGE_TO_PHASE[d.deal_stage] || 'other';
+        if (dealPhase !== phaseKey) return false;
+      } else if (d.deal_stage !== stageVal) {
+        return false;
+      }
+    }
     return true;
   });
 }
@@ -2636,60 +2705,47 @@ function renderTodayView(deals) {
   }).join('');
 }
 
-// ── Render Pipeline view (dense table) ────────────────────────────────
+// ── Render Pipeline view (grouped by phase) ──────────────────────────
 
-let _sortCol = 'amount';
-let _sortAsc = false;
-
-function sortDeals(deals) {
-  return [...deals].sort((a, b) => {
-    let va, vb;
-    if (_sortCol === 'amount') { va = a.amount || 0; vb = b.amount || 0; }
-    else if (_sortCol === 'prob') { va = getSnap(a.id)?.close_probability || 0; vb = getSnap(b.id)?.close_probability || 0; }
-    else if (_sortCol === 'score') { va = parseFloat(scoreValue(a)) || 0; vb = parseFloat(scoreValue(b)) || 0; }
-    else if (_sortCol === 'days') { va = a.deal_age_days || 0; vb = b.deal_age_days || 0; }
-    else if (_sortCol === 'contact') {
-      va = a.last_contacted_hs ? new Date(a.last_contacted_hs).getTime() : 0;
-      vb = b.last_contacted_hs ? new Date(b.last_contacted_hs).getTime() : 0;
-    }
-    else if (_sortCol === 'trend') {
-      va = getTrend(a.id)?.val || 0; vb = getTrend(b.id)?.val || 0;
-    }
-    else { va = a.amount || 0; vb = b.amount || 0; }
-    return _sortAsc ? va - vb : vb - va;
-  });
-}
-
-function toggleSort(col) {
-  if (_sortCol === col) _sortAsc = !_sortAsc;
-  else { _sortCol = col; _sortAsc = false; }
+function togglePhase(key) {
+  if (_collapsedPhases.has(key)) _collapsedPhases.delete(key);
+  else _collapsedPhases.add(key);
   renderActiveDealsTab();
 }
 
-function renderPipelineView(deals) {
-  const container = document.getElementById('dealsPipeline');
-  if (!container) return;
+function _sortByLastContact(deals) {
+  return [...deals].sort((a, b) => {
+    const ta = a.last_contacted_hs ? new Date(a.last_contacted_hs).getTime() : 0;
+    const tb = b.last_contacted_hs ? new Date(b.last_contacted_hs).getTime() : 0;
+    return tb - ta;
+  });
+}
 
-  const cl = classifyDealsForToday(deals);
-  const pipelineDeals = deals.filter(d => !cl.assigned.has(d.id));
+function _renderPhaseSection(phase, deals) {
+  const sorted = _sortByLastContact(deals);
+  const staleCount = sorted.filter(d => _isStale(d)).length;
+  const sectionMRR = sorted.reduce((s, d) => s + (d.amount || 0), 0);
+  const collapsed = _collapsedPhases.has(phase.key);
+  const arrow = collapsed ? '&#9654;' : '&#9660;';
 
-  const allSorted = sortDeals(pipelineDeals);
-  const sorted = allSorted.slice(0, 100);
-  const sortIcon = (col) => _sortCol === col ? (_sortAsc ? ' ↑' : ' ↓') : '';
+  const staleHtml = staleCount > 0
+    ? `<span class="text-[10px] text-red-600 font-semibold ml-2">${staleCount} stale</span>` : '';
 
-  const rows = sorted.map(d => {
+  const rows = collapsed ? '' : sorted.map(d => {
     const snap = getSnap(d.id);
     const trend = getTrend(d.id);
     const prob = snap?.close_probability;
     const pc = probColor(prob);
     const sv = scoreValue(d);
     const sl = scoreLabel(d);
-    const sig = signalText(snap);
+    const sig = pipelineSignal(d);
     const contactAgo = daysAgo(d.last_contacted_hs);
-    const contactClass = d.last_contacted_hs && Math.floor((Date.now() - new Date(d.last_contacted_hs)) / 86400000) > 14 ? 'text-red-500' : 'text-gray-500';
+    const stale = _isStale(d);
+    const rowCls = stale ? 'border-l-2 border-l-red-400 bg-red-50/40' : '';
+    const contactClass = stale ? 'text-red-500 font-medium' : 'text-gray-500';
     const owner = d.pae || d.pbd || '—';
 
-    return `<tr class="hover:bg-gray-50/80 group border-b border-gray-50 cursor-pointer" onclick="openHistorico('${d.id}')">
+    return `<tr class="hover:bg-gray-50/80 group border-b border-gray-50 cursor-pointer ${rowCls}" onclick="openHistorico('${d.id}')">
       <td class="py-2.5 px-3"><span class="text-xs font-semibold text-gray-900">${cleanDealName(d.deal_name)}</span></td>
       <td class="py-2.5 px-3">${stagePill(d.deal_stage)}</td>
       <td class="py-2.5 px-3 text-right"><span class="text-xs font-bold text-gray-800">${formatMRR(d.amount)}</span></td>
@@ -2699,7 +2755,7 @@ function renderPipelineView(deals) {
       <td class="py-2.5 px-3 text-xs ${contactClass}">${contactAgo || '—'}</td>
       <td class="py-2.5 px-3 text-xs ${trend?.cls || 'text-gray-400'} font-medium">${trend?.label || '—'}</td>
       <td class="py-2.5 px-3 text-xs text-gray-500">${owner}</td>
-      <td class="py-2.5 px-3 text-xs text-gray-600 truncate max-w-[200px]">${sig}</td>
+      <td class="py-2.5 px-3 text-xs ${sig.cls} truncate max-w-[220px]">${sig.text}</td>
       <td class="py-2.5 px-3 text-right opacity-0 group-hover:opacity-100 transition-opacity">
         <div class="flex gap-1 justify-end">
           <button onclick="event.stopPropagation(); openAtlas('${d.id}')" class="text-[10px] font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 rounded px-2 py-1">Atlas</button>
@@ -2710,29 +2766,69 @@ function renderPipelineView(deals) {
     </tr>`;
   }).join('');
 
-  const moreHtml = allSorted.length > 100
-    ? `<tr><td colspan="11" class="text-center text-[10px] text-gray-300 py-2">Showing top 100 of ${allSorted.length} deals</td></tr>` : '';
+  const tableHtml = collapsed ? '' : `<table class="w-full text-left">
+      <thead><tr class="border-b border-gray-50">
+        <th class="py-1.5 px-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Deal</th>
+        <th class="py-1.5 px-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Stage</th>
+        <th class="py-1.5 px-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider text-right">MRR</th>
+        <th class="py-1.5 px-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider text-center">Prob</th>
+        <th class="py-1.5 px-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider text-center">Score</th>
+        <th class="py-1.5 px-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider text-center">Days</th>
+        <th class="py-1.5 px-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Last Contact</th>
+        <th class="py-1.5 px-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Trend</th>
+        <th class="py-1.5 px-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Owner</th>
+        <th class="py-1.5 px-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Signal</th>
+        <th class="py-1.5 px-3 w-32"></th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
 
-  container.innerHTML = `<div class="bg-white rounded-lg border border-gray-100 overflow-hidden">
-    <div class="overflow-x-auto">
-      <table class="w-full text-left">
-        <thead><tr class="border-b border-gray-100 bg-gray-50/50">
-          <th class="py-2 px-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-600" onclick="toggleSort('name')">Deal</th>
-          <th class="py-2 px-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Stage</th>
-          <th class="py-2 px-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider text-right cursor-pointer hover:text-gray-600" onclick="toggleSort('amount')">MRR${sortIcon('amount')}</th>
-          <th class="py-2 px-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider text-center cursor-pointer hover:text-gray-600" onclick="toggleSort('prob')">Prob${sortIcon('prob')}</th>
-          <th class="py-2 px-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider text-center cursor-pointer hover:text-gray-600" onclick="toggleSort('score')">Score${sortIcon('score')}</th>
-          <th class="py-2 px-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider text-center cursor-pointer hover:text-gray-600" onclick="toggleSort('days')">Days${sortIcon('days')}</th>
-          <th class="py-2 px-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-600" onclick="toggleSort('contact')">Last Contact${sortIcon('contact')}</th>
-          <th class="py-2 px-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-600" onclick="toggleSort('trend')">Trend${sortIcon('trend')}</th>
-          <th class="py-2 px-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Owner</th>
-          <th class="py-2 px-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Signal</th>
-          <th class="py-2 px-3 w-32"></th>
-        </tr></thead>
-        <tbody>${rows}${moreHtml}</tbody>
-      </table>
+  return `<div class="bg-white rounded-lg border border-gray-100 overflow-hidden">
+    <div class="${phase.headerBg} border-b ${phase.headerBorder} px-4 py-2.5 flex items-center justify-between cursor-pointer select-none" onclick="togglePhase('${phase.key}')">
+      <div class="flex items-center gap-2">
+        <span class="text-[10px] ${phase.headerText} opacity-60">${arrow}</span>
+        <span class="text-xs font-semibold ${phase.headerText}">${phase.label}</span>
+        <span class="text-[10px] ${phase.headerText} opacity-60">${deals.length} deals · ${formatMRR(sectionMRR)}</span>
+        ${staleHtml}
+      </div>
     </div>
+    ${tableHtml}
   </div>`;
+}
+
+function renderPipelineView(deals) {
+  const container = document.getElementById('dealsPipeline');
+  if (!container) return;
+
+  const cl = classifyDealsForToday(deals);
+  const pipelineDeals = deals.filter(d => !cl.assigned.has(d.id));
+
+  const grouped = {};
+  for (const d of pipelineDeals) {
+    const key = _STAGE_TO_PHASE[d.deal_stage] || 'other';
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(d);
+  }
+
+  const sections = [];
+  for (const phase of PIPELINE_PHASES) {
+    if (grouped[phase.key]?.length) {
+      sections.push(_renderPhaseSection(phase, grouped[phase.key]));
+    }
+  }
+  if (grouped.other?.length) {
+    sections.push(_renderPhaseSection(
+      { key: 'other', label: 'Other', headerBg: 'bg-gray-50', headerBorder: 'border-gray-100', headerText: 'text-gray-600', staleDays: 14 },
+      grouped.other
+    ));
+  }
+
+  if (sections.length === 0) {
+    container.innerHTML = '<div class="text-center text-sm text-gray-400 py-12">No deals in pipeline</div>';
+    return;
+  }
+
+  container.innerHTML = '<div class="space-y-3">' + sections.join('') + '</div>';
 }
 
 // ── Atlas cache ─────────────────────────────────────────────────────────

@@ -23,7 +23,8 @@ Devuelve exactamente este JSON y nada más. Sin prose, sin markdown, solo el obj
   "live_blockers": "...",
   "improvements": "...",
   "deal_strengths": "...",
-  "next_step": "..."
+  "next_step": "...",
+  "action_signal": "..."
 }
 
 INSTRUCCIONES POR CAMPO:
@@ -181,3 +182,23 @@ Idioma del next_step = idioma en que se comunican rep y prospect en el deal
 Sin explicaciones, sin contexto, sin "por qué" — solo la acción
 Ejemplo:
 • Pol → llamar a Marta Gómez (CFO) para cerrar pricing del módulo de nómina — antes del jueves 15\n• Pol → enviar propuesta formal con desglose de 3 módulos a Marta por email — inmediatamente después de la call\n• Hacer follow up a Marta sobre el presupuesto interno que prometió compartir — si no llega el viernes, escribir\n• Pol → agendar demo técnica con Javier López (IT) para resolver integración SAP — semana del 19 mayo\n• Escalar a Joan (TL) si Marta no responde en 5 días — deal lleva 12 días sin movimiento
+
+action_signal: Una sola frase imperativa de máximo 60 caracteres que diga exactamente qué debe hacer
+el rep AHORA MISMO con este deal. Es lo primero que verá en el dashboard — tiene que ser tan concreto
+que pueda actuar sin abrir el deal.
+Formato: [Verbo] [a quién, con nombre si disponible] [qué hacer] [cuándo si hay fecha]
+Reglas:
+- Siempre accionable y específica. NUNCA frases genéricas como "Seguir avanzando", "Continuar proceso",
+  "Mantener contacto" o "Hacer seguimiento del deal".
+- Si hay un nombre de contacto relevante del prospect, inclúyelo.
+- Si hay una fecha límite o urgencia concreta del contexto, inclúyela.
+- Si el deal está parado muchos días sin actividad, la acción debe reflejar reactivación.
+- Si no hay suficiente contexto para ser específico, usa la acción más lógica según el stage actual.
+- Idioma = español, pero usa términos de ventas en inglés si son naturales (ROI, follow up, pricing).
+Ejemplos:
+"Enviar ROI a Angela antes del 30/05"
+"Llamar a Lucia para confirmar pricing"
+"Agendar segunda demo con IT"
+"Follow up a Marta por presupuesto"
+"Pedir intro al CFO via champion"
+Solo devolver la frase, sin explicación.
