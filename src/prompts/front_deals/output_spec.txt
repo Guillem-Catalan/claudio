@@ -6,6 +6,7 @@ Devuelve exactamente este JSON y nada más. Sin prose, sin markdown, solo el obj
   "PBD": "...",
   "PAE": "...",
   "Deal_Summary": "...",
+  "Deal_Assessment": "...",
   "M_accumulate": "...",
   "M_score": 0,
   "E_accumulate": "...",
@@ -45,6 +46,16 @@ y quiénes son los interlocutores clave.
 Frase 3 — Lo que está en juego: MRR del deal, stage actual, y el factor crítico que determinará
 si cierra o no.
 Sin títulos, sin bullets, solo las 3 frases seguidas como texto corrido. Máximo 40 palabras por frase.
+
+Deal_Assessment: Genera exactamente 3 frases en este orden fijo:
+Frase 1 — En qué punto está: describe la situación real del proceso de venta, no datos sino interpretación.
+Dónde estamos en el ciclo (descubrimiento, propuesta enviada, negociación, esperando decisión, deal parado, etc.)
+Frase 2 — Qué bloquea o acelera: el factor crítico que determina si el deal avanza o se estanca.
+Puede ser una objeción no resuelta, una dependencia interna del prospect, falta de acceso a decisor, competencia, etc.
+Frase 3 — Qué toca hacer: la acción concreta que el rep debe ejecutar para mover el deal al siguiente paso.
+Sin títulos, sin bullets, solo las 3 frases seguidas como texto corrido. Máximo 35 palabras por frase.
+NO repetir datos que ya están en otros campos (MRR, stage, nombre empresa, empleados).
+El tono debe ser directo, como un coach de ventas hablando al rep. Idioma español.
 
 M_accumulate: Genera exactamente 2 frases en este orden fijo:
 Frase 1 — Lo que se ha cuantificado: qué métricas concretas ha confirmado o mencionado el prospect

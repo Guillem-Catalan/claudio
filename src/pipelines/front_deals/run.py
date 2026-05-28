@@ -63,7 +63,7 @@ def _build_user_prompt(deal: dict, deal_context: str, prev: dict | None) -> str:
             f"SNAPSHOT ANTERIOR ({prev.get('snapshot_date', '?')})",
         ]
         for field in [
-            "deal_summary", "m_score", "e_score", "dc_score",
+            "deal_summary", "deal_assessment", "m_score", "e_score", "dc_score",
             "dp_score", "i_score", "c_score", "live_blockers", "next_step",
             "action_signal",
         ]:
@@ -157,6 +157,7 @@ def run(deal_uuid: str, hs_deal_id: str):
         "pbd": _to_str(claude_out.get("PBD")),
         "pae": _to_str(claude_out.get("PAE")),
         "deal_summary": _to_str(claude_out.get("Deal_Summary")),
+        "deal_assessment": _to_str(claude_out.get("Deal_Assessment")),
         "m_accumulate": _to_str(claude_out.get("M_accumulate")),
         "m_score": claude_out.get("M_score"),
         "e_accumulate": _to_str(claude_out.get("E_accumulate")),
