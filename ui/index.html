@@ -994,27 +994,48 @@ tailwind.config = {
   </div>
 </div>
 
-<!-- ====== EMAIL MODAL ====== -->
+<!-- ====== EMAIL MODAL (Gmail-style) ====== -->
 <div id="emailModal" class="fixed inset-0 z-[60] hidden">
   <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeEmailModal()"></div>
-  <div class="absolute inset-6 md:inset-12 lg:inset-y-10 lg:inset-x-32 bg-white rounded-2xl shadow-2xl overflow-hidden z-10 fade-in flex flex-col">
-    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-      <div class="flex items-center gap-3">
-        <div class="w-8 h-8 bg-cyan-100 rounded-lg flex items-center justify-center">
-          <span class="text-cyan-600 font-bold text-sm">@</span>
-        </div>
-        <div>
-          <h2 id="emailModalTitle" class="text-lg font-bold text-gray-900">Email de follow up</h2>
-          <span id="emailModalSub" class="text-xs text-gray-400"></span>
-        </div>
-      </div>
-      <button onclick="closeEmailModal()" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+  <div class="absolute inset-6 md:inset-10 lg:inset-y-8 lg:inset-x-[20%] bg-white rounded-2xl shadow-2xl overflow-hidden z-10 fade-in flex flex-col" style="max-width:820px; margin:0 auto;">
+
+    <!-- Gmail-style header bar -->
+    <div class="flex items-center justify-between px-5 py-3 bg-gray-800 rounded-t-2xl">
+      <span id="emailModalTitle" class="text-sm font-medium text-white">Nuevo mensaje</span>
+      <button onclick="closeEmailModal()" class="w-7 h-7 flex items-center justify-center rounded hover:bg-gray-700 text-gray-400 hover:text-white transition-colors">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
       </button>
     </div>
-    <div id="emailModalBody" class="flex-1 overflow-y-auto px-8 py-6">
-      <div class="text-sm text-gray-400">Cargando...</div>
+
+    <!-- Context bar (reason + when) -->
+    <div id="emContextBar" class="flex items-center gap-4 px-5 py-2 bg-blue-50 border-b border-blue-100 text-xs">
+      <span class="text-blue-700"><b>Motivo:</b> <span id="emReason">—</span></span>
+      <span class="text-blue-600"><b>Enviar:</b> <span id="emSendWhen">—</span></span>
     </div>
+
+    <!-- To field -->
+    <div class="flex items-center border-b border-gray-200 px-5 py-2.5">
+      <span class="text-sm text-gray-400 w-14 shrink-0">Para</span>
+      <input id="emTo" class="flex-1 text-sm text-gray-800 outline-none bg-transparent" readonly />
+    </div>
+
+    <!-- Subject field -->
+    <div class="flex items-center border-b border-gray-200 px-5 py-2.5">
+      <span class="text-sm text-gray-400 w-14 shrink-0">Asunto</span>
+      <input id="emEmailSubject" class="flex-1 text-sm text-gray-800 outline-none bg-transparent" />
+    </div>
+
+    <!-- Body -->
+    <textarea id="emEmailBodyText" class="flex-1 px-5 py-4 text-sm text-gray-700 leading-relaxed outline-none resize-none" placeholder="Escribe tu mensaje..."></textarea>
+
+    <!-- Bottom toolbar -->
+    <div class="flex items-center gap-3 px-5 py-3 border-t border-gray-200 bg-gray-50">
+      <button onclick="openInGmail()" class="text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-full px-6 py-2 transition-colors">Abrir en Gmail</button>
+      <button onclick="copyEmailFromModal()" class="text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-full px-4 py-2 transition-colors">Copiar</button>
+      <span id="emEmailCopyStatus" class="text-xs text-green-600 hidden">Copiado</span>
+      <span id="emRegenHint" class="ml-auto text-xs text-gray-300"></span>
+    </div>
+
   </div>
 </div>
 
@@ -2150,41 +2171,19 @@ function openEmailModal() {
   const hasNewContext = deal && deal.updated_at && draft.context_snapshot_at
     && new Date(deal.updated_at) > new Date(draft.context_snapshot_at);
 
-  document.getElementById('emailModalTitle').textContent = deal ? cleanDealName(deal.deal_name) : 'Email de follow up';
-  document.getElementById('emailModalSub').textContent = draft.recipient || '';
+  document.getElementById('emailModalTitle').textContent = deal ? cleanDealName(deal.deal_name) : 'Nuevo mensaje';
+  document.getElementById('emTo').value = draft.recipient || '';
+  document.getElementById('emReason').textContent = draft.reason || '—';
+  document.getElementById('emSendWhen').textContent = draft.send_when || '—';
+  document.getElementById('emEmailSubject').value = draft.subject || '';
+  document.getElementById('emEmailBodyText').value = draft.body || '';
 
-  const el = document.getElementById('emailModalBody');
-  el.innerHTML = `
-    <div class="max-w-2xl mx-auto space-y-6">
-      <div class="grid grid-cols-3 gap-4">
-        <div class="bg-gray-50 rounded-xl p-4">
-          <div class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Para</div>
-          <div class="text-sm text-gray-800">${draft.recipient || '—'}</div>
-        </div>
-        <div class="bg-gray-50 rounded-xl p-4">
-          <div class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Cuando</div>
-          <div class="text-sm text-gray-800">${draft.send_when || '—'}</div>
-        </div>
-        <div class="bg-gray-50 rounded-xl p-4">
-          <div class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Motivo</div>
-          <div class="text-sm text-gray-800">${draft.reason || '—'}</div>
-        </div>
-      </div>
-      <div>
-        <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Asunto</label>
-        <input id="emEmailSubject" value="${(draft.subject || '').replace(/"/g, '&quot;')}" class="w-full text-base font-medium text-gray-800 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400" />
-      </div>
-      <div>
-        <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Cuerpo del email</label>
-        <textarea id="emEmailBodyText" rows="14" class="w-full text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 leading-relaxed">${draft.body || ''}</textarea>
-      </div>
-      <div class="flex items-center gap-3 pt-2">
-        <button onclick="copyEmailFromModal()" class="text-sm font-medium text-white bg-cyan-500 hover:bg-cyan-600 rounded-xl px-6 py-2.5 transition-colors">Copiar email</button>
-        <button onclick="openInGmail()" class="text-sm font-medium text-cyan-600 bg-cyan-50 hover:bg-cyan-100 rounded-xl px-6 py-2.5 transition-colors">Abrir en Gmail</button>
-        ${hasNewContext ? '<button onclick="closeEmailModal(); generateEmailDraft();" class="ml-auto text-xs text-gray-400 hover:text-cyan-600 transition-colors">Nueva actividad — regenerar</button>' : '<span class="ml-auto text-xs text-gray-300">Se regenera cuando haya nueva actividad</span>'}
-      </div>
-      <span id="emEmailCopyStatus" class="text-xs text-green-600 hidden">Copiado y guardado</span>
-    </div>`;
+  const hint = document.getElementById('emRegenHint');
+  if (hasNewContext) {
+    hint.innerHTML = '<button onclick="closeEmailModal(); generateEmailDraft();" class="text-xs text-gray-400 hover:text-blue-600 transition-colors underline">Nueva actividad — regenerar</button>';
+  } else {
+    hint.textContent = 'Se regenera cuando haya nueva actividad';
+  }
 
   document.getElementById('emailModal').classList.remove('hidden');
 }
