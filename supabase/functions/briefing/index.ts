@@ -174,12 +174,12 @@ Deno.serve(async (req) => {
     const userPrompt = `Generate briefing for: ${company}\nMeeting type: ${meetingType}\n\n${contextText}`;
 
     const baseUrl = AZURE_ENDPOINT.replace(/\/+$/, "");
-    const claudeResp = await fetch(`${baseUrl}/v1/messages?api-version=2024-10-01`, {
+    const claudeResp = await fetch(`${baseUrl}/v1/messages`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "api-key": AZURE_KEY,
-        "anthropic-version": "2024-10-01",
+        "x-api-key": AZURE_KEY,
+        "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
         model: MODEL,
