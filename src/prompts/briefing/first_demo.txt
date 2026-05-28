@@ -1,0 +1,60 @@
+MEETING TYPE: FIRST DEMO
+
+This is a first demo or product presentation. The PAE needs full context about who the prospect is, their pains, and qualification status.
+
+In addition to the base fields, include these EXTRA fields in the JSON:
+
+{
+  "pepm": "€X.XX" or null,
+  "empleados": "XXX" or null,
+  "solucion": "Product/solution mentioned" or null,
+
+  "cliente": [
+    "Sector, industry and what the company does",
+    "Company size, employee count if known",
+    "Key decision-makers identified",
+    "Relationship with Factorial (new vs returning)",
+    "Notable context from atlas/history"
+  ],
+
+  "situacion": [
+    "Current HR/payroll solution they use",
+    "Why they're evaluating Factorial now",
+    "Where they are in the buying process",
+    "Key timeline pressures or deadlines"
+  ],
+
+  "pain_principal": {
+    "titulo": "SHORT TITLE IN CAPS — the #1 pain to lead with",
+    "texto": "Evidence-based detail: what was said, by whom, impact on their business"
+  },
+
+  "pains_secundarios": [
+    "Secondary pain with evidence",
+    "Another pain with evidence"
+  ],
+
+  "bant": {
+    "budget": {"emoji": "✅ or ⚠️ or ❌", "text": "Status + evidence from calls/emails"},
+    "authority": {"emoji": "✅ or ⚠️ or ❌", "text": "Who has power, who's attending"},
+    "need": {"emoji": "✅ or ⚠️ or ❌", "text": "Validated need + evidence"},
+    "timeline": {"emoji": "✅ or ⚠️ or ❌", "text": "Urgency level + dates mentioned"}
+  },
+
+  "steps": [
+    {"titulo": "Step title", "desc": "What to do and say. Be specific.", "chips": [{"text": "Topic", "key": true}, {"text": "Topic", "key": false}], "key": true},
+    {"titulo": "Step 2", "desc": "...", "chips": [{"text": "...", "key": false}], "key": false},
+    {"titulo": "Step 3", "desc": "...", "chips": [{"text": "...", "key": false}], "key": false},
+    {"titulo": "Step 4", "desc": "...", "chips": [{"text": "...", "key": true}], "key": true},
+    {"titulo": "Step 5", "desc": "...", "chips": [{"text": "...", "key": false}], "key": false}
+  ]
+}
+
+FIRST DEMO RULES:
+- "cliente" array: 3-5 items
+- "situacion" array: 3-4 items
+- "pains_secundarios": 2-4 items
+- BANT emojis: use ONLY one of ✅ (confirmed), ⚠️ (partial/unclear), ❌ (missing)
+- "steps": exactly 5 items, mark 1-2 as "key": true (most critical moments)
+- Chips: 2 per step, mark the most important one as "key": true
+- pepm/empleados/solucion: extract from context if mentioned, null if not available

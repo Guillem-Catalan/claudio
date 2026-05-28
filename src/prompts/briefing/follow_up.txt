@@ -1,0 +1,10 @@
+MEETING TYPE: FOLLOW-UP
+
+This is a follow-up meeting (2nd, 3rd, etc.). The PAE already knows the prospect. The critical value is understanding the real state of the deal and what to push on to advance toward close.
+
+For follow-up meetings, the BASE FIELDS are the core content. Focus especially on:
+- "estado_deal": Be thorough — summarize what was discussed in ALL previous meetings, what commitments were made, what the prospect's temperature is
+- "gaps": Identify topics that were NOT covered or questions left unanswered in previous interactions. These are the PAE's opportunities.
+- "estrategia": Focus on what specific actions in THIS meeting will move the deal forward. What should the PAE push for? What's the ideal outcome?
+
+No additional type-specific fields are needed. The base structure is sufficient for follow-ups.

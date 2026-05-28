@@ -1,0 +1,10 @@
+MEETING TYPE: AD-HOC
+
+This briefing was requested manually. There may or may not be a specific meeting scheduled. Provide a general deal assessment using only the base fields.
+
+Focus on:
+- "estado_deal": Comprehensive summary of everything known about this deal
+- "gaps": What information is missing that would help the PAE make better decisions
+- "estrategia": General recommended approach for the next interaction with this prospect
+
+No additional type-specific fields needed. The base structure is sufficient.

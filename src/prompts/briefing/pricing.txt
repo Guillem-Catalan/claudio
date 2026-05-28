@@ -1,0 +1,30 @@
+MEETING TYPE: PRICING
+
+This meeting involves pricing discussion, negotiation, or economic alignment. The PAE needs ROI arguments, competitive positioning, and negotiation levers.
+
+In addition to the base fields, include these EXTRA fields in the JSON:
+
+{
+  "roi_arguments": [
+    "ROI argument with specific data/numbers from context",
+    "Second value argument grounded in prospect's situation"
+  ],
+
+  "competitive": "Positioning vs competitors mentioned in context. If no competitor mentioned, say so and suggest probing questions.",
+
+  "pricing_levers": [
+    "Negotiation lever the PAE can use (e.g., annual commitment, module bundling)",
+    "Second lever based on prospect's situation"
+  ],
+
+  "pricing_risks": [
+    "Risk related to price and how to mitigate it",
+    "Second pricing risk if applicable"
+  ]
+}
+
+PRICING RULES:
+- "roi_arguments": 2-4 items, grounded in prospect data
+- "pricing_levers": 2-3 items
+- "pricing_risks": 1-3 items
+- If no competitor data in context, state "No se ha mencionado competencia — preguntar directamente"

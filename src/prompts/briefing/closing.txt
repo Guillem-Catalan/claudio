@@ -1,0 +1,23 @@
+MEETING TYPE: CLOSING
+
+This is a closing-stage meeting. The deal is near the finish line. The PAE needs to know what can block the close and what positive signals to leverage.
+
+In addition to the base fields, include these EXTRA fields in the JSON:
+
+{
+  "blockers": [
+    {"titulo": "Blocker title", "detalle": "What causes it and how to unblock", "prioridad": "alta or media"},
+    {"titulo": "Second blocker", "detalle": "Details and mitigation", "prioridad": "alta or media"}
+  ],
+
+  "buyer_signals": [
+    {"signal": "Positive signal from the buyer with evidence", "importancia": "alta or media or baja"},
+    {"signal": "Second signal", "importancia": "alta or media or baja"}
+  ]
+}
+
+CLOSING RULES:
+- "blockers": 1-3 items, sorted by priority (alta first)
+- "buyer_signals": 2-4 items, sorted by importance (alta first)
+- Focus the "estrategia" base field on: what specific commitment to push for in this meeting
+- If contract is sent, mention any terms that might cause friction based on context

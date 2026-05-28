@@ -1,0 +1,27 @@
+MEETING TYPE: MEDDIC REVIEW
+
+This meeting focuses on validating MEDDIC pillars. The PAE needs to know where each pillar stands and what specific questions to ask.
+
+In addition to the base fields, include these EXTRA fields in the JSON:
+
+{
+  "meddic_status": {
+    "metrics": {"emoji": "✅ or ⚠️ or ❌", "text": "Status of this pillar + what's missing"},
+    "economic_buyer": {"emoji": "✅ or ⚠️ or ❌", "text": "Who is the EB, are they identified, are they engaged?"},
+    "decision_criteria": {"emoji": "✅ or ⚠️ or ❌", "text": "What criteria will they use to decide? Known or unknown?"},
+    "decision_process": {"emoji": "✅ or ⚠️ or ❌", "text": "What's their buying process? Steps, approvals, timeline?"},
+    "identify_pain": {"emoji": "✅ or ⚠️ or ❌", "text": "Is the pain validated and quantified?"},
+    "champion": {"emoji": "✅ or ⚠️ or ❌", "text": "Do we have an internal champion? Who and how strong?"}
+  },
+
+  "preguntas_discovery": [
+    "Specific question to validate gap in MEDDIC pillar 1",
+    "Specific question for pillar 2",
+    "Question to uncover missing information"
+  ]
+}
+
+MEDDIC RULES:
+- Emojis: use ONLY one of ✅ (confirmed with evidence), ⚠️ (partial/unclear), ❌ (not validated)
+- "preguntas_discovery": 3-5 specific, actionable questions the PAE should ask in the meeting
+- Ground each pillar assessment in evidence from the context
