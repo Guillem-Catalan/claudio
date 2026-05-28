@@ -934,7 +934,6 @@ tailwind.config = {
           </div>
           <div class="bg-white border border-gray-200 rounded-xl p-4">
             <div id="nsCommentsList" class="space-y-2 mb-3 max-h-[120px] overflow-y-auto"></div>
-            <input id="nsCommentAuthor" type="text" placeholder="Tu nombre" class="w-full text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 mb-2 focus:outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-400">
             <textarea id="nsCommentText" rows="2" placeholder="Escribe un comentario o problema que hayas encontrado..." class="w-full text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-400"></textarea>
             <div class="flex items-center justify-between mt-2">
               <span id="nsCommentStatus" class="text-[10px] text-gray-400"></span>
@@ -1945,6 +1944,14 @@ function closeNextSteps() {
   _nsCurrentDealName = null;
 }
 
+function commentDate(dateStr) {
+  if (!dateStr) return 'ahora';
+  const d = new Date(dateStr);
+  const today = new Date();
+  if (d.toDateString() === today.toDateString()) return 'Hoy';
+  return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+}
+
 async function loadComments(dealId) {
   _nsCurrentDealId = dealId;
   const deal = _dealsCache.find(d => d.id === dealId);
@@ -1965,7 +1972,7 @@ async function loadComments(dealId) {
   }
 
   listEl.innerHTML = data.map(c => {
-    const ago = daysAgo(c.created_at) || 'ahora';
+    const ago = commentDate(c.created_at);
     return `<div class="flex items-start gap-2 p-2 bg-violet-50/50 rounded-lg border border-violet-100">
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2">
@@ -1979,15 +1986,13 @@ async function loadComments(dealId) {
 }
 
 async function submitComment() {
-  const authorEl = document.getElementById('nsCommentAuthor');
   const bodyEl = document.getElementById('nsCommentText');
   const btn = document.getElementById('nsCommentBtn');
   const statusEl = document.getElementById('nsCommentStatus');
 
-  const author = authorEl.value.trim();
+  const author = window._currentUserName || 'Usuario';
   const body = bodyEl.value.trim();
 
-  if (!author) { statusEl.textContent = 'Escribe tu nombre'; statusEl.className = 'text-[10px] text-red-500'; return; }
   if (!body) { statusEl.textContent = 'Escribe un comentario'; statusEl.className = 'text-[10px] text-red-500'; return; }
   if (!_nsCurrentDealId) return;
 
