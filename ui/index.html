@@ -1952,31 +1952,32 @@ function toggleBriefingPanel() {
 async function requestBriefing() {
   if (!_nsCurrentDealId) return;
   const hint = document.getElementById('nsBriefingHint');
+  const panel = document.getElementById('nsBriefingPanel');
+  const body = document.getElementById('nsBriefingBody');
   hint.textContent = 'Generando...';
+  panel.classList.remove('hidden');
+  body.innerHTML = '<div class="flex items-center gap-2"><div class="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div><span class="text-xs text-gray-500">Generando briefing...</span></div>';
 
-  const deal = _dealsCache.find(d => d.id === _nsCurrentDealId);
-  const dealName = deal ? cleanDealName(deal.deal_name) : '';
-  const stage = deal?.deal_stage || '';
-  const typeMap = {
-    'Factorial Project Alignment started': 'first_demo', 'Demo Booked': 'first_demo',
-    'Meeting Booked': 'first_demo', 'Meeting scheduled': 'first_demo',
-    'Product Alignment': 'first_demo', 'Discovery': 'first_demo',
-    'MEDDPICC Criteria Validation': 'meddic_review',
-    'Economical Allignment': 'pricing', 'Pricing and Packaging': 'pricing',
-    'Contract Sent': 'closing',
-  };
-  const meetingType = typeMap[stage] || 'follow_up';
-
-  const { error } = await _sb.from('briefings').insert({
-    deal_id: _nsCurrentDealId,
-    deal_name: dealName,
-    meeting_type: meetingType,
-    status: 'pending',
-  });
-
-  if (error) {
+  try {
+    const resp = await fetch('https://bqoepgcdgqylobkmqdur.supabase.co/functions/v1/briefing', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _sb.supabaseKey },
+      body: JSON.stringify({ deal_id: _nsCurrentDealId }),
+    });
+    const data = await resp.json();
+    if (!resp.ok || data.error) {
+      hint.textContent = 'Error';
+      body.innerHTML = '<div class="text-xs text-red-500">Error: ' + (data.error || 'unknown') + '</div>';
+      return;
+    }
+    _nsBriefingData = data;
+    hint.textContent = MEETING_TYPE_LABELS[data.brief?.tipo] || 'Listo';
+    document.getElementById('nsToolBriefing').classList.add('ring-2', 'ring-blue-300');
+    renderBriefing(data.brief);
+  } catch (e) {
     hint.textContent = 'Error';
-    console.error('Briefing insert error:', error);
+    body.innerHTML = '<div class="text-xs text-red-500">Error de conexion</div>';
+    console.error('Briefing error:', e);
   }
 }
 
