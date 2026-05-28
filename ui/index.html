@@ -888,18 +888,6 @@ tailwind.config = {
             </div>
           </div>
 
-          <!-- Briefing panel (hidden by default, toggled by click) -->
-          <div id="nsBriefingPanel" class="hidden">
-            <div class="flex items-center gap-2 mb-3">
-              <span class="w-5 h-5 bg-blue-100 rounded flex items-center justify-center text-blue-600 text-[10px] font-bold">B</span>
-              <span class="text-xs font-semibold text-gray-700 uppercase tracking-wider">Briefing</span>
-              <button onclick="toggleBriefingPanel()" class="ml-auto text-[10px] text-gray-400 hover:text-gray-600">Cerrar</button>
-            </div>
-            <div id="nsBriefingBody" class="bg-white border border-gray-200 rounded-xl p-4 max-h-[50vh] overflow-y-auto">
-              <div class="text-sm text-gray-400">Cargando...</div>
-            </div>
-          </div>
-
           <!-- Email follow-up section (always visible) -->
           <div id="nsEmailSection">
             <div class="flex items-center gap-2 mb-3">
@@ -960,6 +948,30 @@ tailwind.config = {
           </div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== BRIEFING MODAL ====== -->
+<div id="briefingModal" class="fixed inset-0 z-[60] hidden">
+  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeBriefingModal()"></div>
+  <div class="absolute inset-6 md:inset-12 lg:inset-y-10 lg:inset-x-32 bg-white rounded-2xl shadow-2xl overflow-hidden z-10 fade-in flex flex-col">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+        </div>
+        <div>
+          <h2 id="briefingModalTitle" class="text-lg font-bold text-gray-900">Briefing</h2>
+          <span id="briefingModalType" class="text-xs text-gray-400"></span>
+        </div>
+      </div>
+      <button onclick="closeBriefingModal()" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div id="briefingModalBody" class="flex-1 overflow-y-auto px-8 py-6">
+      <div class="text-sm text-gray-400">Cargando...</div>
     </div>
   </div>
 </div>
@@ -1896,9 +1908,7 @@ function openNextSteps(dealId) {
     actionsEl.innerHTML = '<div class="text-xs text-gray-400 italic">Sin acciones disponibles. Se generaran con el proximo snapshot.</div>';
   }
 
-  // Reset briefing panel
-  document.getElementById('nsBriefingPanel').classList.add('hidden');
-  document.getElementById('nsBriefingBody').innerHTML = '<div class="text-sm text-gray-400">Cargando...</div>';
+  // Reset briefing state
   document.getElementById('nsBriefingHint').textContent = 'Click para ver';
   document.getElementById('nsToolBriefing').classList.remove('ring-2', 'ring-blue-300');
 
@@ -1940,29 +1950,38 @@ async function loadBriefing(dealId) {
 }
 
 function toggleBriefingPanel() {
-  const panel = document.getElementById('nsBriefingPanel');
-  if (!panel.classList.contains('hidden')) {
-    panel.classList.add('hidden');
-    return;
-  }
-
   if (_nsBriefingData && _nsBriefingData.brief) {
-    renderBriefing(_nsBriefingData.brief);
+    openBriefingModal(_nsBriefingData.brief);
   } else {
     requestBriefing();
-    return;
   }
-  panel.classList.remove('hidden');
+}
+
+function openBriefingModal(brief) {
+  const modal = document.getElementById('briefingModal');
+  const deal = _dealsCache.find(d => d.id === _nsCurrentDealId);
+  document.getElementById('briefingModalTitle').textContent = deal ? cleanDealName(deal.deal_name) : 'Briefing';
+  document.getElementById('briefingModalType').textContent = MEETING_TYPE_LABELS[brief?.tipo] || '';
+  renderBriefing(brief);
+  modal.classList.remove('hidden');
+}
+
+function closeBriefingModal() {
+  document.getElementById('briefingModal').classList.add('hidden');
 }
 
 async function requestBriefing() {
   if (!_nsCurrentDealId) return;
   const hint = document.getElementById('nsBriefingHint');
-  const panel = document.getElementById('nsBriefingPanel');
-  const body = document.getElementById('nsBriefingBody');
+  const modal = document.getElementById('briefingModal');
+  const body = document.getElementById('briefingModalBody');
+  const deal = _dealsCache.find(d => d.id === _nsCurrentDealId);
+
   hint.textContent = 'Generando...';
-  panel.classList.remove('hidden');
-  body.innerHTML = '<div class="flex items-center gap-2"><div class="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div><span class="text-xs text-gray-500">Generando briefing...</span></div>';
+  document.getElementById('briefingModalTitle').textContent = deal ? cleanDealName(deal.deal_name) : 'Briefing';
+  document.getElementById('briefingModalType').textContent = 'Generando briefing...';
+  body.innerHTML = '<div class="flex flex-col items-center justify-center py-20"><div class="w-8 h-8 border-3 border-blue-400 border-t-transparent rounded-full animate-spin mb-4"></div><p class="text-sm text-gray-500">Generando briefing con IA...</p><p class="text-xs text-gray-400 mt-1">Esto puede tardar 15-30 segundos</p></div>';
+  modal.classList.remove('hidden');
 
   try {
     const resp = await fetch('https://bqoepgcdgqylobkmqdur.supabase.co/functions/v1/briefing', {
@@ -1973,22 +1992,25 @@ async function requestBriefing() {
     const data = await resp.json();
     if (!resp.ok || data.error) {
       hint.textContent = 'Error';
-      body.innerHTML = '<div class="text-xs text-red-500">Error: ' + (data.error || 'unknown') + '</div>';
+      document.getElementById('briefingModalType').textContent = '';
+      body.innerHTML = '<div class="flex flex-col items-center justify-center py-20"><p class="text-sm text-red-500">Error: ' + (data.error || 'unknown') + '</p><button onclick="closeBriefingModal()" class="mt-4 text-xs text-gray-400 hover:text-gray-600">Cerrar</button></div>';
       return;
     }
     _nsBriefingData = data;
     hint.textContent = MEETING_TYPE_LABELS[data.brief?.tipo] || 'Listo';
     document.getElementById('nsToolBriefing').classList.add('ring-2', 'ring-blue-300');
+    document.getElementById('briefingModalType').textContent = MEETING_TYPE_LABELS[data.brief?.tipo] || '';
     renderBriefing(data.brief);
   } catch (e) {
     hint.textContent = 'Error';
-    body.innerHTML = '<div class="text-xs text-red-500">Error de conexion</div>';
+    document.getElementById('briefingModalType').textContent = '';
+    body.innerHTML = '<div class="flex flex-col items-center justify-center py-20"><p class="text-sm text-red-500">Error de conexion</p></div>';
     console.error('Briefing error:', e);
   }
 }
 
 function renderBriefing(b) {
-  const body = document.getElementById('nsBriefingBody');
+  const body = document.getElementById('briefingModalBody');
   const tipo = b.tipo || 'follow_up';
   let html = '';
 

@@ -173,7 +173,8 @@ Deno.serve(async (req) => {
     const systemPrompt = BASE_PROMPT + "\n\n" + (TYPE_PROMPTS[meetingType] || TYPE_PROMPTS.ad_hoc);
     const userPrompt = `Generate briefing for: ${company}\nMeeting type: ${meetingType}\n\n${contextText}`;
 
-    const claudeResp = await fetch(`${AZURE_ENDPOINT}/v1/messages`, {
+    const baseUrl = AZURE_ENDPOINT.replace(/\/+$/, "");
+    const claudeResp = await fetch(`${baseUrl}/v1/messages?api-version=2024-10-01`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
