@@ -34,3 +34,13 @@ jobs:
           else
             python -m scripts.sync_deals
           fi
+
+      - name: Refresh calendar meetings
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
+          GCAL_CLIENT_ID: ${{ secrets.GCAL_CLIENT_ID }}
+          GCAL_CLIENT_SECRET: ${{ secrets.GCAL_CLIENT_SECRET }}
+          GCAL_REFRESH_TOKEN: ${{ secrets.GCAL_REFRESH_TOKEN }}
+        run: python -m scripts.sync_calendar --mode refresh

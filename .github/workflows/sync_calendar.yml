@@ -2,8 +2,7 @@ name: Sync Calendar
 
 on:
   schedule:
-    - cron: "0 22 * * 0-4"    # 22:00 UTC (00:00 CEST) → full: reconcile + sync
-    - cron: "0 10 * * 1-5"    # 10:00 UTC (12:00 CEST) → refresh: sync only
+    - cron: "0 22 * * 0-4"    # 22:00 UTC (00:00 CEST) → full: reconcile yesterday + sync today
   workflow_dispatch:
     inputs:
       mode:
@@ -44,12 +43,7 @@ jobs:
         run: |
           MODE="${{ inputs.mode }}"
           if [ -z "$MODE" ]; then
-            HOUR=$(date -u +%H)
-            if [ "$HOUR" = "22" ]; then
-              MODE="full"
-            else
-              MODE="refresh"
-            fi
+            MODE="full"
           fi
           DATE_ARG=""
           if [ -n "${{ inputs.date }}" ]; then
