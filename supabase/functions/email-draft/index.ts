@@ -159,6 +159,8 @@ Deno.serve(async (req) => {
     // Delete previous drafts for this deal (keep only the latest)
     await sb.from("email_drafts").delete().eq("deal_id", deal_id).eq("status", "draft");
 
+    const contextLength = deal.deal_context ? deal.deal_context.length : 0;
+
     const { data: row, error: insErr } = await sb
       .from("email_drafts")
       .insert({
@@ -171,6 +173,7 @@ Deno.serve(async (req) => {
         body: email.body,
         status: "draft",
         context_snapshot_at: deal.updated_at || new Date().toISOString(),
+        context_length: contextLength,
       })
       .select("id")
       .single();
