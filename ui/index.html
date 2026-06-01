@@ -2628,6 +2628,86 @@ function enterApp(user) {
   }
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('appContainer').classList.remove('hidden');
+  loadDeals();
+  setupRealtime();
+}
+
+let _realtimeChannel = null;
+
+function setupRealtime() {
+  if (_realtimeChannel) _sb.removeChannel(_realtimeChannel);
+  _realtimeChannel = _sb.channel('ui-sync')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'front_deal_snapshots' }, (payload) => {
+      handleSnapshotChange(payload);
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'deals' }, (payload) => {
+      handleDealChange(payload);
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'pbd_snapshots' }, (payload) => {
+      handlePbdSnapshotChange(payload);
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'deal_meetings' }, (payload) => {
+      handleMeetingChange(payload);
+    })
+    .subscribe();
+}
+
+function handleSnapshotChange(payload) {
+  const snap = payload.new;
+  if (!snap || !snap.deal_id) return;
+  const existing = _snapshotsCache[snap.deal_id];
+  if (existing) {
+    existing.previous = existing.latest;
+    existing.latest = snap;
+  } else {
+    _snapshotsCache[snap.deal_id] = { latest: snap, previous: null };
+  }
+  renderActiveDealsTab();
+  const activeTab = document.querySelector('.tab-active')?.id;
+  if (activeTab === 'tab-forecast') renderForecast();
+}
+
+function handleDealChange(payload) {
+  const deal = payload.new;
+  if (!deal || !deal.id) return;
+  if (EXCLUDE_STAGES.has(deal.deal_stage)) {
+    _dealsCache = _dealsCache.filter(d => d.id !== deal.id);
+  } else {
+    const idx = _dealsCache.findIndex(d => d.id === deal.id);
+    if (idx >= 0) _dealsCache[idx] = deal;
+    else _dealsCache.push(deal);
+  }
+  populatePaeFilter();
+  renderActiveDealsTab();
+  const activeTab = document.querySelector('.tab-active')?.id;
+  if (activeTab === 'tab-forecast') renderForecast();
+}
+
+function handlePbdSnapshotChange(payload) {
+  const snap = payload.new;
+  if (!snap || !snap.deal_id) return;
+  const existing = _pbdSnapshotsCache[snap.deal_id];
+  if (!existing || snap.snapshot_date >= existing.snapshot_date) {
+    _pbdSnapshotsCache[snap.deal_id] = snap;
+  }
+  renderActiveDealsTab();
+}
+
+function handleMeetingChange(payload) {
+  const m = payload.new;
+  if (!m || !m.deal_id || !m.meeting_start) return;
+  const _today = new Date().toISOString().slice(0, 10);
+  const _yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const meetDate = m.meeting_start.slice(0, 10);
+  if (meetDate === _today) {
+    if (!_meetingsTodayByDeal[m.deal_id]) _meetingsTodayByDeal[m.deal_id] = [];
+    if (!_meetingsTodayByDeal[m.deal_id].find(x => x.id === m.id)) _meetingsTodayByDeal[m.deal_id].push(m);
+    renderActiveDealsTab();
+  } else if (meetDate === _yesterday) {
+    if (!_meetingsYesterdayByDeal[m.deal_id]) _meetingsYesterdayByDeal[m.deal_id] = [];
+    if (!_meetingsYesterdayByDeal[m.deal_id].find(x => x.id === m.id)) _meetingsYesterdayByDeal[m.deal_id].push(m);
+    renderActiveDealsTab();
+  }
 }
 
 async function handleLogin() {
@@ -2763,6 +2843,13 @@ async function loadAdminOrgchart() {
 
 checkSession();
 
+let _lastFullLoad = 0;
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && window._currentUser && Date.now() - _lastFullLoad > 300000) {
+    loadDeals();
+  }
+});
+
 let _dealsCache = [];
 let _snapshotsCache = {};
 let _meetingsTodayByDeal = {};
@@ -2884,6 +2971,7 @@ async function loadDeals() {
     }
   }
 
+  _lastFullLoad = Date.now();
   populatePaeFilter();
   renderActiveDealsTab();
 }
@@ -4067,7 +4155,10 @@ async function loadForecast() {
 const _origShowTab = showTab;
 showTab = function(name) {
   _origShowTab(name);
-  if (name === 'deals' && _dealsCache.length === 0) loadDeals();
+  if (name === 'deals') {
+    if (_dealsCache.length === 0) loadDeals();
+    else renderActiveDealsTab();
+  }
   if (name === 'forecast') loadForecast();
   if (name === 'admin') loadAdminOrgchart();
 };
