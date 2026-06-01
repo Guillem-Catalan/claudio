@@ -276,8 +276,8 @@ def _send_slack_alert(day_str: str, matched_count: int, unmatched: list[dict]):
     print(f"  Slack alert sent to {SLACK_CHANNEL}")
 
 
-def run(mode: str = "full"):
+def run(mode: str = "full", target_date: datetime | None = None):
     """Entry point. mode='full' does reconcile+sync, mode='refresh' does sync only."""
     if mode == "full":
-        reconcile_yesterday()
-    sync_today()
+        reconcile_yesterday(target_date=target_date)
+    sync_today(target_date=target_date)

@@ -13,6 +13,10 @@ on:
           - full
           - refresh
         default: full
+      date:
+        description: "Target date YYYY-MM-DD (default: today CEST)"
+        type: string
+        required: false
 
 jobs:
   sync:
@@ -47,4 +51,8 @@ jobs:
               MODE="refresh"
             fi
           fi
-          python -m scripts.sync_calendar --mode "$MODE"
+          DATE_ARG=""
+          if [ -n "${{ inputs.date }}" ]; then
+            DATE_ARG="--date ${{ inputs.date }}"
+          fi
+          python -m scripts.sync_calendar --mode "$MODE" $DATE_ARG

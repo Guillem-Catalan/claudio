@@ -2721,7 +2721,7 @@ function showRegisterForm() {
   hideLoginError();
 }
 
-function enterApp(user) {
+async function enterApp(user) {
   window._currentUser = user;
   const initials = user.name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
   document.getElementById('navUserInitials').textContent = initials;
@@ -2744,12 +2744,12 @@ function enterApp(user) {
   }
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('appContainer').classList.remove('hidden');
-  loadDeals();
-  setupRealtime();
   const savedTab = localStorage.getItem('claudio_active_tab');
   if (savedTab && document.getElementById('tab-' + savedTab) && !document.getElementById('tab-' + savedTab).classList.contains('hidden')) {
     showTab(savedTab);
   }
+  await loadDeals();
+  setupRealtime();
 }
 
 let _realtimeChannel = null;
@@ -2782,6 +2782,7 @@ function handleSnapshotChange(payload) {
   } else {
     _snapshotsCache[snap.deal_id] = { latest: snap, previous: null };
   }
+  if (!_initialLoadComplete) return;
   renderActiveDealsTab();
   const activeTab = document.querySelector('.tab-active')?.id;
   if (activeTab === 'tab-forecast') renderForecast();
@@ -2797,6 +2798,7 @@ function handleDealChange(payload) {
     if (idx >= 0) _dealsCache[idx] = deal;
     else _dealsCache.push(deal);
   }
+  if (!_initialLoadComplete) return;
   populatePaeFilter();
   renderActiveDealsTab();
   const activeTab = document.querySelector('.tab-active')?.id;
@@ -2810,6 +2812,7 @@ function handlePbdSnapshotChange(payload) {
   if (!existing || snap.snapshot_date >= existing.snapshot_date) {
     _pbdSnapshotsCache[snap.deal_id] = snap;
   }
+  if (!_initialLoadComplete) return;
   renderActiveDealsTab();
 }
 
@@ -2822,12 +2825,11 @@ function handleMeetingChange(payload) {
   if (meetDate === _today) {
     if (!_meetingsTodayByDeal[m.deal_id]) _meetingsTodayByDeal[m.deal_id] = [];
     if (!_meetingsTodayByDeal[m.deal_id].find(x => x.id === m.id)) _meetingsTodayByDeal[m.deal_id].push(m);
-    renderActiveDealsTab();
   } else if (meetDate === _yesterday) {
     if (!_meetingsYesterdayByDeal[m.deal_id]) _meetingsYesterdayByDeal[m.deal_id] = [];
     if (!_meetingsYesterdayByDeal[m.deal_id].find(x => x.id === m.id)) _meetingsYesterdayByDeal[m.deal_id].push(m);
-    renderActiveDealsTab();
   }
+  if (_initialLoadComplete) renderActiveDealsTab();
 }
 
 async function handleLogin() {
@@ -3251,6 +3253,7 @@ let _meetingsTodayByDeal = {};
 let _meetingsYesterdayByDeal = {};
 let _calendarTodayByDeal = {};
 let _pbdSnapshotsCache = {};
+let _initialLoadComplete = false;
 
 function probColor(p) {
   if (p == null) return { bg: 'bg-gray-100', text: 'text-gray-500' };
@@ -3276,6 +3279,7 @@ function cleanDealName(name) {
 }
 
 async function loadDeals() {
+  _initialLoadComplete = false;
   const statusEl = document.getElementById('dealsStatus');
   if (statusEl) statusEl.textContent = 'Loading...';
   try {
@@ -3318,7 +3322,7 @@ async function loadDeals() {
     if (snapErr) { console.error('Snapshot batch error:', snapErr); snapErrors++; }
     if (snaps) allSnapshots = allSnapshots.concat(snaps);
   }
-  console.log(`[loadDeals] ${allSnapshots.length} snapshots loaded for ${dealIds.length} deals (${snapErrors} errors)`);
+  if (snapErrors) console.error(`[loadDeals] ${snapErrors} snapshot batch errors`);
 
   _snapshotsCache = {};
   for (const s of allSnapshots) {
@@ -3388,6 +3392,7 @@ async function loadDeals() {
     }
   }
 
+  _initialLoadComplete = true;
   _lastFullLoad = Date.now();
   populatePaeFilter();
   renderActiveDealsTab();
@@ -3451,9 +3456,7 @@ function getFilteredDeals() {
 }
 
 function getSnap(dealId) {
-  const entry = _snapshotsCache[dealId];
-  if (!entry) console.warn(`[getSnap] MISS: ${dealId} — cache has ${Object.keys(_snapshotsCache).length} entries`);
-  return entry?.latest || null;
+  return _snapshotsCache[dealId]?.latest || null;
 }
 
 function getTrend(dealId) {
@@ -4367,27 +4370,35 @@ openHistorico = function(dealId) {
 
   // Buyer signals
   const signalsContainer = modal.querySelector('h3 + .space-y-2.mb-4');
-  if (signalsContainer && snap?.buyer_signals) {
-    const signals = snap.buyer_signals.split('\n').filter(s => s.trim());
-    signalsContainer.innerHTML = signals.map(s =>
-      `<div class="flex items-start gap-2 p-2 bg-green-50 rounded-lg">
-        <span class="text-green-500 mt-0.5">+</span>
-        <span class="text-sm text-green-800">${s.replace(/^[-•+]\s*/, '')}</span>
-      </div>`
-    ).join('');
+  if (signalsContainer) {
+    if (snap?.buyer_signals) {
+      const signals = snap.buyer_signals.split('\n').filter(s => s.trim());
+      signalsContainer.innerHTML = signals.map(s =>
+        `<div class="flex items-start gap-2 p-2 bg-green-50 rounded-lg">
+          <span class="text-green-500 mt-0.5">+</span>
+          <span class="text-sm text-green-800">${s.replace(/^[-•+]\s*/, '')}</span>
+        </div>`
+      ).join('');
+    } else {
+      signalsContainer.innerHTML = '<div class="text-sm text-gray-400">No signals yet.</div>';
+    }
   }
 
   // Live blockers
   const blockersHeader = [...modal.querySelectorAll('h3')].find(h => h.textContent.includes('Live Blockers'));
-  if (blockersHeader && snap?.live_blockers) {
+  if (blockersHeader) {
     const blockersContainer = blockersHeader.nextElementSibling;
-    const blockers = snap.live_blockers.split('\n').filter(b => b.trim());
-    blockersContainer.innerHTML = blockers.map(b =>
-      `<div class="flex items-start gap-2 p-2 bg-red-50 rounded-lg">
-        <span class="text-red-500 mt-0.5">!</span>
-        <span class="text-sm text-red-800">${b.replace(/^[-•!]\s*/, '')}</span>
-      </div>`
-    ).join('');
+    if (snap?.live_blockers) {
+      const blockers = snap.live_blockers.split('\n').filter(b => b.trim());
+      blockersContainer.innerHTML = blockers.map(b =>
+        `<div class="flex items-start gap-2 p-2 bg-red-50 rounded-lg">
+          <span class="text-red-500 mt-0.5">!</span>
+          <span class="text-sm text-red-800">${b.replace(/^[-•!]\s*/, '')}</span>
+        </div>`
+      ).join('');
+    } else {
+      blockersContainer.innerHTML = '<div class="text-sm text-gray-400">No blockers identified.</div>';
+    }
   }
 
   // Contacts — Atlas-style rendering
