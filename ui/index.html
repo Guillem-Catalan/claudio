@@ -43,6 +43,21 @@ tailwind.config = {
   .dense-row { padding: 6px 12px; }
   .dense-row:hover { background: #f8fafc; }
   .vs-team { color: #94a3b8; font-size: 10px; }
+  .org-tree { display: flex; flex-direction: column; align-items: center; }
+  .org-node { display: flex; flex-direction: column; align-items: center; position: relative; }
+  .org-card { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px 12px 12px; width: 130px; text-align: center; cursor: pointer; transition: all 0.15s; position: relative; }
+  .org-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); transform: translateY(-2px); }
+  .org-card.mock { opacity: 0.55; }
+  .org-avatar { width: 52px; height: 52px; border-radius: 50%; border: 3px solid #e5e7eb; background: #eff6ff; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; font-weight: 700; font-size: 16px; color: #1d4ed8; }
+  .org-card.registered .org-avatar { border-color: #86efac; }
+  .org-children { display: flex; gap: 8px; position: relative; padding-top: 28px; }
+  .org-children::before { content: ''; position: absolute; top: 0; left: 50%; width: 1px; height: 28px; background: #d1d5db; }
+  .org-children-wrap { display: flex; gap: 8px; position: relative; }
+  .org-children-wrap::before { content: ''; position: absolute; top: 0; left: calc(50% - var(--half-span, 0px)); right: calc(50% - var(--half-span, 0px)); height: 1px; background: #d1d5db; }
+  .org-children-wrap > .org-node::before { content: ''; position: absolute; top: -28px; left: 50%; width: 1px; height: 28px; background: #d1d5db; }
+  .org-expand { width: 28px; height: 28px; border-radius: 50%; background: white; border: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 12px; font-weight: 600; color: #6366f1; margin: 4px auto 0; position: relative; z-index: 2; transition: all 0.15s; }
+  .org-expand:hover { background: #eff6ff; border-color: #6366f1; }
+  .org-role-badge { display: inline-block; font-size: 9px; padding: 1px 6px; border-radius: 99px; font-weight: 600; margin-top: 2px; }
 </style>
 </head>
 <body class="bg-gray-50 text-gray-900">
@@ -1678,25 +1693,29 @@ tailwind.config = {
 </div>
 
 <!-- ====== ADMIN TAB ====== -->
-<div id="panel-admin" class="max-w-[1400px] mx-auto px-6 py-6 hidden fade-in">
-  <div class="flex items-center justify-between mb-6">
+<div id="panel-admin" class="mx-auto px-6 py-6 hidden fade-in" style="max-width:100%; overflow-x:auto;">
+  <div class="flex items-center justify-between mb-6 max-w-[1400px] mx-auto">
     <div>
       <h2 class="text-lg font-bold text-gray-800">Admin — Team Management</h2>
       <p class="text-xs text-gray-400 mt-0.5">Gestiona roles, jerarquía y permisos del equipo</p>
     </div>
-    <div class="flex items-center gap-3">
-      <div id="adminStats" class="flex gap-4 text-xs text-gray-400"></div>
-    </div>
+    <div id="adminStats" class="flex gap-4 text-xs text-gray-400"></div>
   </div>
-  <div id="adminOrgchart" class="space-y-6">
+  <div id="adminOrgchart" class="flex flex-col items-center pb-12" style="min-width: fit-content;">
     <div class="text-sm text-gray-400">Loading team structure...</div>
   </div>
-  <!-- Edit user modal -->
+  <!-- User detail modal -->
   <div id="editUserModal" class="fixed inset-0 z-[200] hidden items-center justify-center modal-overlay">
     <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6">
-      <h3 class="font-semibold text-gray-800 mb-4">Editar usuario</h3>
-      <div id="editUserName" class="text-sm font-medium text-gray-600 mb-1"></div>
-      <div id="editUserEmail" class="text-xs text-gray-400 mb-4"></div>
+      <div class="flex items-center gap-3 mb-4">
+        <div id="editUserAvatar" class="w-12 h-12 bg-brand-100 rounded-full flex items-center justify-center">
+          <span id="editUserInitials" class="text-brand-700 font-bold text-base"></span>
+        </div>
+        <div>
+          <div id="editUserName" class="text-base font-semibold text-gray-800"></div>
+          <div id="editUserEmail" class="text-xs text-gray-400"></div>
+        </div>
+      </div>
       <div class="space-y-3">
         <div>
           <label class="text-xs text-gray-500 mb-1 block">Subteam</label>
@@ -1724,6 +1743,16 @@ tailwind.config = {
           <select id="editReportsTo" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
             <option value="">— Nadie —</option>
           </select>
+        </div>
+        <div class="pt-2 border-t border-gray-100">
+          <div class="flex justify-between text-xs text-gray-400">
+            <span>Status</span>
+            <span id="editUserStatus"></span>
+          </div>
+          <div class="flex justify-between text-xs text-gray-400 mt-1">
+            <span>Last login</span>
+            <span id="editUserLastLogin"></span>
+          </div>
         </div>
       </div>
       <div class="flex gap-2 mt-5">
@@ -2883,6 +2912,7 @@ const MOCK_USERS = [
 
 let _adminUsers = [];
 let _editingUserId = null;
+let _expandedNodes = new Set(['mock-gc']);
 
 async function loadAdminOrgchart() {
   const container = document.getElementById('adminOrgchart');
@@ -2892,102 +2922,101 @@ async function loadAdminOrgchart() {
     ...(dbUsers || []).map(u => ({ ...u, _mock: false })),
     ...MOCK_USERS.filter(m => !dbEmails.has(m.email))
   ];
-  renderAdminPanel();
+  renderOrgTree();
 }
 
-function renderAdminPanel() {
+function getChildren(parentId) {
+  return _adminUsers.filter(u => u.reports_to === parentId);
+}
+
+function renderOrgTree() {
   const container = document.getElementById('adminOrgchart');
   const statsEl = document.getElementById('adminStats');
   const users = _adminUsers;
-
   const totalRegistered = users.filter(u => !u._mock).length;
-  const totalMock = users.filter(u => u._mock).length;
-  const roleCount = {};
-  users.forEach(u => { roleCount[u.role] = (roleCount[u.role] || 0) + 1; });
-  statsEl.innerHTML = `<span>${users.length} total</span><span class="text-green-500">${totalRegistered} registrados</span><span class="text-gray-300">${totalMock} pendientes</span>`;
+  const totalPending = users.filter(u => u._mock).length;
+  statsEl.innerHTML = `<span>${users.length} total</span><span class="text-green-500">${totalRegistered} registrados</span><span class="text-gray-300">${totalPending} pendientes</span>`;
 
-  const teamOrder = ['Partners', 'Santander', 'Telefonica', 'TIM', 'TELEKOM'];
-  const teams = {};
-  users.forEach(u => {
-    const t = u.subteam || 'Other';
-    if (!teams[t]) teams[t] = [];
-    teams[t].push(u);
-  });
-  const roleOrd = { 'Admin': 0, 'Manager': 1, 'PAE TL': 2, 'PBD TL': 2, 'PAE': 3, 'PBD': 3 };
-  const roleBadge = (r) => {
-    const c = { 'Admin': 'bg-purple-100 text-purple-700', 'Manager': 'bg-blue-100 text-blue-700',
-      'PAE TL': 'bg-amber-100 text-amber-700', 'PBD TL': 'bg-amber-100 text-amber-700',
-      'PAE': 'bg-green-100 text-green-700', 'PBD': 'bg-cyan-100 text-cyan-700' };
-    return `<span class="text-xs px-2 py-0.5 rounded-full font-medium ${c[r] || 'bg-gray-100 text-gray-600'}">${r}</span>`;
+  const root = users.find(u => !u.reports_to);
+  if (!root) { container.innerHTML = '<p class="text-sm text-gray-400">No root user found</p>'; return; }
+  container.innerHTML = renderNode(root);
+}
+
+function renderNode(user) {
+  const initials = user.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const children = getChildren(user.id);
+  const isExpanded = _expandedNodes.has(user.id);
+  const mockClass = user._mock ? 'mock' : 'registered';
+  const roleBadgeColors = {
+    'Admin': 'background:#f3e8ff;color:#7c3aed;', 'Manager': 'background:#dbeafe;color:#2563eb;',
+    'PAE TL': 'background:#fef3c7;color:#d97706;', 'PBD TL': 'background:#fef3c7;color:#d97706;',
+    'PAE': 'background:#d1fae5;color:#059669;', 'PBD': 'background:#cffafe;color:#0891b2;'
   };
-  const teamColors = { 'Partners': 'border-l-purple-400', 'Santander': 'border-l-red-400', 'Telefonica': 'border-l-blue-400', 'TIM': 'border-l-emerald-400', 'TELEKOM': 'border-l-pink-400' };
+  const badgeStyle = roleBadgeColors[user.role] || 'background:#f1f5f9;color:#64748b;';
+  const subteamLabel = user.subteam && user.subteam !== 'Partners' ? `<div class="text-[9px] text-gray-400 mt-1">${user.subteam}</div>` : '';
 
-  const byId = {};
-  users.forEach(u => { byId[u.id] = u; });
-  const reportsToName = (id) => byId[id]?.name || '—';
+  let html = `<div class="org-node">
+    <div class="org-card ${mockClass}" onclick="openEditModal('${user.id}')">
+      <div class="org-avatar">${initials}</div>
+      <div class="text-xs font-semibold text-gray-800 leading-tight">${user.name.split(' ')[0]}</div>
+      <div class="text-[10px] text-gray-400 leading-tight mt-0.5">${user.name.split(' ').slice(1).join(' ')}</div>
+      <div class="org-role-badge" style="${badgeStyle}">${user.role}</div>
+      ${subteamLabel}
+    </div>`;
 
-  let html = '';
-  for (const tKey of teamOrder) {
-    const members = teams[tKey];
-    if (!members) continue;
-    members.sort((a, b) => (roleOrd[a.role] ?? 9) - (roleOrd[b.role] ?? 9) || a.name.localeCompare(b.name));
-    const registered = members.filter(m => !m._mock).length;
-    const borderColor = teamColors[tKey] || 'border-l-gray-300';
-    html += `<div class="bg-white rounded-lg border border-gray-200 border-l-4 ${borderColor} overflow-hidden">
-      <div class="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <h3 class="font-semibold text-sm text-gray-800">${tKey}</h3>
-          <span class="text-xs text-gray-400">${members.length} members</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="text-xs text-green-500">${registered} registrados</span>
-          ${registered < members.length ? `<span class="text-xs text-gray-300">${members.length - registered} pendientes</span>` : ''}
-        </div>
-      </div>
-      <div class="divide-y divide-gray-100">`;
-    members.forEach(m => {
-      const initials = m.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-      const lastLogin = m.last_login ? new Date(m.last_login).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Never';
-      const isMock = m._mock;
-      const opacity = isMock ? 'opacity-50' : '';
-      const statusDot = isMock
-        ? '<span class="w-2 h-2 rounded-full bg-gray-300 inline-block" title="No registrado"></span>'
-        : '<span class="w-2 h-2 rounded-full bg-green-400 inline-block" title="Registrado"></span>';
-      const reportsToLabel = m.reports_to ? `<span class="text-[10px] text-gray-400">→ ${reportsToName(m.reports_to)}</span>` : '';
-      html += `<div class="px-4 py-2.5 flex items-center justify-between hover:bg-gray-50 cursor-pointer ${opacity}" onclick="openEditModal('${m.id}')">
-        <div class="flex items-center gap-3">
-          ${statusDot}
-          <div class="w-8 h-8 bg-brand-100 rounded-full flex items-center justify-center">
-            <span class="text-brand-700 font-semibold text-xs">${initials}</span>
-          </div>
-          <div>
-            <div class="text-sm font-medium text-gray-800">${m.name}</div>
-            <div class="flex items-center gap-2">
-              <span class="text-xs text-gray-400">${m.email}</span>
-              ${reportsToLabel}
-            </div>
-          </div>
-        </div>
-        <div class="flex items-center gap-3">
-          ${roleBadge(m.role)}
-          <span class="text-xs text-gray-400 w-24 text-right">${lastLogin}</span>
-          <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
-        </div>
-      </div>`;
-    });
-    html += '</div></div>';
+  if (children.length > 0) {
+    html += `<div class="org-expand" onclick="event.stopPropagation(); toggleNode('${user.id}')">
+      <span>${isExpanded ? '−' : children.length}</span>
+    </div>`;
+    if (isExpanded) {
+      html += `<div class="org-children"><div class="org-children-wrap">`;
+      children.forEach(c => { html += renderNode(c); });
+      html += `</div></div>`;
+    }
   }
-  container.innerHTML = html;
+  html += `</div>`;
+  return html;
+}
+
+function toggleNode(userId) {
+  if (_expandedNodes.has(userId)) _expandedNodes.delete(userId);
+  else _expandedNodes.add(userId);
+  renderOrgTree();
+  requestAnimationFrame(fixChildrenSpans);
+}
+
+function fixChildrenSpans() {
+  document.querySelectorAll('.org-children-wrap').forEach(wrap => {
+    const nodes = wrap.querySelectorAll(':scope > .org-node');
+    if (nodes.length < 2) { wrap.style.setProperty('--half-span', '0px'); return; }
+    const first = nodes[0].querySelector('.org-card');
+    const last = nodes[nodes.length - 1].querySelector('.org-card');
+    if (!first || !last) return;
+    const wrapRect = wrap.getBoundingClientRect();
+    const firstCenter = first.getBoundingClientRect().left + first.getBoundingClientRect().width / 2;
+    const lastCenter = last.getBoundingClientRect().left + last.getBoundingClientRect().width / 2;
+    const wrapCenter = wrapRect.left + wrapRect.width / 2;
+    const halfSpan = Math.max(lastCenter - firstCenter, 0) / 2;
+    wrap.style.setProperty('--half-span', halfSpan + 'px');
+  });
 }
 
 function openEditModal(userId) {
   const user = _adminUsers.find(u => u.id === userId);
   if (!user) return;
   _editingUserId = userId;
+  const initials = user.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  document.getElementById('editUserInitials').textContent = initials;
   document.getElementById('editUserName').textContent = user.name;
   document.getElementById('editUserEmail').textContent = user.email;
   document.getElementById('editSubteam').value = user.subteam;
   document.getElementById('editRole').value = user.role;
+  document.getElementById('editUserStatus').innerHTML = user._mock
+    ? '<span class="text-gray-400">No registrado</span>'
+    : '<span class="text-green-500">Registrado</span>';
+  document.getElementById('editUserLastLogin').textContent = user.last_login
+    ? new Date(user.last_login).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+    : 'Never';
   const reportsToSelect = document.getElementById('editReportsTo');
   reportsToSelect.innerHTML = '<option value="">— Nadie —</option>';
   _adminUsers.filter(u => u.id !== userId).sort((a, b) => a.name.localeCompare(b.name)).forEach(u => {
@@ -3012,7 +3041,6 @@ async function saveUserEdit() {
   const newSubteam = document.getElementById('editSubteam').value;
   const newRole = document.getElementById('editRole').value;
   const newReportsTo = document.getElementById('editReportsTo').value || null;
-
   if (!user._mock) {
     const { error } = await _sb.from('users').update({ subteam: newSubteam, role: newRole, reports_to: newReportsTo }).eq('id', user.id);
     if (error) { alert('Error: ' + error.message); return; }
@@ -3021,7 +3049,8 @@ async function saveUserEdit() {
   user.role = newRole;
   user.reports_to = newReportsTo;
   closeEditModal();
-  renderAdminPanel();
+  renderOrgTree();
+  requestAnimationFrame(fixChildrenSpans);
 }
 
 checkSession();
