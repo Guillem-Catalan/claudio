@@ -4454,7 +4454,8 @@ function daysAgo(dateStr) {
 function getForecastDeals() {
   const partner = document.getElementById('fcPartnerFilter')?.value || '';
   const pae = document.getElementById('fcPaeFilter')?.value || '';
-  return _dealsCache.filter(d => {
+  return getAccessibleDeals().filter(d => {
+    if (!d.pae && !d.pbd) return false;
     const fc = d.forecast_category || '';
     if (!FORECAST_CATEGORIES.has(fc)) return false;
     if (partner && extractPartner(d.deal_name) !== partner) return false;
@@ -4487,7 +4488,7 @@ function renderForecast() {
   // Populate PAE filter if empty
   const paeSelect = document.getElementById('fcPaeFilter');
   if (paeSelect && paeSelect.options.length <= 1) {
-    const owners = [...new Set(_dealsCache.map(d => d.pae || d.pbd).filter(Boolean))].sort();
+    const owners = [...new Set(getAccessibleDeals().filter(d => d.pae || d.pbd).map(d => d.pae || d.pbd))].sort();
     paeSelect.innerHTML = '<option value="">PAE</option>' + owners.map(p => `<option value="${p}">${p}</option>`).join('');
   }
 
