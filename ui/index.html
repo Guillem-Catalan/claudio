@@ -3278,6 +3278,7 @@ function cleanDealName(name) {
 async function loadDeals() {
   const statusEl = document.getElementById('dealsStatus');
   if (statusEl) statusEl.textContent = 'Loading...';
+  try {
 
   let allDeals = [];
   let offset = 0;
@@ -3305,16 +3306,19 @@ async function loadDeals() {
   const dealIds = _dealsCache.map(d => d.id);
 
   let allSnapshots = [];
+  let snapErrors = 0;
   for (let i = 0; i < dealIds.length; i += 50) {
     const batch = dealIds.slice(i, i + 50);
-    const { data: snaps } = await _sb
+    const { data: snaps, error: snapErr } = await _sb
       .from('front_deal_snapshots')
       .select('deal_id, close_probability, m_score, e_score, dc_score, dp_score, i_score, c_score, deal_summary, deal_assessment, buyer_signals, live_blockers, objections, next_step, claudio_forecast, snapshot_date, m_accumulate, e_accumulate, dc_accumulate, dp_accumulate, i_accumulate, c_accumulate, deal_strengths, improvements, action_signal')
       .in('deal_id', batch)
       .order('snapshot_date', { ascending: false })
       .limit(5000);
+    if (snapErr) { console.error('Snapshot batch error:', snapErr); snapErrors++; }
     if (snaps) allSnapshots = allSnapshots.concat(snaps);
   }
+  console.log(`[loadDeals] ${allSnapshots.length} snapshots loaded for ${dealIds.length} deals (${snapErrors} errors)`);
 
   _snapshotsCache = {};
   for (const s of allSnapshots) {
@@ -3353,12 +3357,13 @@ async function loadDeals() {
   }
 
   // Fetch today's calendar meetings (Google Calendar mirror)
-  const { data: calMeetings } = await _sb
+  const { data: calMeetings, error: calErr } = await _sb
     .from('calendar_meetings')
     .select('deal_id, meeting_start, meeting_end, title, pae_name, resolved')
     .gte('meeting_start', _todayStr + 'T00:00:00Z')
     .lte('meeting_start', _todayStr + 'T23:59:59Z')
     .eq('resolved', true);
+  if (calErr) console.error('Calendar meetings error:', calErr);
 
   _calendarTodayByDeal = {};
   for (const m of (calMeetings || [])) {
@@ -3386,6 +3391,10 @@ async function loadDeals() {
   _lastFullLoad = Date.now();
   populatePaeFilter();
   renderActiveDealsTab();
+  } catch (err) {
+    console.error('[loadDeals] Unhandled error:', err);
+    if (statusEl) statusEl.textContent = 'Error loading data — check console';
+  }
 }
 
 function getAccessibleDeals() {
@@ -3442,7 +3451,9 @@ function getFilteredDeals() {
 }
 
 function getSnap(dealId) {
-  return _snapshotsCache[dealId]?.latest || null;
+  const entry = _snapshotsCache[dealId];
+  if (!entry) console.warn(`[getSnap] MISS: ${dealId} — cache has ${Object.keys(_snapshotsCache).length} entries`);
+  return entry?.latest || null;
 }
 
 function getTrend(dealId) {
@@ -3517,7 +3528,8 @@ function renderActiveDealsTab() {
   const statusEl = document.getElementById('dealsStatus');
   const deals = getFilteredDeals();
   const totalMRR = deals.reduce((s, d) => s + (d.amount || 0), 0);
-  if (statusEl) statusEl.textContent = `${deals.length} deals · ${formatMRR(totalMRR)} pipeline`;
+  const snapCount = Object.keys(_snapshotsCache).length;
+  if (statusEl) statusEl.textContent = `${deals.length} deals · ${formatMRR(totalMRR)} pipeline · ${snapCount} snaps`;
 
   if (_activeDealsTab === 'today') renderTodayView(deals);
   else renderPipelineView(deals);
