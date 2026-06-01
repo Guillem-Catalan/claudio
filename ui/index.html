@@ -3027,9 +3027,8 @@ function renderOrgTree() {
   }
   html += `</div>`;
 
-  // Unassigned users (registered but not in orgchart)
-  const placedEmails = new Set(MOCK_USERS.map(u => u.email));
-  const unassigned = users.filter(u => !u._mock && !placedEmails.has(u.email));
+  // Unassigned users (role=Pending or subteam=Unassigned)
+  const unassigned = users.filter(u => u.role === 'Pending' || u.subteam === 'Unassigned');
   if (unassigned.length > 0) {
     html += `<div class="mt-8 w-full max-w-[800px] mx-auto">
       <div class="bg-white rounded-xl border border-dashed border-amber-300 overflow-hidden">
@@ -3065,7 +3064,13 @@ function renderBranch(teamName, branch) {
   const branchKey = `${teamName}-${branch.type}`;
   const isExpanded = _expandedBranches.has(branchKey);
   const tl = branch.tlId ? userById(branch.tlId) : null;
-  const reps = branch.repIds.map(id => userById(id)).filter(Boolean);
+  const staticIds = new Set([branch.tlId, ...branch.repIds].filter(Boolean));
+  const staticReps = branch.repIds.map(id => userById(id)).filter(Boolean);
+  const dynamicReps = _adminUsers.filter(u =>
+    !u._mock && !staticIds.has(u.id) && u.subteam === teamName
+    && u.role === branch.type && u.role !== 'Pending'
+  );
+  const reps = [...staticReps, ...dynamicReps];
   const typeBadge = branch.type === 'PAE'
     ? '<span class="text-[9px] px-2 py-0.5 rounded-full font-semibold" style="background:#d1fae5;color:#059669;">PAE</span>'
     : '<span class="text-[9px] px-2 py-0.5 rounded-full font-semibold" style="background:#cffafe;color:#0891b2;">PBD</span>';
