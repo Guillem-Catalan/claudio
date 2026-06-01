@@ -2610,7 +2610,7 @@ const _sb = supabase.createClient(
 const KNOWN_USERS = {
   // Santander PBD
   'ines.rivera@factorial.co': { subteam: 'Santander', role: 'PBD' },
-  'carlos.acosta@factorial.co': { subteam: 'Santander', role: 'PBD' },
+  'carlos.acosta@factorial.co': { subteam: 'Santander', role: 'PBD TL' },
   'marta.ruiz@factorial.co': { subteam: 'Santander', role: 'PBD' },
   'paula.gil@factorial.co': { subteam: 'Santander', role: 'PBD' },
   'david.soler@factorial.co': { subteam: 'Santander', role: 'PBD' },
@@ -2628,7 +2628,7 @@ const KNOWN_USERS = {
   'jon.azconobieta@factorial.co': { subteam: 'Telefonica', role: 'PBD' },
   'maria.masoliver@factorial.co': { subteam: 'Telefonica', role: 'PBD' },
   'lucia.guerrero@factorial.co': { subteam: 'Telefonica', role: 'PBD' },
-  'alejandro.soto@factorial.co': { subteam: 'Telefonica', role: 'PBD' },
+  'alejandro.soto@factorial.co': { subteam: 'Telefonica', role: 'PAE' },
   // Telefónica PAE
   'david.clemente@factorial.co': { subteam: 'Telefonica', role: 'PAE' },
   'nerea.urien@factorial.co': { subteam: 'Telefonica', role: 'PAE' },
@@ -2647,8 +2647,8 @@ const KNOWN_USERS = {
   'oriol.delmoral@factorial.co': { subteam: 'Telefonica', role: 'Manager' },
   'alex.martinez@factorial.co': { subteam: 'Telefonica', role: 'Manager' },
   'guillem.catalan@factorial.co': { subteam: 'Partners', role: 'Admin' },
-  'albert.fernandez@factorial.co': { subteam: 'Partners', role: 'Manager' },
-  'samuel.fernandez@factorial.co': { subteam: 'Partners', role: 'Manager' },
+  'albert.fernandez@factorial.co': { subteam: 'Partners', role: 'Admin' },
+  'samuel.fernandez@factorial.co': { subteam: 'Partners', role: 'Admin' },
 };
 
 window._currentUser = null;
@@ -2868,54 +2868,73 @@ async function checkSession() {
 
 // ── Admin: Orgchart ──
 const MOCK_USERS = [
-  { id: 'mock-gc', email: 'guillem.catalan@factorial.co', name: 'Guillem Catalan', team: 'Partners', subteam: 'Partners', role: 'Admin', reports_to: null, last_login: '2026-06-01T12:00:00Z', _mock: true },
-  { id: 'mock-af', email: 'albert.fernandez@factorial.co', name: 'Albert Fernandez', team: 'Partners', subteam: 'Partners', role: 'Manager', reports_to: 'mock-gc', last_login: '2026-06-01T09:30:00Z', _mock: true },
-  { id: 'mock-sf', email: 'samuel.fernandez@factorial.co', name: 'Samuel Fernandez', team: 'Partners', subteam: 'Partners', role: 'Manager', reports_to: 'mock-gc', last_login: '2026-05-31T18:00:00Z', _mock: true },
-  { id: 'mock-dg', email: 'domenica.galarza@factorial.co', name: 'Domenica Galarza', team: 'Partners', subteam: 'Santander', role: 'Manager', reports_to: 'mock-af', last_login: '2026-06-01T08:15:00Z', _mock: true },
-  { id: 'mock-od', email: 'oriol.delmoral@factorial.co', name: 'Oriol del Moral', team: 'Partners', subteam: 'Telefonica', role: 'Manager', reports_to: 'mock-af', last_login: '2026-05-31T17:00:00Z', _mock: true },
-  { id: 'mock-am', email: 'alex.martinez@factorial.co', name: 'Alex Martinez', team: 'Partners', subteam: 'Telefonica', role: 'Manager', reports_to: 'mock-sf', last_login: '2026-05-30T14:00:00Z', _mock: true },
+  // Admins
+  { id: 'mock-gc', email: 'guillem.catalan@factorial.co', name: 'Guillem Catalan', subteam: 'Partners', role: 'Admin', _mock: true, last_login: '2026-06-01T12:00:00Z' },
+  { id: 'mock-af', email: 'albert.fernandez@factorial.co', name: 'Albert Fernandez', subteam: 'Partners', role: 'Admin', _mock: true, last_login: '2026-06-01T09:30:00Z' },
+  { id: 'mock-sf', email: 'samuel.fernandez@factorial.co', name: 'Samuel Fernandez', subteam: 'Partners', role: 'Admin', _mock: true, last_login: '2026-05-31T18:00:00Z' },
+  // Managers
+  { id: 'mock-dg', email: 'domenica.galarza@factorial.co', name: 'Domenica Galarza', subteam: 'Partners', role: 'Manager', _mock: true, last_login: '2026-06-01T08:15:00Z' },
+  { id: 'mock-od', email: 'oriol.delmoral@factorial.co', name: 'Oriol del Moral', subteam: 'Partners', role: 'Manager', _mock: true, last_login: '2026-05-31T17:00:00Z' },
+  { id: 'mock-am', email: 'alex.martinez@factorial.co', name: 'Alex Martinez', subteam: 'Partners', role: 'Manager', _mock: true, last_login: '2026-05-30T14:00:00Z' },
   // Santander PAE
-  { id: 'mock-rm', email: 'roberto.moran@factorial.co', name: 'Roberto Morán', team: 'Partners', subteam: 'Santander', role: 'PAE TL', reports_to: 'mock-dg', last_login: '2026-06-01T10:00:00Z', _mock: true },
-  { id: 'mock-xf', email: 'xavier.fortuny@factorial.co', name: 'Xavier Fortuny', team: 'Partners', subteam: 'Santander', role: 'PAE', reports_to: 'mock-rm', last_login: '2026-06-01T11:00:00Z', _mock: true },
-  { id: 'mock-jd', email: 'jose.donis@factorial.co', name: 'Jose Donis', team: 'Partners', subteam: 'Santander', role: 'PAE', reports_to: 'mock-rm', last_login: '2026-05-31T16:00:00Z', _mock: true },
-  { id: 'mock-pb', email: 'pol.bartolome@factorial.co', name: 'Pol Bartolomé', team: 'Partners', subteam: 'Santander', role: 'PAE', reports_to: 'mock-rm', last_login: '2026-06-01T09:00:00Z', _mock: true },
-  { id: 'mock-ms', email: 'mireia.serrano@factorial.co', name: 'Mireia Serrano', team: 'Partners', subteam: 'Santander', role: 'PAE', reports_to: 'mock-rm', last_login: '2026-05-30T15:00:00Z', _mock: true },
-  { id: 'mock-jl', email: 'joan.lorenzo@factorial.co', name: 'Joan Lorenzo', team: 'Partners', subteam: 'Santander', role: 'PAE', reports_to: 'mock-rm', last_login: '2026-05-31T10:00:00Z', _mock: true },
+  { id: 'mock-rm', email: 'roberto.moran@factorial.co', name: 'Roberto Morán', subteam: 'Santander', role: 'PAE TL', _mock: true, last_login: '2026-06-01T10:00:00Z' },
+  { id: 'mock-xf', email: 'xavier.fortuny@factorial.co', name: 'Xavier Fortuny', subteam: 'Santander', role: 'PAE', _mock: true, last_login: '2026-06-01T11:00:00Z' },
+  { id: 'mock-jd', email: 'jose.donis@factorial.co', name: 'Jose Donis', subteam: 'Santander', role: 'PAE', _mock: true, last_login: '2026-05-31T16:00:00Z' },
+  { id: 'mock-pb', email: 'pol.bartolome@factorial.co', name: 'Pol Bartolomé', subteam: 'Santander', role: 'PAE', _mock: true, last_login: '2026-06-01T09:00:00Z' },
+  { id: 'mock-ms', email: 'mireia.serrano@factorial.co', name: 'Mireia Serrano', subteam: 'Santander', role: 'PAE', _mock: true, last_login: '2026-05-30T15:00:00Z' },
+  { id: 'mock-jl', email: 'joan.lorenzo@factorial.co', name: 'Joan Lorenzo', subteam: 'Santander', role: 'PAE', _mock: true, last_login: '2026-05-31T10:00:00Z' },
   // Santander PBD
-  { id: 'mock-ir', email: 'ines.rivera@factorial.co', name: 'Inés Rivera', team: 'Partners', subteam: 'Santander', role: 'PBD', reports_to: 'mock-dg', last_login: '2026-06-01T08:30:00Z', _mock: true },
-  { id: 'mock-ca', email: 'carlos.acosta@factorial.co', name: 'Carlos Acosta', team: 'Partners', subteam: 'Santander', role: 'PBD', reports_to: 'mock-dg', last_login: '2026-05-31T14:00:00Z', _mock: true },
-  { id: 'mock-mr', email: 'marta.ruiz@factorial.co', name: 'Marta Ruiz', team: 'Partners', subteam: 'Santander', role: 'PBD', reports_to: 'mock-dg', last_login: '2026-05-30T11:00:00Z', _mock: true },
-  { id: 'mock-pg', email: 'paula.gil@factorial.co', name: 'Paula Gil', team: 'Partners', subteam: 'Santander', role: 'PBD', reports_to: 'mock-dg', last_login: '2026-06-01T07:45:00Z', _mock: true },
-  { id: 'mock-ds', email: 'david.soler@factorial.co', name: 'David Soler', team: 'Partners', subteam: 'Santander', role: 'PBD', reports_to: 'mock-dg', last_login: '2026-05-31T09:00:00Z', _mock: true },
-  { id: 'mock-lg', email: 'lucia.garana@factorial.co', name: 'Lucía Garaña', team: 'Partners', subteam: 'Santander', role: 'PBD', reports_to: 'mock-dg', last_login: '2026-05-29T16:00:00Z', _mock: true },
-  { id: 'mock-ng', email: 'nicolas.gonzalez@factorial.co', name: 'Nicolás González', team: 'Partners', subteam: 'Santander', role: 'PBD', reports_to: 'mock-dg', last_login: '2026-05-31T12:00:00Z', _mock: true },
+  { id: 'mock-ca-sant', email: 'carlos.acosta@factorial.co', name: 'Carlos Acosta', subteam: 'Santander', role: 'PBD TL', _mock: true, last_login: '2026-05-31T14:00:00Z' },
+  { id: 'mock-ir', email: 'ines.rivera@factorial.co', name: 'Inés Rivera', subteam: 'Santander', role: 'PBD', _mock: true, last_login: '2026-06-01T08:30:00Z' },
+  { id: 'mock-mr', email: 'marta.ruiz@factorial.co', name: 'Marta Ruiz', subteam: 'Santander', role: 'PBD', _mock: true, last_login: '2026-05-30T11:00:00Z' },
+  { id: 'mock-pg', email: 'paula.gil@factorial.co', name: 'Paula Gil', subteam: 'Santander', role: 'PBD', _mock: true, last_login: '2026-06-01T07:45:00Z' },
+  { id: 'mock-ds', email: 'david.soler@factorial.co', name: 'David Soler', subteam: 'Santander', role: 'PBD', _mock: true, last_login: '2026-05-31T09:00:00Z' },
+  { id: 'mock-lg', email: 'lucia.garana@factorial.co', name: 'Lucía Garaña', subteam: 'Santander', role: 'PBD', _mock: true, last_login: '2026-05-29T16:00:00Z' },
+  { id: 'mock-ng', email: 'nicolas.gonzalez@factorial.co', name: 'Nicolás González', subteam: 'Santander', role: 'PBD', _mock: true, last_login: '2026-05-31T12:00:00Z' },
   // Telefónica PAE
-  { id: 'mock-cs', email: 'carlos.sanchez@factorial.co', name: 'Carlos Sánchez', team: 'Partners', subteam: 'Telefonica', role: 'PAE TL', reports_to: 'mock-od', last_login: '2026-06-01T10:30:00Z', _mock: true },
-  { id: 'mock-dc', email: 'david.clemente@factorial.co', name: 'David Clemente', team: 'Partners', subteam: 'Telefonica', role: 'PAE', reports_to: 'mock-cs', last_login: '2026-06-01T08:00:00Z', _mock: true },
-  { id: 'mock-nu', email: 'nerea.urien@factorial.co', name: 'Nerea Urien', team: 'Partners', subteam: 'Telefonica', role: 'PAE', reports_to: 'mock-cs', last_login: '2026-05-31T15:00:00Z', _mock: true },
-  { id: 'mock-jm', email: 'juan.martinez@factorial.co', name: 'Juan Martinez', team: 'Partners', subteam: 'Telefonica', role: 'PAE', reports_to: 'mock-cs', last_login: '2026-05-30T17:00:00Z', _mock: true },
+  { id: 'mock-cs', email: 'carlos.sanchez@factorial.co', name: 'Carlos Sánchez', subteam: 'Telefonica', role: 'PAE TL', _mock: true, last_login: '2026-06-01T10:30:00Z' },
+  { id: 'mock-dc', email: 'david.clemente@factorial.co', name: 'David Clemente', subteam: 'Telefonica', role: 'PAE', _mock: true, last_login: '2026-06-01T08:00:00Z' },
+  { id: 'mock-nu', email: 'nerea.urien@factorial.co', name: 'Nerea Urien', subteam: 'Telefonica', role: 'PAE', _mock: true, last_login: '2026-05-31T15:00:00Z' },
+  { id: 'mock-jm', email: 'juan.martinez@factorial.co', name: 'Juan Martinez', subteam: 'Telefonica', role: 'PAE', _mock: true, last_login: '2026-05-30T17:00:00Z' },
+  { id: 'mock-as', email: 'alejandro.soto@factorial.co', name: 'Alejandro Soto', subteam: 'Telefonica', role: 'PAE', _mock: true, last_login: '2026-05-31T13:00:00Z' },
   // Telefónica PBD
-  { id: 'mock-ah', email: 'angel.hernandez@factorial.co', name: 'Ángel Hernández', team: 'Partners', subteam: 'Telefonica', role: 'PBD', reports_to: 'mock-od', last_login: '2026-06-01T09:15:00Z', _mock: true },
-  { id: 'mock-ja', email: 'jon.azconobieta@factorial.co', name: 'Jon Azconobieta', team: 'Partners', subteam: 'Telefonica', role: 'PBD', reports_to: 'mock-od', last_login: '2026-05-31T11:00:00Z', _mock: true },
-  { id: 'mock-mm', email: 'maria.masoliver@factorial.co', name: 'María Masoliver', team: 'Partners', subteam: 'Telefonica', role: 'PBD', reports_to: 'mock-od', last_login: '2026-05-30T10:00:00Z', _mock: true },
-  { id: 'mock-lgu', email: 'lucia.guerrero@factorial.co', name: 'Lucía Guerrero', team: 'Partners', subteam: 'Telefonica', role: 'PBD', reports_to: 'mock-od', last_login: '2026-06-01T07:30:00Z', _mock: true },
-  { id: 'mock-as', email: 'alejandro.soto@factorial.co', name: 'Alejandro Soto', team: 'Partners', subteam: 'Telefonica', role: 'PBD', reports_to: 'mock-od', last_login: '2026-05-31T13:00:00Z', _mock: true },
+  { id: 'mock-ca-tel', email: 'carlos.acosta@factorial.co', name: 'Carlos Acosta', subteam: 'Telefonica', role: 'PBD TL', _mock: true, last_login: '2026-05-31T14:00:00Z' },
+  { id: 'mock-ah', email: 'angel.hernandez@factorial.co', name: 'Ángel Hernández', subteam: 'Telefonica', role: 'PBD', _mock: true, last_login: '2026-06-01T09:15:00Z' },
+  { id: 'mock-ja', email: 'jon.azconobieta@factorial.co', name: 'Jon Azconobieta', subteam: 'Telefonica', role: 'PBD', _mock: true, last_login: '2026-05-31T11:00:00Z' },
+  { id: 'mock-mm', email: 'maria.masoliver@factorial.co', name: 'María Masoliver', subteam: 'Telefonica', role: 'PBD', _mock: true, last_login: '2026-05-30T10:00:00Z' },
+  { id: 'mock-lgu', email: 'lucia.guerrero@factorial.co', name: 'Lucía Guerrero', subteam: 'Telefonica', role: 'PBD', _mock: true, last_login: '2026-06-01T07:30:00Z' },
   // TIM
-  { id: 'mock-cl', email: 'christian.lombardo@factorial.co', name: 'Christian Lombardo', team: 'Partners', subteam: 'TIM', role: 'PAE', reports_to: 'mock-sf', last_login: '2026-05-28T10:00:00Z', _mock: true },
-  { id: 'mock-er', email: 'edoardo.rapezzi@factorial.co', name: 'Edoardo Rapezzi', team: 'Partners', subteam: 'TIM', role: 'PAE', reports_to: 'mock-sf', last_login: '2026-05-27T09:00:00Z', _mock: true },
-  { id: 'mock-ef', email: 'emilio.fabbro@factorial.co', name: 'Emilio Fabbro', team: 'Partners', subteam: 'TIM', role: 'PAE', reports_to: 'mock-sf', last_login: '2026-05-29T14:00:00Z', _mock: true },
-  { id: 'mock-nf', email: 'nunzio.fumo@factorial.co', name: 'Nunzio Fumo', team: 'Partners', subteam: 'TIM', role: 'PAE', reports_to: 'mock-sf', last_login: '2026-05-26T16:00:00Z', _mock: true },
+  { id: 'mock-cl', email: 'christian.lombardo@factorial.co', name: 'Christian Lombardo', subteam: 'TIM', role: 'PAE', _mock: true, last_login: '2026-05-28T10:00:00Z' },
+  { id: 'mock-er', email: 'edoardo.rapezzi@factorial.co', name: 'Edoardo Rapezzi', subteam: 'TIM', role: 'PAE', _mock: true, last_login: '2026-05-27T09:00:00Z' },
+  { id: 'mock-ef', email: 'emilio.fabbro@factorial.co', name: 'Emilio Fabbro', subteam: 'TIM', role: 'PAE', _mock: true, last_login: '2026-05-29T14:00:00Z' },
+  { id: 'mock-nf', email: 'nunzio.fumo@factorial.co', name: 'Nunzio Fumo', subteam: 'TIM', role: 'PAE', _mock: true, last_login: '2026-05-26T16:00:00Z' },
   // TELEKOM
-  { id: 'mock-lz', email: 'leonhard.zeus@factorial.co', name: 'Leonhard Zeus', team: 'Partners', subteam: 'TELEKOM', role: 'PAE', reports_to: 'mock-sf', last_login: '2026-05-25T11:00:00Z', _mock: true },
-  { id: 'mock-kv', email: 'katrin.virtbauer@factorial.co', name: 'Katrin Virtbauer', team: 'Partners', subteam: 'TELEKOM', role: 'PAE', reports_to: 'mock-sf', last_login: '2026-05-24T15:00:00Z', _mock: true },
+  { id: 'mock-lz', email: 'leonhard.zeus@factorial.co', name: 'Leonhard Zeus', subteam: 'TELEKOM', role: 'PAE', _mock: true, last_login: '2026-05-25T11:00:00Z' },
+  { id: 'mock-kv', email: 'katrin.virtbauer@factorial.co', name: 'Katrin Virtbauer', subteam: 'TELEKOM', role: 'PAE', _mock: true, last_login: '2026-05-24T15:00:00Z' },
+];
+
+const ORGCHART_TEAMS = [
+  { name: 'Santander', color: '#ef4444', branches: [
+    { type: 'PAE', tlId: 'mock-rm', repIds: ['mock-xf','mock-jd','mock-pb','mock-ms','mock-jl'] },
+    { type: 'PBD', tlId: 'mock-ca-sant', repIds: ['mock-ir','mock-mr','mock-pg','mock-ds','mock-lg','mock-ng'] }
+  ]},
+  { name: 'Telefonica', color: '#3b82f6', branches: [
+    { type: 'PAE', tlId: 'mock-cs', repIds: ['mock-dc','mock-nu','mock-jm','mock-as'] },
+    { type: 'PBD', tlId: 'mock-ca-tel', repIds: ['mock-ah','mock-ja','mock-mm','mock-lgu'] }
+  ]},
+  { name: 'TIM', color: '#10b981', branches: [
+    { type: 'PAE', tlId: null, repIds: ['mock-cl','mock-er','mock-ef','mock-nf'] }
+  ]},
+  { name: 'TELEKOM', color: '#ec4899', branches: [
+    { type: 'PAE', tlId: null, repIds: ['mock-lz','mock-kv'] }
+  ]},
 ];
 
 let _adminUsers = [];
 let _editingUserId = null;
-let _expandedNodes = new Set(['mock-gc']);
+let _expandedBranches = new Set();
 
 async function loadAdminOrgchart() {
-  const container = document.getElementById('adminOrgchart');
   const { data: dbUsers } = await _sb.from('users').select('*').order('name');
   const dbEmails = new Set((dbUsers || []).map(u => u.email));
   _adminUsers = [
@@ -2925,27 +2944,11 @@ async function loadAdminOrgchart() {
   renderOrgTree();
 }
 
-function getChildren(parentId) {
-  return _adminUsers.filter(u => u.reports_to === parentId);
-}
+function userById(id) { return _adminUsers.find(u => u.id === id); }
 
-function renderOrgTree() {
-  const container = document.getElementById('adminOrgchart');
-  const statsEl = document.getElementById('adminStats');
-  const users = _adminUsers;
-  const totalRegistered = users.filter(u => !u._mock).length;
-  const totalPending = users.filter(u => u._mock).length;
-  statsEl.innerHTML = `<span>${users.length} total</span><span class="text-green-500">${totalRegistered} registrados</span><span class="text-gray-300">${totalPending} pendientes</span>`;
-
-  const root = users.find(u => !u.reports_to);
-  if (!root) { container.innerHTML = '<p class="text-sm text-gray-400">No root user found</p>'; return; }
-  container.innerHTML = renderNode(root);
-}
-
-function renderNode(user) {
+function renderCard(user, size) {
+  if (!user) return '';
   const initials = user.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-  const children = getChildren(user.id);
-  const isExpanded = _expandedNodes.has(user.id);
   const mockClass = user._mock ? 'mock' : 'registered';
   const roleBadgeColors = {
     'Admin': 'background:#f3e8ff;color:#7c3aed;', 'Manager': 'background:#dbeafe;color:#2563eb;',
@@ -2953,52 +2956,114 @@ function renderNode(user) {
     'PAE': 'background:#d1fae5;color:#059669;', 'PBD': 'background:#cffafe;color:#0891b2;'
   };
   const badgeStyle = roleBadgeColors[user.role] || 'background:#f1f5f9;color:#64748b;';
-  const subteamLabel = user.subteam && user.subteam !== 'Partners' ? `<div class="text-[9px] text-gray-400 mt-1">${user.subteam}</div>` : '';
+  const w = size === 'lg' ? '140px' : '120px';
+  const avatarSz = size === 'lg' ? '52px' : '44px';
+  const avatarFont = size === 'lg' ? '16px' : '14px';
+  const nameFont = size === 'lg' ? '12px' : '11px';
+  return `<div class="org-card ${mockClass}" style="width:${w}" onclick="openEditModal('${user.id}')">
+    <div class="org-avatar" style="width:${avatarSz};height:${avatarSz};font-size:${avatarFont}">${initials}</div>
+    <div style="font-size:${nameFont}" class="font-semibold text-gray-800 leading-tight">${user.name.split(' ')[0]}</div>
+    <div class="text-[10px] text-gray-400 leading-tight mt-0.5">${user.name.split(' ').slice(1).join(' ')}</div>
+    <div class="org-role-badge" style="${badgeStyle}">${user.role}</div>
+  </div>`;
+}
 
-  let html = `<div class="org-node">
-    <div class="org-card ${mockClass}" onclick="openEditModal('${user.id}')">
-      <div class="org-avatar">${initials}</div>
-      <div class="text-xs font-semibold text-gray-800 leading-tight">${user.name.split(' ')[0]}</div>
-      <div class="text-[10px] text-gray-400 leading-tight mt-0.5">${user.name.split(' ').slice(1).join(' ')}</div>
-      <div class="org-role-badge" style="${badgeStyle}">${user.role}</div>
-      ${subteamLabel}
-    </div>`;
+function renderOrgTree() {
+  const container = document.getElementById('adminOrgchart');
+  const statsEl = document.getElementById('adminStats');
+  const users = _adminUsers;
+  const reg = users.filter(u => !u._mock).length;
+  const pending = users.filter(u => u._mock).length;
+  statsEl.innerHTML = `<span>${users.length} total</span><span class="text-green-500">${reg} registrados</span><span class="text-gray-300">${pending} pendientes</span>`;
 
-  if (children.length > 0) {
-    html += `<div class="org-expand" onclick="event.stopPropagation(); toggleNode('${user.id}')">
-      <span>${isExpanded ? '−' : children.length}</span>
+  const admins = users.filter(u => u.role === 'Admin');
+  const managers = users.filter(u => u.role === 'Manager');
+
+  let html = '';
+  // Layer 1: Admins
+  html += `<div class="flex justify-center gap-6 mb-2">${admins.map(u => `<div class="flex flex-col items-center">${renderCard(u, 'lg')}</div>`).join('')}</div>`;
+  html += `<div class="flex justify-center mb-2"><div class="text-[10px] text-gray-300 uppercase tracking-widest px-3 py-1 bg-gray-50 rounded-full border border-gray-200">Admins</div></div>`;
+
+  // Connector
+  html += `<div class="flex justify-center my-1"><div class="w-px h-6 bg-gray-200"></div></div>`;
+
+  // Layer 2: Managers
+  html += `<div class="flex justify-center gap-6 mb-2">${managers.map(u => `<div class="flex flex-col items-center">${renderCard(u, 'lg')}</div>`).join('')}</div>`;
+  html += `<div class="flex justify-center mb-2"><div class="text-[10px] text-gray-300 uppercase tracking-widest px-3 py-1 bg-gray-50 rounded-full border border-gray-200">Managers</div></div>`;
+
+  // Connector
+  html += `<div class="flex justify-center my-1"><div class="w-px h-6 bg-gray-200"></div></div>`;
+
+  // Layer 3: Teams
+  html += `<div class="flex justify-center gap-6 flex-wrap">`;
+  for (const team of ORGCHART_TEAMS) {
+    html += renderTeamBlock(team);
+  }
+  html += `</div>`;
+
+  container.innerHTML = html;
+}
+
+function renderTeamBlock(team) {
+  let html = `<div class="bg-white rounded-xl border border-gray-200 overflow-hidden" style="min-width:200px; border-top: 3px solid ${team.color}">
+    <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-100 text-center">
+      <div class="font-semibold text-sm text-gray-800">${team.name}</div>
+    </div>
+    <div class="p-4 flex gap-6 justify-center">`;
+
+  for (const branch of team.branches) {
+    html += renderBranch(team.name, branch);
+  }
+  html += `</div></div>`;
+  return html;
+}
+
+function renderBranch(teamName, branch) {
+  const branchKey = `${teamName}-${branch.type}`;
+  const isExpanded = _expandedBranches.has(branchKey);
+  const tl = branch.tlId ? userById(branch.tlId) : null;
+  const reps = branch.repIds.map(id => userById(id)).filter(Boolean);
+  const typeBadge = branch.type === 'PAE'
+    ? '<span class="text-[9px] px-2 py-0.5 rounded-full font-semibold" style="background:#d1fae5;color:#059669;">PAE</span>'
+    : '<span class="text-[9px] px-2 py-0.5 rounded-full font-semibold" style="background:#cffafe;color:#0891b2;">PBD</span>';
+
+  let html = `<div class="flex flex-col items-center">
+    <div class="mb-2">${typeBadge}</div>`;
+
+  if (tl) {
+    html += `<div class="flex flex-col items-center">`;
+    html += renderCard(tl, 'sm');
+    // Expand button
+    html += `<div class="org-expand" onclick="event.stopPropagation(); toggleBranch('${branchKey}')" style="margin-top:4px">
+      <span>${isExpanded ? '−' : reps.length}</span>
     </div>`;
     if (isExpanded) {
-      html += `<div class="org-children"><div class="org-children-wrap">`;
-      children.forEach(c => { html += renderNode(c); });
+      html += `<div class="flex flex-col items-center mt-2 relative" style="padding-top:4px">`;
+      html += `<div class="w-px h-3 bg-gray-200 mb-1"></div>`;
+      html += `<div class="flex gap-2 flex-wrap justify-center" style="max-width:320px">`;
+      reps.forEach(r => { html += `<div class="flex flex-col items-center">${renderCard(r, 'sm')}</div>`; });
       html += `</div></div>`;
+    }
+    html += `</div>`;
+  } else {
+    // No TL — show reps directly with expand
+    html += `<div class="org-expand" onclick="event.stopPropagation(); toggleBranch('${branchKey}')" style="margin-bottom:4px">
+      <span>${isExpanded ? '−' : reps.length}</span>
+    </div>`;
+    if (isExpanded) {
+      html += `<div class="flex gap-2 flex-wrap justify-center" style="max-width:260px">`;
+      reps.forEach(r => { html += `<div class="flex flex-col items-center">${renderCard(r, 'sm')}</div>`; });
+      html += `</div>`;
     }
   }
   html += `</div>`;
   return html;
 }
 
-function toggleNode(userId) {
-  if (_expandedNodes.has(userId)) _expandedNodes.delete(userId);
-  else _expandedNodes.add(userId);
+function toggleBranch(key) {
+  if (_expandedBranches.has(key)) _expandedBranches.delete(key);
+  else _expandedBranches.add(key);
   renderOrgTree();
-  requestAnimationFrame(fixChildrenSpans);
-}
-
-function fixChildrenSpans() {
-  document.querySelectorAll('.org-children-wrap').forEach(wrap => {
-    const nodes = wrap.querySelectorAll(':scope > .org-node');
-    if (nodes.length < 2) { wrap.style.setProperty('--half-span', '0px'); return; }
-    const first = nodes[0].querySelector('.org-card');
-    const last = nodes[nodes.length - 1].querySelector('.org-card');
-    if (!first || !last) return;
-    const wrapRect = wrap.getBoundingClientRect();
-    const firstCenter = first.getBoundingClientRect().left + first.getBoundingClientRect().width / 2;
-    const lastCenter = last.getBoundingClientRect().left + last.getBoundingClientRect().width / 2;
-    const wrapCenter = wrapRect.left + wrapRect.width / 2;
-    const halfSpan = Math.max(lastCenter - firstCenter, 0) / 2;
-    wrap.style.setProperty('--half-span', halfSpan + 'px');
-  });
 }
 
 function openEditModal(userId) {
@@ -3050,7 +3115,6 @@ async function saveUserEdit() {
   user.reports_to = newReportsTo;
   closeEditModal();
   renderOrgTree();
-  requestAnimationFrame(fixChildrenSpans);
 }
 
 checkSession();
