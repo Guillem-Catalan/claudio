@@ -156,6 +156,9 @@ Deno.serve(async (req) => {
     const cleaned = rawText.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "").trim();
     const email = JSON.parse(cleaned);
 
+    // Delete previous drafts for this deal (keep only the latest)
+    await sb.from("email_drafts").delete().eq("deal_id", deal_id).eq("status", "draft");
+
     const { data: row, error: insErr } = await sb
       .from("email_drafts")
       .insert({
