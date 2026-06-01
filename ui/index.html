@@ -2731,6 +2731,10 @@ function enterApp(user) {
   document.getElementById('appContainer').classList.remove('hidden');
   loadDeals();
   setupRealtime();
+  const savedTab = localStorage.getItem('claudio_active_tab');
+  if (savedTab && document.getElementById('tab-' + savedTab) && !document.getElementById('tab-' + savedTab).classList.contains('hidden')) {
+    showTab(savedTab);
+  }
 }
 
 let _realtimeChannel = null;
@@ -4536,6 +4540,7 @@ async function loadForecast() {
 const _origShowTab = showTab;
 showTab = function(name) {
   _origShowTab(name);
+  localStorage.setItem('claudio_active_tab', name);
   if (name === 'deals') {
     if (_dealsCache.length === 0) loadDeals();
     else renderActiveDealsTab();
