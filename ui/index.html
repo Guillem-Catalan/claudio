@@ -1706,27 +1706,42 @@ tailwind.config = {
   </div>
   <!-- User detail modal -->
   <div id="editUserModal" class="fixed inset-0 z-[200] hidden items-center justify-center modal-overlay">
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6">
-      <div class="flex items-center gap-3 mb-4">
-        <div id="editUserAvatar" class="w-12 h-12 bg-brand-100 rounded-full flex items-center justify-center">
-          <span id="editUserInitials" class="text-brand-700 font-bold text-base"></span>
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
+      <div class="flex items-center justify-between mb-5">
+        <div class="flex items-center gap-3">
+          <div id="editUserAvatar" class="w-12 h-12 bg-brand-100 rounded-full flex items-center justify-center">
+            <span id="editUserInitials" class="text-brand-700 font-bold text-base"></span>
+          </div>
+          <div>
+            <div id="editUserName" class="text-base font-semibold text-gray-800"></div>
+            <div id="editUserEmail" class="text-xs text-gray-400"></div>
+          </div>
         </div>
-        <div>
-          <div id="editUserName" class="text-base font-semibold text-gray-800"></div>
-          <div id="editUserEmail" class="text-xs text-gray-400"></div>
+        <button onclick="closeEditModal()" class="text-gray-300 hover:text-gray-500"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+      </div>
+      <!-- Info row -->
+      <div class="flex gap-4 mb-5 p-3 bg-gray-50 rounded-lg">
+        <div class="flex-1">
+          <div class="text-[10px] text-gray-400 uppercase tracking-wide">Rol</div>
+          <div id="editRoleDisplay" class="text-sm font-medium text-gray-700 mt-0.5"></div>
+        </div>
+        <div class="flex-1">
+          <div class="text-[10px] text-gray-400 uppercase tracking-wide">Status</div>
+          <div id="editUserStatus" class="text-sm mt-0.5"></div>
+        </div>
+        <div class="flex-1">
+          <div class="text-[10px] text-gray-400 uppercase tracking-wide">Last login</div>
+          <div id="editUserLastLogin" class="text-sm text-gray-700 mt-0.5"></div>
         </div>
       </div>
-      <div class="space-y-3">
-        <div>
-          <label class="text-xs text-gray-500 mb-1 block">Subteam</label>
-          <select id="editSubteam" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
-            <option value="Santander">Santander</option>
-            <option value="Telefonica">Telefonica</option>
-            <option value="TIM">TIM</option>
-            <option value="TELEKOM">TELEKOM</option>
-            <option value="Partners">Partners</option>
-          </select>
-        </div>
+      <!-- Team access toggles — main feature -->
+      <div class="mb-5">
+        <label class="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-2 block">Acceso a datos de equipos</label>
+        <p class="text-[10px] text-gray-400 mb-3">Define qué equipos puede ver esta persona. Si no se marca ninguno, ve todos.</p>
+        <div id="editTeamToggles" class="grid grid-cols-2 gap-2"></div>
+      </div>
+      <!-- Role & Reports -->
+      <div class="grid grid-cols-2 gap-3 mb-4">
         <div>
           <label class="text-xs text-gray-500 mb-1 block">Rol</label>
           <select id="editRole" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
@@ -1744,21 +1759,8 @@ tailwind.config = {
             <option value="">— Nadie —</option>
           </select>
         </div>
-        <div class="pt-2 border-t border-gray-100">
-          <div class="flex justify-between text-xs text-gray-400">
-            <span>Status</span>
-            <span id="editUserStatus"></span>
-          </div>
-          <div class="flex justify-between text-xs text-gray-400 mt-1">
-            <span>Last login</span>
-            <span id="editUserLastLogin"></span>
-          </div>
-        </div>
       </div>
-      <div class="flex gap-2 mt-5">
-        <button onclick="saveUserEdit()" class="flex-1 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700">Guardar</button>
-        <button onclick="closeEditModal()" class="flex-1 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-200">Cancelar</button>
-      </div>
+      <button onclick="saveUserEdit()" class="w-full py-2.5 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700">Guardar cambios</button>
     </div>
   </div>
 </div>
@@ -3066,6 +3068,9 @@ function toggleBranch(key) {
   renderOrgTree();
 }
 
+const ALL_TEAMS = ['Santander', 'Telefonica', 'TIM', 'TELEKOM'];
+const TEAM_TOGGLE_COLORS = { 'Santander': '#ef4444', 'Telefonica': '#3b82f6', 'TIM': '#10b981', 'TELEKOM': '#ec4899' };
+
 function openEditModal(userId) {
   const user = _adminUsers.find(u => u.id === userId);
   if (!user) return;
@@ -3074,20 +3079,37 @@ function openEditModal(userId) {
   document.getElementById('editUserInitials').textContent = initials;
   document.getElementById('editUserName').textContent = user.name;
   document.getElementById('editUserEmail').textContent = user.email;
-  document.getElementById('editSubteam').value = user.subteam;
+  document.getElementById('editRoleDisplay').textContent = `${user.role}${user.subteam && user.subteam !== 'Partners' ? ' · ' + user.subteam : ''}`;
   document.getElementById('editRole').value = user.role;
   document.getElementById('editUserStatus').innerHTML = user._mock
-    ? '<span class="text-gray-400">No registrado</span>'
-    : '<span class="text-green-500">Registrado</span>';
+    ? '<span class="text-gray-400 font-medium">Pendiente</span>'
+    : '<span class="text-green-600 font-medium">Activo</span>';
   document.getElementById('editUserLastLogin').textContent = user.last_login
-    ? new Date(user.last_login).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-    : 'Never';
+    ? new Date(user.last_login).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+    : '—';
+
+  // Team access toggles
+  const visibleTeams = user.visible_teams || [];
+  const togglesEl = document.getElementById('editTeamToggles');
+  togglesEl.innerHTML = ALL_TEAMS.map(t => {
+    const active = visibleTeams.length === 0 || visibleTeams.includes(t);
+    const color = TEAM_TOGGLE_COLORS[t];
+    return `<label class="flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all ${active ? 'border-gray-300 bg-white' : 'border-gray-100 bg-gray-50 opacity-50'}" onclick="this.querySelector('input').checked=!this.querySelector('input').checked; this.classList.toggle('opacity-50'); this.classList.toggle('bg-gray-50'); this.classList.toggle('bg-white'); this.classList.toggle('border-gray-100'); this.classList.toggle('border-gray-300');">
+      <input type="checkbox" value="${t}" ${active ? 'checked' : ''} class="hidden" data-team-toggle>
+      <span class="w-3 h-3 rounded-full flex-shrink-0" style="background:${color}"></span>
+      <span class="text-sm font-medium text-gray-700">${t}</span>
+    </label>`;
+  }).join('');
+
+  // Reports to
   const reportsToSelect = document.getElementById('editReportsTo');
   reportsToSelect.innerHTML = '<option value="">— Nadie —</option>';
-  _adminUsers.filter(u => u.id !== userId).sort((a, b) => a.name.localeCompare(b.name)).forEach(u => {
+  _adminUsers.filter(u => u.id !== userId && !u.id.includes('-tel') && !u.id.includes('-sant'))
+    .sort((a, b) => a.name.localeCompare(b.name)).forEach(u => {
     const sel = user.reports_to === u.id ? ' selected' : '';
     reportsToSelect.innerHTML += `<option value="${u.id}"${sel}>${u.name} (${u.role})</option>`;
   });
+
   const modal = document.getElementById('editUserModal');
   modal.classList.remove('hidden');
   modal.classList.add('flex');
@@ -3103,16 +3125,20 @@ function closeEditModal() {
 async function saveUserEdit() {
   const user = _adminUsers.find(u => u.id === _editingUserId);
   if (!user) return;
-  const newSubteam = document.getElementById('editSubteam').value;
   const newRole = document.getElementById('editRole').value;
   const newReportsTo = document.getElementById('editReportsTo').value || null;
+  const checkedTeams = [...document.querySelectorAll('[data-team-toggle]:checked')].map(el => el.value);
+  const newVisibleTeams = checkedTeams.length === ALL_TEAMS.length ? [] : checkedTeams;
+
   if (!user._mock) {
-    const { error } = await _sb.from('users').update({ subteam: newSubteam, role: newRole, reports_to: newReportsTo }).eq('id', user.id);
+    const { error } = await _sb.from('users').update({
+      role: newRole, reports_to: newReportsTo, visible_teams: newVisibleTeams
+    }).eq('id', user.id);
     if (error) { alert('Error: ' + error.message); return; }
   }
-  user.subteam = newSubteam;
   user.role = newRole;
   user.reports_to = newReportsTo;
+  user.visible_teams = newVisibleTeams;
   closeEditModal();
   renderOrgTree();
 }
