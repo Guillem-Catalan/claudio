@@ -2258,7 +2258,10 @@ async function submitComment() {
   loadComments(_nsCurrentDealId);
 }
 
-function applyTeamFilter() {}
+function applyTeamFilter() {
+  populatePaeFilter();
+  renderActiveDealsTab();
+}
 function selectPae() {}
 
 function initGeneralCharts() {
@@ -2632,6 +2635,55 @@ const KNOWN_USERS = {
   'samuel.fernandez@factorial.co': { subteam: 'Partners', role: 'Admin' },
 };
 
+// Map rep display name → subteam (deals use display names, not emails)
+const REP_TO_TEAM = {};
+for (const [email, info] of Object.entries(KNOWN_USERS)) {
+  if (['Santander','Telefonica','TIM','TELEKOM'].includes(info.subteam)) {
+    const name = email.split('@')[0].split('.').map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+    REP_TO_TEAM[name.toLowerCase()] = info.subteam;
+  }
+}
+// Manual overrides for display names that differ from email pattern
+REP_TO_TEAM['roberto morán'] = 'Santander';
+REP_TO_TEAM['pol bartolomé'] = 'Santander';
+REP_TO_TEAM['joan lorenzo galles'] = 'Santander';
+REP_TO_TEAM['carlos sánchez'] = 'Telefonica';
+REP_TO_TEAM['carlos sanchez'] = 'Telefonica';
+REP_TO_TEAM['nerea urien meizoso'] = 'Telefonica';
+REP_TO_TEAM['ángel hernández'] = 'Telefonica';
+REP_TO_TEAM['angel hernandez'] = 'Telefonica';
+REP_TO_TEAM['maría masoliver'] = 'Telefonica';
+REP_TO_TEAM['maria masoliver'] = 'Telefonica';
+REP_TO_TEAM['lucía guerrero'] = 'Telefonica';
+REP_TO_TEAM['lucia guerrero'] = 'Telefonica';
+REP_TO_TEAM['lucía garaña'] = 'Santander';
+REP_TO_TEAM['lucia garana'] = 'Santander';
+REP_TO_TEAM['nicolás gonzález'] = 'Santander';
+REP_TO_TEAM['nicolas gonzalez'] = 'Santander';
+REP_TO_TEAM['inés rivera'] = 'Santander';
+REP_TO_TEAM['ines rivera'] = 'Santander';
+REP_TO_TEAM['josé donis'] = 'Santander';
+REP_TO_TEAM['jose donis'] = 'Santander';
+
+function getDealTeam(deal) {
+  const owner = (deal.pae || deal.pbd || '').toLowerCase();
+  return REP_TO_TEAM[owner] || null;
+}
+
+function getUserVisibleTeams() {
+  const u = window._currentUser;
+  if (!u) return ['Santander','Telefonica','TIM','TELEKOM'];
+  if (u.visible_teams && u.visible_teams.length > 0) return u.visible_teams;
+  if (['Admin','Manager'].includes(u.role)) return ['Santander','Telefonica','TIM','TELEKOM'];
+  const t = u.subteam;
+  return ['Santander','Telefonica','TIM','TELEKOM'].includes(t) ? [t] : [];
+}
+
+function isRepUser() {
+  const r = window._currentUser?.role;
+  return r && ['PBD','PAE','PBD TL','PAE TL'].includes(r);
+}
+
 window._currentUser = null;
 
 function showLoginError(msg) {
@@ -2664,6 +2716,16 @@ function enterApp(user) {
     document.getElementById('tab-admin').classList.remove('hidden');
   } else {
     document.getElementById('tab-admin').classList.add('hidden');
+  }
+  // Populate team filter based on visible_teams
+  const teams = getUserVisibleTeams();
+  const teamFilter = document.getElementById('teamFilter');
+  if (teamFilter) {
+    let opts = '';
+    if (teams.length > 1) opts += '<option value="all">All Teams</option>';
+    teams.forEach(t => { opts += `<option value="${t.toLowerCase()}">${t}</option>`; });
+    teamFilter.innerHTML = opts;
+    if (isRepUser() && teams.length === 1) teamFilter.value = teams[0].toLowerCase();
   }
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('appContainer').classList.remove('hidden');
@@ -3280,29 +3342,44 @@ async function loadDeals() {
   renderActiveDealsTab();
 }
 
+function getAccessibleDeals() {
+  const teams = getUserVisibleTeams();
+  const teamFilter = document.getElementById('teamFilter')?.value || 'all';
+  return _dealsCache.filter(d => {
+    const dealTeam = getDealTeam(d);
+    if (dealTeam && !teams.includes(dealTeam)) return false;
+    if (teamFilter !== 'all' && dealTeam && dealTeam.toLowerCase() !== teamFilter) return false;
+    return true;
+  });
+}
+
 function populatePaeFilter() {
+  const accessible = getAccessibleDeals();
   const paeSelect = document.getElementById('paeFilter');
   if (paeSelect) {
-    const owners = [...new Set(_dealsCache.map(d => d.pae || d.pbd).filter(Boolean))].sort();
-    paeSelect.innerHTML = '<option value="">All PAEs/PBDs</option>' + owners.map(p => `<option value="${p}">${p}</option>`).join('');
+    const owners = [...new Set(accessible.map(d => d.pae || d.pbd).filter(Boolean))].sort();
+    const currentUser = window._currentUser;
+    const defaultOwner = isRepUser() ? currentUser?.name || '' : '';
+    paeSelect.innerHTML = '<option value="">All PAEs/PBDs</option>' + owners.map(p => `<option value="${p}"${p === defaultOwner ? ' selected' : ''}>${p}</option>`).join('');
   }
   const stageSelect = document.getElementById('stageFilter');
   if (stageSelect) {
     const phaseOptions = PIPELINE_PHASES.map(p => {
-      const count = _dealsCache.filter(d => _STAGE_TO_PHASE[d.deal_stage] === p.key).length;
+      const count = accessible.filter(d => _STAGE_TO_PHASE[d.deal_stage] === p.key).length;
       return count > 0 ? `<option value="phase:${p.key}">${p.label} (${count})</option>` : '';
     }).join('');
-    const otherCount = _dealsCache.filter(d => !_STAGE_TO_PHASE[d.deal_stage]).length;
+    const otherCount = accessible.filter(d => !_STAGE_TO_PHASE[d.deal_stage]).length;
     const otherOpt = otherCount > 0 ? `<option value="phase:other">Other (${otherCount})</option>` : '';
     stageSelect.innerHTML = '<option value="">All Stages</option>' + phaseOptions + otherOpt;
   }
 }
 
 function getFilteredDeals() {
+  const accessible = getAccessibleDeals();
   const search = (document.getElementById('dealSearch')?.value || '').toLowerCase();
   const owner = document.getElementById('paeFilter')?.value || '';
   const stageVal = document.getElementById('stageFilter')?.value || '';
-  return _dealsCache.filter(d => {
+  return accessible.filter(d => {
     if (search && !(d.deal_name || '').toLowerCase().includes(search)) return false;
     if (owner && d.pae !== owner && d.pbd !== owner) return false;
     if (stageVal) {
