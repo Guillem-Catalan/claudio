@@ -19,6 +19,7 @@ TEAMS = {
             "roberto.moran@factorial.co",
             "mireia.serrano@factorial.co",
             "joan.lorenzo@factorial.co",
+            "joan.balana@factorial.co",
         },
     },
     "Telefónica": {
@@ -38,6 +39,7 @@ TEAMS = {
             "juan.martinez@factorial.co",
             "carlos.sanchez@factorial.co",
             "alejandro.soto@factorial.co",
+            "joan.balana@factorial.co",
         },
     },
     "TIM": {

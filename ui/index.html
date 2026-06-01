@@ -2619,6 +2619,7 @@ const KNOWN_USERS = {
   'roberto.moran@factorial.co': { subteam: 'Santander', role: 'PAE TL' },
   'mireia.serrano@factorial.co': { subteam: 'Santander', role: 'PAE' },
   'joan.lorenzo@factorial.co': { subteam: 'Santander', role: 'PAE' },
+  'joan.balana@factorial.co': { subteam: 'Santander', role: 'PAE', visible_teams: ['Santander', 'Telefonica'] },
   // Telefónica PBD
   'angel.hernandez@factorial.co': { subteam: 'Telefonica', role: 'PBD' },
   'jon.azconobieta@factorial.co': { subteam: 'Telefonica', role: 'PBD' },
@@ -2678,6 +2679,8 @@ REP_TO_TEAM['josé donis'] = 'Santander';
 REP_TO_TEAM['jose donis'] = 'Santander';
 
 function getDealTeam(deal) {
+  const partner = extractPartner(deal.deal_name);
+  if (partner) return partner.normalize('NFD').replace(/[̀-ͯ]/g, '');
   const owner = (deal.pae || deal.pbd || '').toLowerCase();
   return REP_TO_TEAM[owner] || null;
 }
@@ -2861,7 +2864,7 @@ async function handleRegister() {
   const subteam = known ? known.subteam : 'Unassigned';
   const role = known ? known.role : 'Pending';
   const visibleTeams = known
-    ? (['Admin','Manager'].includes(known.role) ? ['Santander','Telefonica','TIM','TELEKOM'] : (known.subteam && known.subteam !== 'Partners' ? [known.subteam] : []))
+    ? (known.visible_teams || (['Admin','Manager'].includes(known.role) ? ['Santander','Telefonica','TIM','TELEKOM'] : (known.subteam && known.subteam !== 'Partners' ? [known.subteam] : [])))
     : [];
   const btn = document.getElementById('registerBtn');
   btn.disabled = true; btn.textContent = 'Registrando...';
@@ -2921,6 +2924,7 @@ const MOCK_USERS = [
   { id: 'mock-pb', email: 'pol.bartolome@factorial.co', name: 'Pol Bartolomé', subteam: 'Santander', role: 'PAE', _mock: true, last_login: '2026-06-01T09:00:00Z' },
   { id: 'mock-ms', email: 'mireia.serrano@factorial.co', name: 'Mireia Serrano', subteam: 'Santander', role: 'PAE', _mock: true, last_login: '2026-05-30T15:00:00Z' },
   { id: 'mock-jl', email: 'joan.lorenzo@factorial.co', name: 'Joan Lorenzo', subteam: 'Santander', role: 'PAE', _mock: true, last_login: '2026-05-31T10:00:00Z' },
+  { id: 'mock-jb-sant', email: 'joan.balana@factorial.co', name: 'Joan Balaña', subteam: 'Santander', role: 'PAE', _mock: true, last_login: '2026-05-31T10:00:00Z' },
   // Santander PBD
   { id: 'mock-ca-sant', email: 'carlos.acosta@factorial.co', name: 'Carlos Acosta', subteam: 'Santander', role: 'PBD TL', _mock: true, last_login: '2026-05-31T14:00:00Z' },
   { id: 'mock-ir', email: 'ines.rivera@factorial.co', name: 'Inés Rivera', subteam: 'Santander', role: 'PBD', _mock: true, last_login: '2026-06-01T08:30:00Z' },
@@ -2935,6 +2939,7 @@ const MOCK_USERS = [
   { id: 'mock-nu', email: 'nerea.urien@factorial.co', name: 'Nerea Urien', subteam: 'Telefonica', role: 'PAE', _mock: true, last_login: '2026-05-31T15:00:00Z' },
   { id: 'mock-jm', email: 'juan.martinez@factorial.co', name: 'Juan Martinez', subteam: 'Telefonica', role: 'PAE', _mock: true, last_login: '2026-05-30T17:00:00Z' },
   { id: 'mock-as', email: 'alejandro.soto@factorial.co', name: 'Alejandro Soto', subteam: 'Telefonica', role: 'PAE', _mock: true, last_login: '2026-05-31T13:00:00Z' },
+  { id: 'mock-jb-tel', email: 'joan.balana@factorial.co', name: 'Joan Balaña', subteam: 'Telefonica', role: 'PAE', _mock: true, last_login: '2026-05-31T10:00:00Z' },
   // Telefónica PBD
   { id: 'mock-ca-tel', email: 'carlos.acosta@factorial.co', name: 'Carlos Acosta', subteam: 'Telefonica', role: 'PBD TL', _mock: true, last_login: '2026-05-31T14:00:00Z' },
   { id: 'mock-ah', email: 'angel.hernandez@factorial.co', name: 'Ángel Hernández', subteam: 'Telefonica', role: 'PBD', _mock: true, last_login: '2026-06-01T09:15:00Z' },
@@ -2953,11 +2958,11 @@ const MOCK_USERS = [
 
 const ORGCHART_TEAMS = [
   { name: 'Santander', color: '#ef4444', branches: [
-    { type: 'PAE', tlId: 'mock-rm', repIds: ['mock-xf','mock-jd','mock-pb','mock-ms','mock-jl'] },
+    { type: 'PAE', tlId: 'mock-rm', repIds: ['mock-xf','mock-jd','mock-pb','mock-ms','mock-jl','mock-jb-sant'] },
     { type: 'PBD', tlId: 'mock-ca-sant', repIds: ['mock-ir','mock-mr','mock-pg','mock-ds','mock-lg','mock-ng'] }
   ]},
   { name: 'Telefonica', color: '#3b82f6', branches: [
-    { type: 'PAE', tlId: 'mock-cs', repIds: ['mock-dc','mock-nu','mock-jm','mock-as'] },
+    { type: 'PAE', tlId: 'mock-cs', repIds: ['mock-dc','mock-nu','mock-jm','mock-as','mock-jb-tel'] },
     { type: 'PBD', tlId: 'mock-ca-tel', repIds: ['mock-ah','mock-ja','mock-mm','mock-lgu'] }
   ]},
   { name: 'TIM', color: '#10b981', branches: [
