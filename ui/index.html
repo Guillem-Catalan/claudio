@@ -1737,7 +1737,7 @@ tailwind.config = {
       <!-- Team access toggles — main feature -->
       <div class="mb-5">
         <label class="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-2 block">Acceso a datos de equipos</label>
-        <p class="text-[10px] text-gray-400 mb-3">Define qué equipos puede ver esta persona. Si no se marca ninguno, ve todos.</p>
+        <p class="text-[10px] text-gray-400 mb-3">Marca los equipos a los que esta persona tiene acceso.</p>
         <div id="editTeamToggles" class="grid grid-cols-2 gap-2"></div>
       </div>
       <!-- Role & Reports -->
@@ -3088,16 +3088,22 @@ function openEditModal(userId) {
     ? new Date(user.last_login).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
     : '—';
 
-  // Team access toggles
-  const visibleTeams = user.visible_teams || [];
+  // Team access toggles — explicit: checked = access, unchecked = no access
+  const defaultTeams = (u) => {
+    if (['Admin','Manager'].includes(u.role)) return [...ALL_TEAMS];
+    const t = u.subteam;
+    return ALL_TEAMS.includes(t) ? [t] : [];
+  };
+  const visibleTeams = (user.visible_teams && user.visible_teams.length > 0) ? user.visible_teams : defaultTeams(user);
   const togglesEl = document.getElementById('editTeamToggles');
   togglesEl.innerHTML = ALL_TEAMS.map(t => {
-    const active = visibleTeams.length === 0 || visibleTeams.includes(t);
+    const active = visibleTeams.includes(t);
     const color = TEAM_TOGGLE_COLORS[t];
-    return `<label class="flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all ${active ? 'border-gray-300 bg-white' : 'border-gray-100 bg-gray-50 opacity-50'}" onclick="this.querySelector('input').checked=!this.querySelector('input').checked; this.classList.toggle('opacity-50'); this.classList.toggle('bg-gray-50'); this.classList.toggle('bg-white'); this.classList.toggle('border-gray-100'); this.classList.toggle('border-gray-300');">
+    return `<label class="flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-all ${active ? 'border-gray-300 bg-white' : 'border-gray-100 bg-gray-50 opacity-40'}" onclick="event.preventDefault(); toggleTeamAccess(this);">
       <input type="checkbox" value="${t}" ${active ? 'checked' : ''} class="hidden" data-team-toggle>
-      <span class="w-3 h-3 rounded-full flex-shrink-0" style="background:${color}"></span>
-      <span class="text-sm font-medium text-gray-700">${t}</span>
+      <span class="w-3 h-3 rounded-full flex-shrink-0" style="background:${active ? color : '#d1d5db'}"></span>
+      <span class="text-sm font-medium ${active ? 'text-gray-700' : 'text-gray-400'}">${t}</span>
+      <span class="ml-auto text-xs ${active ? 'text-green-500' : 'text-gray-300'}">${active ? '✓' : '✗'}</span>
     </label>`;
   }).join('');
 
@@ -3115,6 +3121,28 @@ function openEditModal(userId) {
   modal.classList.add('flex');
 }
 
+function toggleTeamAccess(label) {
+  const input = label.querySelector('input');
+  input.checked = !input.checked;
+  const color = TEAM_TOGGLE_COLORS[input.value];
+  const dot = label.querySelector('span:first-of-type');
+  const name = label.querySelector('span:nth-of-type(2)');
+  const check = label.querySelector('span:last-of-type');
+  if (input.checked) {
+    label.className = label.className.replace('border-gray-100 bg-gray-50 opacity-40', 'border-gray-300 bg-white');
+    dot.style.background = color;
+    name.className = 'text-sm font-medium text-gray-700';
+    check.className = 'ml-auto text-xs text-green-500';
+    check.textContent = '✓';
+  } else {
+    label.className = label.className.replace('border-gray-300 bg-white', 'border-gray-100 bg-gray-50 opacity-40');
+    dot.style.background = '#d1d5db';
+    name.className = 'text-sm font-medium text-gray-400';
+    check.className = 'ml-auto text-xs text-gray-300';
+    check.textContent = '✗';
+  }
+}
+
 function closeEditModal() {
   const modal = document.getElementById('editUserModal');
   modal.classList.add('hidden');
@@ -3127,8 +3155,7 @@ async function saveUserEdit() {
   if (!user) return;
   const newRole = document.getElementById('editRole').value;
   const newReportsTo = document.getElementById('editReportsTo').value || null;
-  const checkedTeams = [...document.querySelectorAll('[data-team-toggle]:checked')].map(el => el.value);
-  const newVisibleTeams = checkedTeams.length === ALL_TEAMS.length ? [] : checkedTeams;
+  const newVisibleTeams = [...document.querySelectorAll('[data-team-toggle]:checked')].map(el => el.value);
 
   if (!user._mock) {
     const { error } = await _sb.from('users').update({
