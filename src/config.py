@@ -2,7 +2,7 @@ TEAMS = {
     "Santander": {
         "active": True,
         "partner_names": {"santander", "banco santander", "santander bank", "santander españa"},
-        "partner_domains": {"santander.com", "bancosantander.es", "gruposantander.com"},
+        "partner_domains": {"santander.com", "bancosantander.es", "gruposantander.com", "gruposantander.es"},
         "pbd": {
             "ines.rivera@factorial.co",
             "carlos.acosta@factorial.co",

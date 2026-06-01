@@ -1,0 +1,50 @@
+name: Sync Calendar
+
+on:
+  schedule:
+    - cron: "0 22 * * 0-4"    # 22:00 UTC (00:00 CEST) → full: reconcile + sync
+    - cron: "0 10 * * 1-5"    # 10:00 UTC (12:00 CEST) → refresh: sync only
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "full (reconcile+sync) or refresh (sync only)"
+        type: choice
+        options:
+          - full
+          - refresh
+        default: full
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements.txt
+
+      - name: Sync Google Calendar
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
+          GCAL_CLIENT_ID: ${{ secrets.GCAL_CLIENT_ID }}
+          GCAL_CLIENT_SECRET: ${{ secrets.GCAL_CLIENT_SECRET }}
+          GCAL_REFRESH_TOKEN: ${{ secrets.GCAL_REFRESH_TOKEN }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CALENDAR_CHANNEL: ${{ secrets.SLACK_CALENDAR_CHANNEL }}
+        run: |
+          MODE="${{ inputs.mode }}"
+          if [ -z "$MODE" ]; then
+            HOUR=$(date -u +%H)
+            if [ "$HOUR" = "22" ]; then
+              MODE="full"
+            else
+              MODE="refresh"
+            fi
+          fi
+          python -m scripts.sync_calendar --mode "$MODE"
