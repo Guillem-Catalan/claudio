@@ -1719,8 +1719,19 @@ tailwind.config = {
         <p class="text-[10px] text-gray-400 mb-3">Marca los equipos a los que esta persona tiene acceso.</p>
         <div id="editTeamToggles" class="grid grid-cols-2 gap-2"></div>
       </div>
-      <!-- Role & Reports -->
-      <div class="grid grid-cols-2 gap-3 mb-4">
+      <!-- Subteam, Role & Reports -->
+      <div class="grid grid-cols-3 gap-3 mb-4">
+        <div>
+          <label class="text-xs text-gray-500 mb-1 block">Equipo</label>
+          <select id="editSubteam" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
+            <option value="Santander">Santander</option>
+            <option value="Telefonica">Telefonica</option>
+            <option value="TIM">TIM</option>
+            <option value="TELEKOM">TELEKOM</option>
+            <option value="Partners">Partners</option>
+            <option value="Unassigned">Sin asignar</option>
+          </select>
+        </div>
         <div>
           <label class="text-xs text-gray-500 mb-1 block">Rol</label>
           <select id="editRole" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
@@ -1730,6 +1741,7 @@ tailwind.config = {
             <option value="PAE TL">PAE TL</option>
             <option value="Manager">Manager</option>
             <option value="Admin">Admin</option>
+            <option value="Pending">Pending</option>
           </select>
         </div>
         <div>
@@ -3068,7 +3080,7 @@ function renderBranch(teamName, branch) {
   const staticReps = branch.repIds.map(id => userById(id)).filter(Boolean);
   const dynamicReps = _adminUsers.filter(u =>
     !u._mock && !staticIds.has(u.id) && u.subteam === teamName
-    && u.role === branch.type && u.role !== 'Pending'
+    && u.role.startsWith(branch.type) && u.role !== 'Pending'
   );
   const reps = [...staticReps, ...dynamicReps];
   const typeBadge = branch.type === 'PAE'
@@ -3125,7 +3137,8 @@ function openEditModal(userId) {
   document.getElementById('editUserInitials').textContent = initials;
   document.getElementById('editUserName').textContent = user.name;
   document.getElementById('editUserEmail').textContent = user.email;
-  document.getElementById('editRoleDisplay').textContent = `${user.role}${user.subteam && user.subteam !== 'Partners' ? ' · ' + user.subteam : ''}`;
+  document.getElementById('editRoleDisplay').textContent = `${user.role}${user.subteam && !['Partners','Unassigned'].includes(user.subteam) ? ' · ' + user.subteam : ''}`;
+  document.getElementById('editSubteam').value = user.subteam || 'Unassigned';
   document.getElementById('editRole').value = user.role;
   document.getElementById('editUserStatus').innerHTML = user._mock
     ? '<span class="text-gray-400 font-medium">Pendiente</span>'
@@ -3199,16 +3212,18 @@ function closeEditModal() {
 async function saveUserEdit() {
   const user = _adminUsers.find(u => u.id === _editingUserId);
   if (!user) return;
+  const newSubteam = document.getElementById('editSubteam').value;
   const newRole = document.getElementById('editRole').value;
   const newReportsTo = document.getElementById('editReportsTo').value || null;
   const newVisibleTeams = [...document.querySelectorAll('[data-team-toggle]:checked')].map(el => el.value);
 
   if (!user._mock) {
     const { error } = await _sb.from('users').update({
-      role: newRole, reports_to: newReportsTo, visible_teams: newVisibleTeams
+      subteam: newSubteam, role: newRole, reports_to: newReportsTo, visible_teams: newVisibleTeams
     }).eq('id', user.id);
     if (error) { alert('Error: ' + error.message); return; }
   }
+  user.subteam = newSubteam;
   user.role = newRole;
   user.reports_to = newReportsTo;
   user.visible_teams = newVisibleTeams;
