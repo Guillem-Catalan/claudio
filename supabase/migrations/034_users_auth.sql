@@ -24,5 +24,5 @@ CREATE POLICY "Users can insert own row" ON users
 
 CREATE POLICY "Admin full access" ON users
   FOR ALL USING (
-    EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role = 'Admin')
+    auth.jwt() ->> 'email' = 'guillem.catalan@factorial.co'
   );
