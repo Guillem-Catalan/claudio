@@ -76,7 +76,22 @@ def run(full: bool = False, since_hours: int = 48):
     if full:
         deal_ids = find_all_deal_ids()
     else:
-        since_ms = int((now - timedelta(hours=since_hours)).timestamp() * 1000)
+        # Use last successful sync as cutoff instead of fixed 48h window
+        last_synced_result = (
+            supabase.table("deals")
+            .select("last_synced")
+            .not_.is_("last_synced", "null")
+            .order("last_synced", desc=True)
+            .limit(1)
+            .execute()
+        )
+        if last_synced_result.data and last_synced_result.data[0].get("last_synced"):
+            last = datetime.fromisoformat(last_synced_result.data[0]["last_synced"])
+            since_ms = int((last - timedelta(minutes=30)).timestamp() * 1000)
+            print(f"   Using last_synced cutoff: {last.isoformat()} (- 30min overlap)")
+        else:
+            since_ms = int((now - timedelta(hours=since_hours)).timestamp() * 1000)
+            print(f"   No last_synced found — falling back to {since_hours}h window")
         deal_ids = find_modified_deal_ids(since_ms)
 
     if not deal_ids:
