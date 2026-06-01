@@ -47,6 +47,66 @@ tailwind.config = {
 </head>
 <body class="bg-gray-50 text-gray-900">
 
+<!-- ====== LOGIN SCREEN ====== -->
+<div id="loginScreen" class="fixed inset-0 z-[100] bg-gray-50 flex items-center justify-center">
+  <div class="w-full max-w-sm mx-auto px-6">
+    <div class="text-center mb-8">
+      <div class="w-12 h-12 bg-brand-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+        <span class="text-white font-bold text-xl">C</span>
+      </div>
+      <h1 class="text-2xl font-bold text-gray-900">Claudio</h1>
+      <p class="text-sm text-gray-400 mt-1">Sales Intelligence Platform</p>
+    </div>
+
+    <div id="loginError" class="hidden mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700"></div>
+
+    <!-- Login Form -->
+    <div id="loginForm">
+      <div class="space-y-3 mb-4">
+        <input id="loginEmail" type="email" placeholder="Email @factorial.co" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
+        <input id="loginPassword" type="password" placeholder="Password" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
+      </div>
+      <button onclick="handleLogin()" id="loginBtn" class="w-full py-2.5 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors">Entrar</button>
+      <p class="text-center text-xs text-gray-400 mt-4">No tienes cuenta? <a href="#" onclick="showRegisterForm(); return false" class="text-brand-600 hover:underline">Registrate</a></p>
+    </div>
+
+    <!-- Register Form -->
+    <div id="registerForm" class="hidden">
+      <div class="space-y-3 mb-4">
+        <input id="regEmail" type="email" placeholder="Email @factorial.co" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
+        <input id="regPassword" type="password" placeholder="Password (min 6 chars)" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
+        <input id="regName" type="text" placeholder="Nombre completo" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
+        <div id="regAutoDetected" class="hidden p-3 bg-green-50 border border-green-200 rounded-lg">
+          <div class="text-xs text-green-700 font-medium">Auto-detected:</div>
+          <div id="regAutoInfo" class="text-sm text-green-800 font-semibold mt-0.5"></div>
+        </div>
+        <div id="regManualFields" class="hidden space-y-3">
+          <select id="regSubteam" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white">
+            <option value="">Selecciona subteam...</option>
+            <option value="Santander">Santander</option>
+            <option value="Telefonica">Telefonica</option>
+            <option value="TIM">TIM</option>
+            <option value="TELEKOM">TELEKOM</option>
+          </select>
+          <select id="regRole" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white">
+            <option value="">Selecciona rol...</option>
+            <option value="PBD">PBD</option>
+            <option value="PAE">PAE</option>
+            <option value="PBD TL">PBD TL</option>
+            <option value="PAE TL">PAE TL</option>
+            <option value="Manager">Manager</option>
+          </select>
+        </div>
+      </div>
+      <button onclick="handleRegister()" id="registerBtn" class="w-full py-2.5 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors">Registrarse</button>
+      <p class="text-center text-xs text-gray-400 mt-4">Ya tienes cuenta? <a href="#" onclick="showLoginForm(); return false" class="text-brand-600 hover:underline">Entra aqui</a></p>
+    </div>
+  </div>
+</div>
+
+<!-- ====== APP (hidden until logged in) ====== -->
+<div id="appContainer" class="hidden">
+
 <!-- Top Nav -->
 <nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
   <div class="max-w-[1400px] mx-auto px-6 flex items-center justify-between h-14">
@@ -65,13 +125,16 @@ tailwind.config = {
       </select>
       <div class="flex items-center gap-2">
         <div class="w-8 h-8 bg-brand-100 rounded-full flex items-center justify-center">
-          <span class="text-brand-700 font-semibold text-xs">XS</span>
+          <span id="navUserInitials" class="text-brand-700 font-semibold text-xs"></span>
         </div>
         <div class="text-sm">
-          <div class="font-medium text-gray-700">Xavi Soler</div>
-          <div class="text-gray-400 text-xs">Team Lead · Santander</div>
+          <div id="navUserName" class="font-medium text-gray-700"></div>
+          <div id="navUserRole" class="text-gray-400 text-xs"></div>
         </div>
       </div>
+      <button onclick="handleLogout()" class="text-xs text-gray-400 hover:text-red-500 transition-colors ml-1" title="Logout">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
     </div>
   </div>
 </nav>
@@ -84,6 +147,7 @@ tailwind.config = {
     <button onclick="showTab('deals')" id="tab-deals" class="px-4 py-3 text-sm text-gray-500 hover:text-gray-700 transition-colors">Deals</button>
     <button onclick="showTab('analytics')" id="tab-analytics" class="px-4 py-3 text-sm text-gray-500 hover:text-gray-700 transition-colors">Analytics</button>
     <button onclick="showTab('oneone')" id="tab-oneone" class="px-4 py-3 text-sm text-gray-500 hover:text-gray-700 transition-colors">1:1</button>
+    <button onclick="showTab('admin')" id="tab-admin" class="px-4 py-3 text-sm text-gray-500 hover:text-gray-700 transition-colors hidden">Admin</button>
   </div>
 </div>
 
@@ -1613,12 +1677,27 @@ tailwind.config = {
   </div>
 </div>
 
+<!-- ====== ADMIN TAB ====== -->
+<div id="panel-admin" class="max-w-[1400px] mx-auto px-6 py-6 hidden fade-in">
+  <div class="flex items-center justify-between mb-6">
+    <h2 class="text-lg font-bold text-gray-800">Admin — Team Management</h2>
+    <span class="text-xs text-gray-400">Solo visible para Admin</span>
+  </div>
+  <div id="adminOrgchart" class="space-y-6">
+    <div class="text-sm text-gray-400">Loading team structure...</div>
+  </div>
+</div>
+
+</div><!-- close #appContainer -->
+
 <!-- JavaScript -->
 <script>
 function showTab(name) {
-  ['general','forecast','deals','analytics','oneone'].forEach(t => {
-    document.getElementById('panel-'+t).classList.add('hidden');
-    document.getElementById('tab-'+t).classList.remove('tab-active');
+  ['general','forecast','deals','analytics','oneone','admin'].forEach(t => {
+    const panel = document.getElementById('panel-'+t);
+    const tab = document.getElementById('tab-'+t);
+    if (panel) panel.classList.add('hidden');
+    if (tab) tab.classList.remove('tab-active');
   });
   document.getElementById('panel-'+name).classList.remove('hidden');
   document.getElementById('tab-'+name).classList.add('tab-active');
@@ -2451,6 +2530,239 @@ const _sb = supabase.createClient(
   'https://bqoepgcdgqylobkmqdur.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxb2VwZ2NkZ3F5bG9ia21xZHVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyNTUyMzQsImV4cCI6MjA5MzgzMTIzNH0.FXajdSSsz6BgX9RJ_UVgy7q_9cavJdQWP1PHX9_zVhk'
 );
+
+// ── Known users: auto-detect subteam + role on register ──
+const KNOWN_USERS = {
+  // Santander PBD
+  'ines.rivera@factorial.co': { subteam: 'Santander', role: 'PBD' },
+  'carlos.acosta@factorial.co': { subteam: 'Santander', role: 'PBD' },
+  'marta.ruiz@factorial.co': { subteam: 'Santander', role: 'PBD' },
+  'paula.gil@factorial.co': { subteam: 'Santander', role: 'PBD' },
+  'david.soler@factorial.co': { subteam: 'Santander', role: 'PBD' },
+  'lucia.garana@factorial.co': { subteam: 'Santander', role: 'PBD' },
+  'nicolas.gonzalez@factorial.co': { subteam: 'Santander', role: 'PBD' },
+  // Santander PAE
+  'xavier.fortuny@factorial.co': { subteam: 'Santander', role: 'PAE' },
+  'jose.donis@factorial.co': { subteam: 'Santander', role: 'PAE' },
+  'pol.bartolome@factorial.co': { subteam: 'Santander', role: 'PAE' },
+  'roberto.moran@factorial.co': { subteam: 'Santander', role: 'PAE TL' },
+  'mireia.serrano@factorial.co': { subteam: 'Santander', role: 'PAE' },
+  'joan.lorenzo@factorial.co': { subteam: 'Santander', role: 'PAE' },
+  // Telefónica PBD
+  'angel.hernandez@factorial.co': { subteam: 'Telefonica', role: 'PBD' },
+  'jon.azconobieta@factorial.co': { subteam: 'Telefonica', role: 'PBD' },
+  'maria.masoliver@factorial.co': { subteam: 'Telefonica', role: 'PBD' },
+  'lucia.guerrero@factorial.co': { subteam: 'Telefonica', role: 'PBD' },
+  'alejandro.soto@factorial.co': { subteam: 'Telefonica', role: 'PBD' },
+  // Telefónica PAE
+  'david.clemente@factorial.co': { subteam: 'Telefonica', role: 'PAE' },
+  'nerea.urien@factorial.co': { subteam: 'Telefonica', role: 'PAE' },
+  'juan.martinez@factorial.co': { subteam: 'Telefonica', role: 'PAE' },
+  'carlos.sanchez@factorial.co': { subteam: 'Telefonica', role: 'PAE TL' },
+  // TIM PAE
+  'christian.lombardo@factorial.co': { subteam: 'TIM', role: 'PAE' },
+  'edoardo.rapezzi@factorial.co': { subteam: 'TIM', role: 'PAE' },
+  'emilio.fabbro@factorial.co': { subteam: 'TIM', role: 'PAE' },
+  'nunzio.fumo@factorial.co': { subteam: 'TIM', role: 'PAE' },
+  // TELEKOM PAE
+  'leonhard.zeus@factorial.co': { subteam: 'TELEKOM', role: 'PAE' },
+  'katrin.virtbauer@factorial.co': { subteam: 'TELEKOM', role: 'PAE' },
+  // Managers
+  'domenica.galarza@factorial.co': { subteam: 'Santander', role: 'Manager' },
+  'oriol.delmoral@factorial.co': { subteam: 'Telefonica', role: 'Manager' },
+  'alex.martinez@factorial.co': { subteam: 'Telefonica', role: 'Manager' },
+  'guillem.catalan@factorial.co': { subteam: 'Partners', role: 'Admin' },
+  'albert.fernandez@factorial.co': { subteam: 'Partners', role: 'Manager' },
+  'samuel.fernandez@factorial.co': { subteam: 'Partners', role: 'Manager' },
+};
+
+window._currentUser = null;
+
+function showLoginError(msg) {
+  const el = document.getElementById('loginError');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+function hideLoginError() {
+  document.getElementById('loginError').classList.add('hidden');
+}
+
+function showLoginForm() {
+  document.getElementById('loginForm').classList.remove('hidden');
+  document.getElementById('registerForm').classList.add('hidden');
+  hideLoginError();
+}
+function showRegisterForm() {
+  document.getElementById('loginForm').classList.add('hidden');
+  document.getElementById('registerForm').classList.remove('hidden');
+  hideLoginError();
+}
+
+function onRegEmailInput() {
+  const email = document.getElementById('regEmail').value.trim().toLowerCase();
+  const known = KNOWN_USERS[email];
+  if (known) {
+    document.getElementById('regAutoDetected').classList.remove('hidden');
+    document.getElementById('regAutoInfo').textContent = `${known.subteam} · ${known.role}`;
+    document.getElementById('regManualFields').classList.add('hidden');
+  } else if (email.endsWith('@factorial.co') && email.length > 14) {
+    document.getElementById('regAutoDetected').classList.add('hidden');
+    document.getElementById('regManualFields').classList.remove('hidden');
+  } else {
+    document.getElementById('regAutoDetected').classList.add('hidden');
+    document.getElementById('regManualFields').classList.add('hidden');
+  }
+}
+document.getElementById('regEmail').addEventListener('input', onRegEmailInput);
+
+function enterApp(user) {
+  window._currentUser = user;
+  const initials = user.name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('navUserInitials').textContent = initials;
+  document.getElementById('navUserName').textContent = user.name;
+  document.getElementById('navUserRole').textContent = `${user.subteam} · ${user.role}`;
+  if (user.role === 'Admin') {
+    document.getElementById('tab-admin').classList.remove('hidden');
+  } else {
+    document.getElementById('tab-admin').classList.add('hidden');
+  }
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('appContainer').classList.remove('hidden');
+}
+
+async function handleLogin() {
+  hideLoginError();
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  const password = document.getElementById('loginPassword').value;
+  if (!email || !password) { showLoginError('Email y contraseña requeridos'); return; }
+  if (!email.endsWith('@factorial.co')) { showLoginError('Solo cuentas @factorial.co'); return; }
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.textContent = 'Entrando...';
+  try {
+    const { data, error } = await _sb.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    const { data: userData, error: userErr } = await _sb.from('users').select('*').eq('id', data.user.id).single();
+    if (userErr) throw userErr;
+    await _sb.from('users').update({ last_login: new Date().toISOString() }).eq('id', data.user.id);
+    enterApp(userData);
+  } catch (e) {
+    showLoginError(e.message || 'Error al iniciar sesión');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Entrar';
+  }
+}
+
+async function handleRegister() {
+  hideLoginError();
+  const email = document.getElementById('regEmail').value.trim().toLowerCase();
+  const password = document.getElementById('regPassword').value;
+  const name = document.getElementById('regName').value.trim();
+  if (!email || !password || !name) { showLoginError('Todos los campos son obligatorios'); return; }
+  if (!email.endsWith('@factorial.co')) { showLoginError('Solo cuentas @factorial.co'); return; }
+  if (password.length < 6) { showLoginError('La contraseña debe tener al menos 6 caracteres'); return; }
+  const known = KNOWN_USERS[email];
+  let subteam, role;
+  if (known) {
+    subteam = known.subteam;
+    role = known.role;
+  } else {
+    subteam = document.getElementById('regSubteam').value;
+    role = document.getElementById('regRole').value;
+    if (!subteam || !role) { showLoginError('Selecciona subteam y rol'); return; }
+  }
+  const btn = document.getElementById('registerBtn');
+  btn.disabled = true; btn.textContent = 'Registrando...';
+  try {
+    const { data, error } = await _sb.auth.signUp({ email, password });
+    if (error) throw error;
+    const { error: insertErr } = await _sb.from('users').insert({
+      id: data.user.id, email, name, team: 'Partners', subteam, role
+    });
+    if (insertErr) throw insertErr;
+    const userData = { id: data.user.id, email, name, team: 'Partners', subteam, role };
+    enterApp(userData);
+  } catch (e) {
+    showLoginError(e.message || 'Error al registrarse');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Registrarse';
+  }
+}
+
+async function handleLogout() {
+  await _sb.auth.signOut();
+  window._currentUser = null;
+  document.getElementById('appContainer').classList.add('hidden');
+  document.getElementById('loginScreen').classList.remove('hidden');
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginPassword').value = '';
+  hideLoginError();
+}
+
+async function checkSession() {
+  const { data: { session } } = await _sb.auth.getSession();
+  if (session?.user) {
+    const { data: userData } = await _sb.from('users').select('*').eq('id', session.user.id).single();
+    if (userData) {
+      await _sb.from('users').update({ last_login: new Date().toISOString() }).eq('id', session.user.id);
+      enterApp(userData);
+      return;
+    }
+  }
+  document.getElementById('loginScreen').classList.remove('hidden');
+}
+
+// ── Admin: Orgchart ──
+async function loadAdminOrgchart() {
+  const container = document.getElementById('adminOrgchart');
+  const { data: users, error } = await _sb.from('users').select('*').order('subteam').order('role').order('name');
+  if (error || !users) { container.innerHTML = '<p class="text-red-500 text-sm">Error loading users</p>'; return; }
+  const teams = {};
+  users.forEach(u => {
+    if (!teams[u.subteam]) teams[u.subteam] = [];
+    teams[u.subteam].push(u);
+  });
+  const roleOrder = { 'Admin': 0, 'Manager': 1, 'PAE TL': 2, 'PBD TL': 2, 'PAE': 3, 'PBD': 3 };
+  const roleBadge = (r) => {
+    const colors = { 'Admin': 'bg-purple-100 text-purple-700', 'Manager': 'bg-blue-100 text-blue-700',
+      'PAE TL': 'bg-amber-100 text-amber-700', 'PBD TL': 'bg-amber-100 text-amber-700',
+      'PAE': 'bg-green-100 text-green-700', 'PBD': 'bg-cyan-100 text-cyan-700' };
+    return `<span class="text-xs px-2 py-0.5 rounded-full font-medium ${colors[r] || 'bg-gray-100 text-gray-600'}">${r}</span>`;
+  };
+  let html = '';
+  for (const [team, members] of Object.entries(teams).sort()) {
+    members.sort((a, b) => (roleOrder[a.role] ?? 9) - (roleOrder[b.role] ?? 9) || a.name.localeCompare(b.name));
+    html += `<div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div class="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+        <h3 class="font-semibold text-sm text-gray-800">${team}</h3>
+        <span class="text-xs text-gray-400">${members.length} members</span>
+      </div>
+      <div class="divide-y divide-gray-100">`;
+    members.forEach(m => {
+      const initials = m.name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+      const lastLogin = m.last_login ? new Date(m.last_login).toLocaleDateString('es-ES', { day:'numeric', month:'short' }) : 'Never';
+      html += `<div class="px-4 py-2.5 flex items-center justify-between hover:bg-gray-50">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 bg-brand-100 rounded-full flex items-center justify-center">
+            <span class="text-brand-700 font-semibold text-xs">${initials}</span>
+          </div>
+          <div>
+            <div class="text-sm font-medium text-gray-800">${m.name}</div>
+            <div class="text-xs text-gray-400">${m.email}</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          ${roleBadge(m.role)}
+          <span class="text-xs text-gray-400">${lastLogin}</span>
+        </div>
+      </div>`;
+    });
+    html += '</div></div>';
+  }
+  container.innerHTML = html || '<p class="text-sm text-gray-400">No users registered yet.</p>';
+}
+
+checkSession();
+
 let _dealsCache = [];
 let _snapshotsCache = {};
 let _meetingsTodayByDeal = {};
@@ -3757,6 +4069,7 @@ showTab = function(name) {
   _origShowTab(name);
   if (name === 'deals' && _dealsCache.length === 0) loadDeals();
   if (name === 'forecast') loadForecast();
+  if (name === 'admin') loadAdminOrgchart();
 };
 </script>
 
