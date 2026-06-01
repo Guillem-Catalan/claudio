@@ -416,43 +416,37 @@ tailwind.config = {
   <div class="flex items-center justify-between mb-5">
     <h2 class="text-lg font-semibold text-gray-900">Forecast</h2>
     <div class="flex items-center gap-3">
-      <select class="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-600">
-        <option>Partner</option>
-        <option>Santander</option>
-        <option>Telefónica</option>
+      <select id="fcPartnerFilter" onchange="renderForecast()" class="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-600">
+        <option value="">Partner</option>
+        <option value="Santander">Santander</option>
+        <option value="Telefónica">Telefónica</option>
       </select>
-      <select class="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-600">
-        <option>PAE</option>
-        <option>Xavi Soler</option>
-        <option>Pol Bartolomé</option>
-        <option>Laura Sánchez</option>
-        <option>Marc Riera</option>
-        <option>Carlos Martín</option>
-        <option>Ana Vidal</option>
+      <select id="fcPaeFilter" onchange="renderForecast()" class="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-600">
+        <option value="">PAE</option>
       </select>
       <button onclick="toggleForecastChart()" id="forecastEvolutionBtn" class="px-3 py-1.5 text-xs font-medium border border-gray-200 rounded-lg bg-white text-gray-600 hover:bg-gray-50 transition-colors">Forecast Evolution</button>
     </div>
   </div>
 
   <!-- Summary Cards -->
-  <div class="grid grid-cols-3 gap-4 mb-5">
+  <div id="forecastCards" class="grid grid-cols-3 gap-4 mb-5">
     <div class="bg-white rounded-lg border border-gray-100 p-4">
       <div class="text-[10px] text-gray-400 uppercase tracking-wider mb-2">Monthly Target</div>
-      <div class="text-2xl font-bold text-gray-900">€320.000</div>
+      <div id="fcTarget" class="text-2xl font-bold text-gray-900">—</div>
     </div>
     <div class="bg-white rounded-lg border border-gray-100 p-4">
       <div class="flex items-center justify-between mb-2">
         <div class="text-[10px] text-gray-400 uppercase tracking-wider">Team Forecast <span class="normal-case tracking-normal">(HubSpot)</span></div>
-        <span class="text-xs text-gray-400">35 deals</span>
+        <span id="fcTeamCount" class="text-xs text-gray-400">—</span>
       </div>
-      <div class="text-2xl font-bold text-gray-900">€354.000</div>
+      <div id="fcTeamAmount" class="text-2xl font-bold text-gray-900">—</div>
     </div>
     <div class="bg-white rounded-lg border border-gray-100 p-4">
       <div class="flex items-center justify-between mb-2">
         <div class="text-[10px] text-gray-400 uppercase tracking-wider">Claudio Forecast <span class="normal-case tracking-normal">(weighted)</span></div>
-        <span class="text-xs text-gray-400">9 deals</span>
+        <span id="fcClaudioCount" class="text-xs text-gray-400">—</span>
       </div>
-      <div class="text-2xl font-bold text-gray-900">€114.330</div>
+      <div id="fcClaudioAmount" class="text-2xl font-bold text-gray-900">—</div>
     </div>
   </div>
 
@@ -481,199 +475,8 @@ tailwind.config = {
           <th class="text-[10px] text-gray-400 uppercase tracking-wider font-medium px-4 py-3 text-right">Importe</th>
         </tr>
       </thead>
-      <tbody>
-        <!-- Commit deals -->
-        <tr class="border-b border-gray-50 hover:bg-gray-50/50 cursor-pointer">
-          <td class="px-4 py-3">
-            <div class="text-sm font-medium text-gray-900">Ferrovial Servicios — Santander</div>
-            <div class="text-[10px] text-gray-400">actualizado Hace 2d</div>
-          </td>
-          <td class="px-4 py-3">
-            <div class="flex items-center gap-2">
-              <div class="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 text-[10px] font-bold">XS</div>
-              <span class="text-sm text-gray-700">Xavi Soler</span>
-            </div>
-          </td>
-          <td class="px-4 py-3"><span class="text-sm text-gray-700">Commit</span></td>
-          <td class="px-4 py-3">
-            <div class="flex items-center gap-2">
-              <div class="w-16 bg-gray-100 rounded-full h-1.5"><div class="bg-green-500 rounded-full h-1.5" style="width:88%"></div></div>
-              <span class="text-sm text-gray-700">88%</span>
-            </div>
-          </td>
-          <td class="px-4 py-3 text-center"><span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100 text-green-700 text-xs font-bold">2</span></td>
-          <td class="px-4 py-3 text-right"><span class="text-sm font-semibold text-gray-900">€45.000</span></td>
-        </tr>
-        <tr class="border-b border-gray-50 hover:bg-gray-50/50 cursor-pointer">
-          <td class="px-4 py-3">
-            <div class="text-sm font-medium text-gray-900">Acciona Energía — Santander</div>
-            <div class="text-[10px] text-gray-400">actualizado Hace 3d</div>
-          </td>
-          <td class="px-4 py-3">
-            <div class="flex items-center gap-2">
-              <div class="w-7 h-7 bg-purple-100 rounded-full flex items-center justify-center text-purple-700 text-[10px] font-bold">LS</div>
-              <span class="text-sm text-gray-700">Laura Sánchez</span>
-            </div>
-          </td>
-          <td class="px-4 py-3"><span class="text-sm text-gray-700">Commit</span></td>
-          <td class="px-4 py-3">
-            <div class="flex items-center gap-2">
-              <div class="w-16 bg-gray-100 rounded-full h-1.5"><div class="bg-green-500 rounded-full h-1.5" style="width:75%"></div></div>
-              <span class="text-sm text-gray-700">75%</span>
-            </div>
-          </td>
-          <td class="px-4 py-3 text-center"><span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100 text-green-700 text-xs font-bold">3</span></td>
-          <td class="px-4 py-3 text-right"><span class="text-sm font-semibold text-gray-900">€32.000</span></td>
-        </tr>
-        <tr class="border-b border-gray-50 hover:bg-gray-50/50 cursor-pointer">
-          <td class="px-4 py-3">
-            <div class="text-sm font-medium text-gray-900">ACS Servicios — Telefónica</div>
-            <div class="text-[10px] text-gray-400">actualizado Hace 4d</div>
-          </td>
-          <td class="px-4 py-3">
-            <div class="flex items-center gap-2">
-              <div class="w-7 h-7 bg-amber-100 rounded-full flex items-center justify-center text-amber-700 text-[10px] font-bold">MG</div>
-              <span class="text-sm text-gray-700">Marta García</span>
-            </div>
-          </td>
-          <td class="px-4 py-3"><span class="text-sm text-gray-700">Commit</span></td>
-          <td class="px-4 py-3">
-            <div class="flex items-center gap-2">
-              <div class="w-16 bg-gray-100 rounded-full h-1.5"><div class="bg-green-500 rounded-full h-1.5" style="width:82%"></div></div>
-              <span class="text-sm text-gray-700">82%</span>
-            </div>
-          </td>
-          <td class="px-4 py-3 text-center"><span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100 text-green-700 text-xs font-bold">1</span></td>
-          <td class="px-4 py-3 text-right"><span class="text-sm font-semibold text-gray-900">€21.500</span></td>
-        </tr>
-        <!-- Upside deals -->
-        <tr class="border-b border-gray-50 hover:bg-gray-50/50 cursor-pointer">
-          <td class="px-4 py-3">
-            <div class="text-sm font-medium text-gray-900">Naturgy — Santander</div>
-            <div class="text-[10px] text-gray-400">actualizado Hace 5d</div>
-          </td>
-          <td class="px-4 py-3">
-            <div class="flex items-center gap-2">
-              <div class="w-7 h-7 bg-green-100 rounded-full flex items-center justify-center text-green-700 text-[10px] font-bold">CM</div>
-              <span class="text-sm text-gray-700">Carlos Martín</span>
-            </div>
-          </td>
-          <td class="px-4 py-3"><span class="text-sm text-gray-700">Best Case</span></td>
-          <td class="px-4 py-3">
-            <div class="flex items-center gap-2">
-              <div class="w-16 bg-gray-100 rounded-full h-1.5"><div class="bg-amber-400 rounded-full h-1.5" style="width:55%"></div></div>
-              <span class="text-sm text-gray-700">55%</span>
-            </div>
-          </td>
-          <td class="px-4 py-3 text-center"><span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">5</span></td>
-          <td class="px-4 py-3 text-right"><span class="text-sm font-semibold text-gray-900">€28.000</span></td>
-        </tr>
-        <tr class="border-b border-gray-50 hover:bg-gray-50/50 cursor-pointer">
-          <td class="px-4 py-3">
-            <div class="text-sm font-medium text-gray-900">Repsol Exploración — Telefónica</div>
-            <div class="text-[10px] text-gray-400">actualizado Hace 6d</div>
-          </td>
-          <td class="px-4 py-3">
-            <div class="flex items-center gap-2">
-              <div class="w-7 h-7 bg-amber-100 rounded-full flex items-center justify-center text-amber-700 text-[10px] font-bold">MR</div>
-              <span class="text-sm text-gray-700">Marc Riera</span>
-            </div>
-          </td>
-          <td class="px-4 py-3"><span class="text-sm text-gray-700">Best Case</span></td>
-          <td class="px-4 py-3">
-            <div class="flex items-center gap-2">
-              <div class="w-16 bg-gray-100 rounded-full h-1.5"><div class="bg-amber-400 rounded-full h-1.5" style="width:45%"></div></div>
-              <span class="text-sm text-gray-700">45%</span>
-            </div>
-          </td>
-          <td class="px-4 py-3 text-center"><span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">4</span></td>
-          <td class="px-4 py-3 text-right"><span class="text-sm font-semibold text-gray-900">€22.000</span></td>
-        </tr>
-        <tr class="border-b border-gray-50 hover:bg-gray-50/50 cursor-pointer">
-          <td class="px-4 py-3">
-            <div class="text-sm font-medium text-gray-900">Mapfre — Santander</div>
-            <div class="text-[10px] text-gray-400">actualizado Hace 3d</div>
-          </td>
-          <td class="px-4 py-3">
-            <div class="flex items-center gap-2">
-              <div class="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 text-[10px] font-bold">PB</div>
-              <span class="text-sm text-gray-700">Pol Bartolomé</span>
-            </div>
-          </td>
-          <td class="px-4 py-3"><span class="text-sm text-gray-700">Best Case</span></td>
-          <td class="px-4 py-3">
-            <div class="flex items-center gap-2">
-              <div class="w-16 bg-gray-100 rounded-full h-1.5"><div class="bg-amber-400 rounded-full h-1.5" style="width:52%"></div></div>
-              <span class="text-sm text-gray-700">52%</span>
-            </div>
-          </td>
-          <td class="px-4 py-3 text-center"><span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">5</span></td>
-          <td class="px-4 py-3 text-right"><span class="text-sm font-semibold text-gray-900">€15.000</span></td>
-        </tr>
-        <!-- En riesgo deals -->
-        <tr class="border-b border-gray-50 hover:bg-gray-50/50 cursor-pointer">
-          <td class="px-4 py-3">
-            <div class="text-sm font-medium text-gray-900">Iberdrola — Telefónica</div>
-            <div class="text-[10px] text-gray-400">actualizado Hace 4d</div>
-          </td>
-          <td class="px-4 py-3">
-            <div class="flex items-center gap-2">
-              <div class="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 text-[10px] font-bold">PB</div>
-              <span class="text-sm text-gray-700">Pol Bartolomé</span>
-            </div>
-          </td>
-          <td class="px-4 py-3"><span class="text-sm text-gray-700">Pipeline</span></td>
-          <td class="px-4 py-3">
-            <div class="flex items-center gap-2">
-              <div class="w-16 bg-gray-100 rounded-full h-1.5"><div class="bg-red-400 rounded-full h-1.5" style="width:35%"></div></div>
-              <span class="text-sm text-gray-700">35%</span>
-            </div>
-          </td>
-          <td class="px-4 py-3 text-center"><span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 text-red-700 text-xs font-bold">7</span></td>
-          <td class="px-4 py-3 text-right"><span class="text-sm font-semibold text-gray-900">€18.500</span></td>
-        </tr>
-        <tr class="border-b border-gray-50 hover:bg-red-50/30 cursor-pointer">
-          <td class="px-4 py-3">
-            <div class="text-sm font-medium text-gray-900">Gestamp — Santander</div>
-            <div class="text-[10px] text-gray-400">actualizado Hace 8d</div>
-          </td>
-          <td class="px-4 py-3">
-            <div class="flex items-center gap-2">
-              <div class="w-7 h-7 bg-purple-100 rounded-full flex items-center justify-center text-purple-700 text-[10px] font-bold">LS</div>
-              <span class="text-sm text-gray-700">Laura Sánchez</span>
-            </div>
-          </td>
-          <td class="px-4 py-3"><span class="text-sm text-gray-700">Pipeline</span></td>
-          <td class="px-4 py-3">
-            <div class="flex items-center gap-2">
-              <div class="w-16 bg-gray-100 rounded-full h-1.5"><div class="bg-red-500 rounded-full h-1.5" style="width:25%"></div></div>
-              <span class="text-sm text-gray-700">25%</span>
-            </div>
-          </td>
-          <td class="px-4 py-3 text-center"><span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 text-red-700 text-xs font-bold">9</span></td>
-          <td class="px-4 py-3 text-right"><span class="text-sm font-semibold text-gray-900">€19.000</span></td>
-        </tr>
-        <tr class="hover:bg-gray-50/50 cursor-pointer">
-          <td class="px-4 py-3">
-            <div class="text-sm font-medium text-gray-900">Indra Sistemas — Telefónica</div>
-            <div class="text-[10px] text-gray-400">actualizado Hace 5d</div>
-          </td>
-          <td class="px-4 py-3">
-            <div class="flex items-center gap-2">
-              <div class="w-7 h-7 bg-green-100 rounded-full flex items-center justify-center text-green-700 text-[10px] font-bold">CM</div>
-              <span class="text-sm text-gray-700">Carlos Martín</span>
-            </div>
-          </td>
-          <td class="px-4 py-3"><span class="text-sm text-gray-700">Pipeline</span></td>
-          <td class="px-4 py-3">
-            <div class="flex items-center gap-2">
-              <div class="w-16 bg-gray-100 rounded-full h-1.5"><div class="bg-red-400 rounded-full h-1.5" style="width:38%"></div></div>
-              <span class="text-sm text-gray-700">38%</span>
-            </div>
-          </td>
-          <td class="px-4 py-3 text-center"><span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 text-red-700 text-xs font-bold">6</span></td>
-          <td class="px-4 py-3 text-right"><span class="text-sm font-semibold text-gray-900">€16.800</span></td>
-        </tr>
+      <tbody id="forecastTableBody">
+        <tr><td colspan="6" class="px-4 py-8 text-center text-sm text-gray-400">Loading deals...</td></tr>
       </tbody>
     </table>
   </div>
@@ -2591,7 +2394,7 @@ for (const phase of PIPELINE_PHASES) {
   for (const s of phase.stages) _STAGE_TO_PHASE[s] = phase.key;
 }
 
-let _collapsedPhases = new Set(PIPELINE_PHASES.map(p => p.key).concat('other'));
+let _collapsedPhases = new Set(PIPELINE_PHASES.map(p => p.key).concat('other', 'closedwon'));
 
 function _daysSinceContact(deal) {
   if (!deal.last_contacted_hs) return Infinity;
@@ -3151,7 +2954,22 @@ function _renderPhaseSection(phase, deals) {
   </div>`;
 }
 
-function renderPipelineView(deals) {
+let _closedWonCache = [];
+let _closedWonLoaded = false;
+
+async function loadClosedWonDeals() {
+  if (_closedWonLoaded) return;
+  const { data } = await _sb
+    .from('deals')
+    .select('id, deal_id, deal_name, amount, deal_stage, pae, pbd, deal_age_days, close_date, forecast_category, contacts_info, rep_next_step, atlas_id, last_contacted_hs, first_meeting_at, createdate')
+    .in('deal_stage', ['Closed won', 'Closed Won', 'Closed Won - Finance Only'])
+    .order('close_date', { ascending: false })
+    .limit(50);
+  _closedWonCache = data || [];
+  _closedWonLoaded = true;
+}
+
+async function renderPipelineView(deals) {
   const container = document.getElementById('dealsPipeline');
   if (!container) return;
 
@@ -3175,6 +2993,14 @@ function renderPipelineView(deals) {
     sections.push(_renderPhaseSection(
       { key: 'other', label: 'Other', headerBg: 'bg-gray-50', headerBorder: 'border-gray-100', headerText: 'text-gray-600', staleDays: 14 },
       grouped.other
+    ));
+  }
+
+  await loadClosedWonDeals();
+  if (_closedWonCache.length > 0) {
+    sections.push(_renderPhaseSection(
+      { key: 'closedwon', label: 'Closed Won', headerBg: 'bg-emerald-50', headerBorder: 'border-emerald-100', headerText: 'text-emerald-800', staleDays: 999 },
+      _closedWonCache
     ));
   }
 
@@ -3771,10 +3597,166 @@ async function updateModalCharts(meddicScores, dealId) {
 }
 
 // ── Load deals when tab is shown ──────────────────────────────────────
+const MONTHLY_TARGET = 320000;
+const FORECAST_CATEGORIES = new Set(['Commit', 'Upside', 'Pipeline_new']);
+const CLAUDIO_FORECAST_CATS = new Set(['Commit', 'Upside']);
+
+function extractPartner(dealName) {
+  if (!dealName) return '';
+  const m = dealName.match(/(?:from\s+|[-–]\s*)(Santander|Telefónica|Telefonica|MEO|TIM|TELEKOM)/i);
+  return m ? m[1].replace(/Telefonica/i, 'Telefónica') : '';
+}
+
+function countWarnings(snap) {
+  if (!snap) return 0;
+  let count = 0;
+  if (snap.live_blockers) {
+    const items = snap.live_blockers.split(/[\n•\-\*]/).filter(s => s.trim().length > 3);
+    count += items.length;
+  }
+  if (snap.objections) {
+    const items = snap.objections.split(/[\n•\-\*]/).filter(s => s.trim().length > 3);
+    count += items.length;
+  }
+  return count;
+}
+
+function getInitials(name) {
+  if (!name) return '??';
+  return name.split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
+}
+
+const _avatarColors = ['blue', 'purple', 'amber', 'green', 'red', 'indigo', 'cyan', 'pink'];
+function avatarColor(name) {
+  let hash = 0;
+  for (let i = 0; i < (name || '').length; i++) hash = ((hash << 5) - hash) + name.charCodeAt(i);
+  const c = _avatarColors[Math.abs(hash) % _avatarColors.length];
+  return { bg: `bg-${c}-100`, text: `text-${c}-700` };
+}
+
+function formatAmount(amount) {
+  if (!amount && amount !== 0) return '—';
+  return '€' + Math.round(amount).toLocaleString('de-DE');
+}
+
+function daysAgo(dateStr) {
+  if (!dateStr) return '';
+  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
+  if (diff <= 0) return 'Hoy';
+  return 'Hace ' + diff + 'd';
+}
+
+function getForecastDeals() {
+  const partner = document.getElementById('fcPartnerFilter')?.value || '';
+  const pae = document.getElementById('fcPaeFilter')?.value || '';
+  return _dealsCache.filter(d => {
+    const fc = d.forecast_category || '';
+    if (!FORECAST_CATEGORIES.has(fc)) return false;
+    if (partner && extractPartner(d.deal_name) !== partner) return false;
+    if (pae && d.pae !== pae && d.pbd !== pae) return false;
+    return true;
+  });
+}
+
+function renderForecast() {
+  const deals = getForecastDeals();
+
+  // Cards
+  document.getElementById('fcTarget').textContent = formatAmount(MONTHLY_TARGET);
+
+  const teamDeals = deals;
+  const teamTotal = teamDeals.reduce((s, d) => s + (d.amount || 0), 0);
+  document.getElementById('fcTeamAmount').textContent = formatAmount(teamTotal);
+  document.getElementById('fcTeamCount').textContent = teamDeals.length + ' deals';
+
+  const claudioDeals = deals.filter(d => CLAUDIO_FORECAST_CATS.has(d.forecast_category));
+  let claudioTotal = 0;
+  for (const d of claudioDeals) {
+    const snap = _snapshotsCache[d.id]?.latest;
+    const prob = snap?.close_probability ?? 50;
+    claudioTotal += (prob / 100) * (d.amount || 0);
+  }
+  document.getElementById('fcClaudioAmount').textContent = formatAmount(Math.round(claudioTotal));
+  document.getElementById('fcClaudioCount').textContent = claudioDeals.length + ' deals';
+
+  // Populate PAE filter if empty
+  const paeSelect = document.getElementById('fcPaeFilter');
+  if (paeSelect && paeSelect.options.length <= 1) {
+    const owners = [...new Set(_dealsCache.map(d => d.pae || d.pbd).filter(Boolean))].sort();
+    paeSelect.innerHTML = '<option value="">PAE</option>' + owners.map(p => `<option value="${p}">${p}</option>`).join('');
+  }
+
+  // Sort: Commit first, then Best Case, then Pipeline, within each by probability desc
+  const catOrder = { 'Commit': 0, 'Upside': 1, 'Pipeline_new': 2 };
+  const sorted = [...deals].sort((a, b) => {
+    const oa = catOrder[a.forecast_category] ?? 9;
+    const ob = catOrder[b.forecast_category] ?? 9;
+    if (oa !== ob) return oa - ob;
+    const pa = _snapshotsCache[a.id]?.latest?.close_probability ?? 0;
+    const pb = _snapshotsCache[b.id]?.latest?.close_probability ?? 0;
+    return pb - pa;
+  });
+
+  // Render table
+  const tbody = document.getElementById('forecastTableBody');
+  if (!sorted.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-sm text-gray-400">No deals found</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = sorted.map(d => {
+    const snap = _snapshotsCache[d.id]?.latest;
+    const prob = snap?.close_probability;
+    const probPct = prob != null ? Math.round(prob) : null;
+    const pc = probColor(probPct);
+    const warnings = countWarnings(snap);
+    const owner = d.pae || d.pbd || '—';
+    const initials = getInitials(owner);
+    const ac = avatarColor(owner);
+    const partner = extractPartner(d.deal_name);
+    const displayName = cleanDealName(d.deal_name) + (partner ? ' — ' + partner : '');
+    const updated = daysAgo(snap?.snapshot_date);
+    const fc = d.forecast_category || '—';
+
+    const probBarColor = probPct >= 70 ? 'bg-green-500' : probPct >= 30 ? 'bg-amber-400' : 'bg-red-400';
+    const warnColor = warnings <= 2 ? 'bg-green-100 text-green-700' : warnings <= 5 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700';
+
+    return `<tr class="border-b border-gray-50 hover:bg-gray-50/50 cursor-pointer" onclick="openHistorico('${d.id}')">
+      <td class="px-4 py-3">
+        <div class="text-sm font-medium text-gray-900">${displayName}</div>
+        <div class="text-[10px] text-gray-400">${updated ? 'actualizado ' + updated : ''}</div>
+      </td>
+      <td class="px-4 py-3">
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 ${ac.bg} rounded-full flex items-center justify-center ${ac.text} text-[10px] font-bold">${initials}</div>
+          <span class="text-sm text-gray-700">${owner}</span>
+        </div>
+      </td>
+      <td class="px-4 py-3"><span class="text-sm text-gray-700">${fc}</span></td>
+      <td class="px-4 py-3">
+        <div class="flex items-center gap-2">
+          <div class="w-16 bg-gray-100 rounded-full h-1.5"><div class="${probBarColor} rounded-full h-1.5" style="width:${probPct ?? 0}%"></div></div>
+          <span class="text-sm text-gray-700">${probPct != null ? probPct + '%' : '—'}</span>
+        </div>
+      </td>
+      <td class="px-4 py-3 text-center"><span class="inline-flex items-center justify-center w-6 h-6 rounded-full ${warnColor} text-xs font-bold">${warnings}</span></td>
+      <td class="px-4 py-3 text-right"><span class="text-sm font-semibold text-gray-900">${formatAmount(d.amount)}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+async function loadForecast() {
+  if (_dealsCache.length === 0) {
+    await loadDeals();
+  }
+  renderForecast();
+}
+
 const _origShowTab = showTab;
 showTab = function(name) {
   _origShowTab(name);
   if (name === 'deals' && _dealsCache.length === 0) loadDeals();
+  if (name === 'forecast') loadForecast();
 };
 </script>
 
