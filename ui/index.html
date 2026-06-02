@@ -1851,7 +1851,8 @@ async function loadBriefing(dealId) {
     .limit(1);
 
   if (error || !data || data.length === 0) {
-    hint.textContent = 'Generar';
+    hint.textContent = error ? `Err: ${error.message}` : 'Generar';
+    console.warn('[loadBriefing]', dealId, error || 'no rows');
     return;
   }
 
@@ -1917,10 +1918,12 @@ async function loadEmailDraft(dealId) {
   if (error || !data || data.length === 0) {
     const expandBtn = document.getElementById('nsEmailExpandBtn');
     if (expandBtn) expandBtn.classList.add('hidden');
+    const debugInfo = error ? `Error: ${error.message || JSON.stringify(error)}` : `No rows (deal_id: ${dealId})`;
     el.innerHTML = `
       <div class="flex items-center gap-2 mb-3">
         <div class="w-2 h-2 rounded-full bg-amber-400"></div>
         <span class="text-xs font-medium text-amber-700">Sin email generado</span>
+        <span class="text-[9px] text-gray-300 ml-auto">${debugInfo}</span>
       </div>
       <button onclick="generateEmailDraft()" class="text-xs font-medium text-white bg-cyan-500 hover:bg-cyan-600 rounded-lg px-4 py-2 transition-colors">Generar email de follow up</button>`;
     return;
