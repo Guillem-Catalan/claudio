@@ -50,3 +50,17 @@ jobs:
           if [ -n "${{ inputs.week_start }}" ]; then ARGS="$ARGS --week-start ${{ inputs.week_start }}"; fi
           if [ -n "${{ inputs.channel }}" ]; then ARGS="$ARGS --channel ${{ inputs.channel }}"; fi
           python -m scripts.demo_report $ARGS
+
+      - name: Generate TL pipeline review
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          AZURE_CLAUDE_ENDPOINT: ${{ secrets.AZURE_CLAUDE_ENDPOINT }}
+          AZURE_CLAUDE_API_KEY: ${{ secrets.AZURE_CLAUDE_API_KEY }}
+          AZURE_CLAUDE_DEPLOYMENT: ${{ secrets.AZURE_CLAUDE_DEPLOYMENT }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        run: |
+          ARGS=""
+          if [ -n "${{ inputs.pae_email }}" ]; then ARGS="$ARGS --pae-email ${{ inputs.pae_email }}"; fi
+          if [ -n "${{ inputs.channel }}" ]; then ARGS="$ARGS --channel ${{ inputs.channel }}"; fi
+          python -m scripts.pipeline_review $ARGS
