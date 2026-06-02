@@ -12,11 +12,14 @@ deal_killer: true ÚNICAMENTE cuando el deal está muerto sin vuelta atrás:
 - Rechazo definitivo del EB o dirección (no es timing, es un no)
 - El contacto principal ha abandonado la empresa sin sustituto identificado
 - El prospect ha comunicado explícitamente que no van a avanzar
+- Un tercero con poder de veto (IT central, casa matriz, grupo corporativo) ha rechazado formalmente asignar recursos o dar aprobación, matando el deal sin alternativa viable
+
+REGLA CLAVE: si el Deal_Summary, live_blockers u objections describen el deal como "muerto", "matado", "killed" o "sin resolución posible", es deal_killer: true. El texto del snapshot ya incorpora todo el contexto — confía en él.
 
 En estos casos: deal_killer: true, deal_killer_value: entero entre 0 y 2
 
 EN TODOS LOS DEMÁS CASOS: deal_killer: false
-Silencio temporal, deal pospuesto, blockers técnicos, IT pendiente, legal abierto, partner bloqueando — todo eso se gestiona via lb, no via deal-killer.
+Silencio temporal, deal pospuesto, blockers técnicos, IT pendiente de respuesta, legal abierto, partner bloqueando — todo eso se gestiona via lb, no via deal-killer. La diferencia es que estos están PENDIENTES, no rechazados definitivamente.
 
 PASO 2 — Clasificar bs y lb (solo si deal_killer: false)
 
