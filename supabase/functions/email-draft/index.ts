@@ -70,13 +70,14 @@ Deno.serve(async (req) => {
 
     if (dealErr || !deal) return jsonResp({ error: "Deal not found" }, 404);
 
-    // 2. Fetch today's meetings for this deal
+    // 2. Fetch recent meetings (today + yesterday) for this deal
     const today = new Date().toISOString().slice(0, 10);
-    const { data: todayMeetings } = await sb
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const { data: recentMeetings } = await sb
       .from("deal_meetings")
       .select("title, meeting_start, outcome")
       .eq("deal_id", deal_id)
-      .gte("meeting_start", today + "T00:00:00Z")
+      .gte("meeting_start", yesterday + "T00:00:00Z")
       .lte("meeting_start", today + "T23:59:59Z")
       .order("meeting_start", { ascending: false });
 
@@ -93,12 +94,12 @@ Deno.serve(async (req) => {
     const company = atlas?.company_name || deal.deal_name || "?";
 
     // 4. Build rich context for Claude
-    const meetingInfo = todayMeetings?.length
-      ? todayMeetings.map((m: { title?: string; meeting_start?: string; outcome?: string }) => {
+    const meetingInfo = recentMeetings?.length
+      ? recentMeetings.map((m: { title?: string; meeting_start?: string; outcome?: string }) => {
           const time = m.meeting_start ? m.meeting_start.slice(11, 16) : "?";
           return `- ${time} | "${m.title || "Sin título"}" | Outcome: ${m.outcome || "UNKNOWN"}`;
         }).join("\n")
-      : "No meetings today.";
+      : "No recent meetings.";
 
     const snapInfo = snap
       ? [
@@ -118,7 +119,7 @@ Deno.serve(async (req) => {
       `PBD: ${deal.pbd || "?"} | PAE: ${deal.pae || "?"}`,
       `Contacts: ${deal.contacts_info || "N/A"}`,
       "",
-      "## TODAY'S MEETINGS",
+      "## RECENT MEETINGS",
       meetingInfo,
       "",
       "## LATEST DEAL ASSESSMENT",

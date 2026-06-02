@@ -1851,8 +1851,7 @@ async function loadBriefing(dealId) {
     .limit(1);
 
   if (error || !data || data.length === 0) {
-    hint.textContent = error ? `Err: ${error.message}` : 'Generar';
-    console.warn('[loadBriefing]', dealId, error || 'no rows');
+    hint.textContent = 'Generar';
     return;
   }
 
@@ -1918,12 +1917,10 @@ async function loadEmailDraft(dealId) {
   if (error || !data || data.length === 0) {
     const expandBtn = document.getElementById('nsEmailExpandBtn');
     if (expandBtn) expandBtn.classList.add('hidden');
-    const debugInfo = error ? `Error: ${error.message || JSON.stringify(error)}` : `No rows (deal_id: ${dealId})`;
     el.innerHTML = `
       <div class="flex items-center gap-2 mb-3">
         <div class="w-2 h-2 rounded-full bg-amber-400"></div>
         <span class="text-xs font-medium text-amber-700">Sin email generado</span>
-        <span class="text-[9px] text-gray-300 ml-auto">${debugInfo}</span>
       </div>
       <button onclick="generateEmailDraft()" class="text-xs font-medium text-white bg-cyan-500 hover:bg-cyan-600 rounded-lg px-4 py-2 transition-colors">Generar email de follow up</button>`;
     return;
@@ -3255,6 +3252,7 @@ let _snapshotsCache = {};
 let _meetingsTodayByDeal = {};
 let _meetingsYesterdayByDeal = {};
 let _calendarTodayByDeal = {};
+let _emailDraftsByDeal = {};
 let _pbdSnapshotsCache = {};
 let _initialLoadComplete = false;
 
@@ -3378,6 +3376,18 @@ async function loadDeals() {
     if (_meetingsTodayByDeal[m.deal_id]) continue;
     if (!_calendarTodayByDeal[m.deal_id]) _calendarTodayByDeal[m.deal_id] = [];
     _calendarTodayByDeal[m.deal_id].push(m);
+  }
+
+  // Fetch pending email drafts for follow-ups section
+  const { data: pendingDrafts } = await _sb
+    .from('email_drafts')
+    .select('deal_id, status, reason, send_when, created_at')
+    .eq('status', 'draft')
+    .order('created_at', { ascending: false });
+
+  _emailDraftsByDeal = {};
+  for (const d of (pendingDrafts || [])) {
+    if (!_emailDraftsByDeal[d.deal_id]) _emailDraftsByDeal[d.deal_id] = d;
   }
 
   // Fetch PBD snapshots for BANT display
@@ -3624,18 +3634,22 @@ function classifyDealsForToday(deals) {
     return aStart.localeCompare(bStart);
   });
 
-  const followUpYesterday = [];
+  const followUps = [];
   for (const d of deals) {
     if (assigned.has(d.id)) continue;
     if (!_isOurTeam(d)) continue;
-    if (_meetingsYesterdayByDeal[d.id]?.length > 0) {
-      followUpYesterday.push(d);
+    if (_emailDraftsByDeal[d.id]) {
+      followUps.push(d);
       assigned.add(d.id);
     }
   }
-  followUpYesterday.sort((a, b) => (_earliestMeetingYesterday(a.id) || '').localeCompare(_earliestMeetingYesterday(b.id) || ''));
+  followUps.sort((a, b) => {
+    const aTime = _emailDraftsByDeal[a.id]?.created_at || '';
+    const bTime = _emailDraftsByDeal[b.id]?.created_at || '';
+    return bTime.localeCompare(aTime);
+  });
 
-  return { firstDemos, otherMeetings, calendarOnly, followUpYesterday, assigned };
+  return { firstDemos, otherMeetings, calendarOnly, followUps, assigned };
 }
 
 // ── Render "Hoy" view — 3 sections ───────────────────────────────────
@@ -3675,7 +3689,7 @@ function renderTodayView(deals) {
     { key: 'firstDemos', title: 'Primeras demos hoy', deals: cl.firstDemos, headerBg: 'bg-blue-50', headerBorder: 'border-blue-100', headerText: 'text-blue-800', signalHeader: 'Hora', signalFn: d => meetingTimeStr(d.id) || '—' },
     { key: 'otherMeetings', title: 'Otros meetings hoy', deals: cl.otherMeetings, headerBg: 'bg-cyan-50', headerBorder: 'border-cyan-100', headerText: 'text-cyan-800', signalHeader: 'Hora', signalFn: d => meetingTimeStr(d.id) || '—' },
     { key: 'calendarOnly', title: 'Previsto en calendario', deals: cl.calendarOnly, headerBg: 'bg-purple-50', headerBorder: 'border-purple-100', headerText: 'text-purple-800', signalHeader: 'Hora', signalFn: d => meetingTimeStr(d.id) || '—', badge: '📅' },
-    { key: 'followUpYesterday', title: 'Follow-up ayer', deals: cl.followUpYesterday, headerBg: 'bg-amber-50', headerBorder: 'border-amber-100', headerText: 'text-amber-800', signalHeader: 'Outcome', signalFn: d => meetingOutcomeStr(d.id) || '—' },
+    { key: 'followUps', title: 'Follow-ups', deals: cl.followUps, headerBg: 'bg-amber-50', headerBorder: 'border-amber-100', headerText: 'text-amber-800', signalHeader: 'Email', signalFn: d => _emailDraftsByDeal[d.id]?.reason?.slice(0, 60) || '—' },
   ];
 
   const hasAny = sections.some(s => s.deals.length > 0);
