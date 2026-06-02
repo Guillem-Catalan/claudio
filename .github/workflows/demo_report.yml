@@ -36,7 +36,7 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - name: Generate weekly demo reports
+      - name: Generate weekly activity digest
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -49,7 +49,7 @@ jobs:
           if [ -n "${{ inputs.pae_email }}" ]; then ARGS="$ARGS --pae-email ${{ inputs.pae_email }}"; fi
           if [ -n "${{ inputs.week_start }}" ]; then ARGS="$ARGS --week-start ${{ inputs.week_start }}"; fi
           if [ -n "${{ inputs.channel }}" ]; then ARGS="$ARGS --channel ${{ inputs.channel }}"; fi
-          python -m scripts.demo_report $ARGS
+          python -m scripts.weekly_digest $ARGS
 
       - name: Generate TL pipeline review
         env:
