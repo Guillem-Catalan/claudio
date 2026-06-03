@@ -1,4 +1,4 @@
-name: Sync Deals
+name: Run Deals
 
 on:
   workflow_dispatch:
@@ -9,9 +9,12 @@ on:
         default: false
 
 jobs:
-  sync:
+  run:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 90
+    concurrency:
+      group: run-deals
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
 
@@ -21,16 +24,20 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - name: Sync deals from HubSpot
+      - name: Run Deals pipeline
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
+          AZURE_CLAUDE_ENDPOINT: ${{ secrets.AZURE_CLAUDE_ENDPOINT }}
+          AZURE_CLAUDE_API_KEY: ${{ secrets.AZURE_CLAUDE_API_KEY }}
+          AZURE_CLAUDE_DEPLOYMENT: ${{ secrets.AZURE_CLAUDE_DEPLOYMENT }}
+          MODJO_API_KEY: ${{ secrets.MODJO_API_KEY }}
         run: |
           if [ "${{ inputs.full }}" = "true" ]; then
-            python -m scripts.sync_deals --full
+            python -m scripts.run_deals --full
           else
-            python -m scripts.sync_deals
+            python -m scripts.run_deals
           fi
 
       - name: Refresh calendar meetings

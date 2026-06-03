@@ -924,3 +924,4 @@ def run(deal_uuid: str, hs_deal_id: str, *, owners: dict[str, dict] | None = Non
     ).execute()
 
     print(f"   Done. HubSpot API requests: {hubspot.total_requests()}")
+    return meetings_skipped
