@@ -474,6 +474,12 @@ tailwind.config = {
   <div class="flex items-center justify-between mb-5">
     <h2 class="text-lg font-semibold text-gray-900">Forecast</h2>
     <div class="flex items-center gap-3">
+      <div class="relative">
+        <input id="fcDealSearch" type="text" placeholder="Buscar deal..." autocomplete="off"
+          oninput="onDealSearchInput()" onfocus="onDealSearchInput()" onblur="setTimeout(()=>closeDealSearch(),150)"
+          class="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-600 w-52">
+        <div id="fcDealDropdown" class="absolute top-full left-0 mt-1 w-72 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto hidden"></div>
+      </div>
       <select id="fcPartnerFilter" onchange="renderForecast()" class="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-600">
         <option value="">Partner</option>
         <option value="Santander">Santander</option>
@@ -4666,6 +4672,41 @@ showTab = function(name) {
   if (name === 'forecast') loadForecast();
   if (name === 'admin') loadAdminOrgchart();
 };
+
+function onDealSearchInput() {
+  const q = (document.getElementById('fcDealSearch').value || '').toLowerCase().trim();
+  const dd = document.getElementById('fcDealDropdown');
+  if (!q || q.length < 2) { dd.classList.add('hidden'); return; }
+  const matches = _dealsCache
+    .filter(d => (d.deal_name || '').toLowerCase().includes(q))
+    .slice(0, 8);
+  if (!matches.length) {
+    dd.innerHTML = '<div class="px-3 py-2 text-xs text-gray-400">Sin resultados</div>';
+    dd.classList.remove('hidden');
+    return;
+  }
+  dd.innerHTML = matches.map(d => {
+    const name = cleanDealName(d.deal_name);
+    const partner = extractPartner(d.deal_name);
+    const snap = _snapshotsCache[d.id]?.latest;
+    const prob = snap?.close_probability;
+    const probStr = prob != null ? prob + '%' : '';
+    const mrr = d.amount ? formatMRR(d.amount) : '';
+    return `<div class="px-3 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-50" onmousedown="selectDealSearch('${d.id}')">
+      <div class="text-sm font-medium text-gray-900 truncate">${name}${partner ? ' <span class=&quot;text-gray-400&quot;>· ' + partner + '</span>' : ''}</div>
+      <div class="text-[10px] text-gray-400">${d.deal_stage || '—'} ${mrr ? '· ' + mrr : ''} ${probStr ? '· ' + probStr : ''}</div>
+    </div>`;
+  }).join('');
+  dd.classList.remove('hidden');
+}
+function selectDealSearch(dealId) {
+  document.getElementById('fcDealSearch').value = '';
+  document.getElementById('fcDealDropdown').classList.add('hidden');
+  openHistorico(dealId);
+}
+function closeDealSearch() {
+  document.getElementById('fcDealDropdown').classList.add('hidden');
+}
 </script>
 
 </body>
