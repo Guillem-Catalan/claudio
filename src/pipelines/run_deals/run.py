@@ -123,20 +123,22 @@ def run(full: bool = False):
 
             # ── Phase 3: Build context ───────────────────────────
             print(f"  ▸ CONTEXT: building deal_context ...")
-            meetings_skipped = sync_deal_context(deal_uuid, hs_deal_id) or 0
-
-            # ── Phase 4: Snapshot + forecast ─────────────────────
-            print(f"  ▸ SNAPSHOT: generating ...")
-            front_deals_snapshot(deal_uuid, hs_deal_id)
-
-            # ── Mark as processed ────────────────────────────────
-            if meetings_skipped > 0:
-                print(f"  ⏳ {meetings_skipped} meetings pending transcript — will retry next cycle")
-                pending_transcript += 1
+            ctx_result = sync_deal_context(deal_uuid, hs_deal_id)
+            if isinstance(ctx_result, dict):
+                context_complete = ctx_result.get("complete", False)
             else:
+                context_complete = (ctx_result or 0) == 0
+
+            # ── Phase 4: Snapshot (only if context complete) ─────
+            if context_complete:
+                print(f"  ▸ SNAPSHOT: generating ...")
+                front_deals_snapshot(deal_uuid, hs_deal_id)
                 supabase.table("deals").update(
                     {"context_stale": False}
                 ).eq("id", deal_uuid).execute()
+            else:
+                print(f"  ⏳ Context incomplete — skipping snapshot, will retry next cycle")
+                pending_transcript += 1
 
             ok += 1
 

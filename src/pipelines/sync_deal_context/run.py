@@ -65,6 +65,7 @@ _SIGNATURE_MARKERS = re.compile(
     re.IGNORECASE | re.MULTILINE,
 )
 _ENGAGEMENT_ID_RE = re.compile(r"\[hs:(\d+)\]")
+_CALL_ID_RE = re.compile(r"\[call:(\w+)\]")
 _MODJO_RE = re.compile(r"app\.modjo\.ai/call-details/(\d+)")
 _TAG_RE = re.compile(r"Tags?\s*:\s*(.+)", re.IGNORECASE)
 
@@ -901,8 +902,10 @@ def run(deal_uuid: str, hs_deal_id: str, *, owners: dict[str, dict] | None = Non
     if not items:
         print("   No new items.")
 
-    # ── Set readiness flags ───────────────────────────────────────────
+    # ── Set readiness flags (legacy, kept for compatibility) ────────────
     print("7. Setting readiness flags ...")
+
+    calls_audited = _all_calls_audited(deal_uuid)
 
     update: dict = {
         "emails_ready": True,
@@ -910,7 +913,7 @@ def run(deal_uuid: str, hs_deal_id: str, *, owners: dict[str, dict] | None = Non
         "meetings_ready": meetings_skipped == 0,
     }
 
-    if _all_calls_audited(deal_uuid):
+    if calls_audited:
         update["calls_ready"] = True
         print("   calls_ready = TRUE")
     else:
@@ -923,5 +926,49 @@ def run(deal_uuid: str, hs_deal_id: str, *, owners: dict[str, dict] | None = Non
         "deal_id", deal_uuid
     ).execute()
 
+    # ── Verify context completeness ──────────────────────────────────
+    print("8. Verifying deal_context completeness ...")
+
+    ctx_result = (
+        supabase.table("deals")
+        .select("deal_context")
+        .eq("id", deal_uuid)
+        .maybe_single()
+        .execute()
+    )
+    final_context = (ctx_result.data or {}).get("deal_context") or ""
+    tracked_hs = set(_ENGAGEMENT_ID_RE.findall(final_context))
+    tracked_calls = set(_CALL_ID_RE.findall(final_context))
+    all_tracked = tracked_hs | tracked_calls
+
+    missing: list[str] = []
+    for eid in email_ids:
+        if eid not in tracked_hs:
+            missing.append(f"email:{eid}")
+    for nid in note_ids:
+        if nid not in tracked_hs:
+            missing.append(f"note:{nid}")
+
+    complete = (
+        len(missing) == 0
+        and meetings_skipped == 0
+        and audit_failures == 0
+        and calls_audited
+    )
+
+    if complete:
+        print("   ✓ Context complete — all engagements present")
+    else:
+        reasons = []
+        if missing:
+            reasons.append(f"{len(missing)} markers missing ({', '.join(missing[:5])})")
+        if meetings_skipped:
+            reasons.append(f"{meetings_skipped} meetings pending transcript")
+        if audit_failures:
+            reasons.append(f"{audit_failures} audit failures")
+        if not calls_audited:
+            reasons.append("calls not fully audited")
+        print(f"   ✗ Context incomplete: {', '.join(reasons)}")
+
     print(f"   Done. HubSpot API requests: {hubspot.total_requests()}")
-    return meetings_skipped
+    return {"complete": complete, "meetings_skipped": meetings_skipped}
