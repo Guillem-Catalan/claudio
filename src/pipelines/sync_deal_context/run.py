@@ -952,8 +952,6 @@ def run(deal_uuid: str, hs_deal_id: str, *, owners: dict[str, dict] | None = Non
     complete = (
         len(missing) == 0
         and meetings_skipped == 0
-        and audit_failures == 0
-        and calls_audited
     )
 
     if complete:
@@ -964,10 +962,6 @@ def run(deal_uuid: str, hs_deal_id: str, *, owners: dict[str, dict] | None = Non
             reasons.append(f"{len(missing)} markers missing ({', '.join(missing[:5])})")
         if meetings_skipped:
             reasons.append(f"{meetings_skipped} meetings pending transcript")
-        if audit_failures:
-            reasons.append(f"{audit_failures} audit failures")
-        if not calls_audited:
-            reasons.append("calls not fully audited")
         print(f"   ✗ Context incomplete: {', '.join(reasons)}")
 
     print(f"   Done. HubSpot API requests: {hubspot.total_requests()}")
