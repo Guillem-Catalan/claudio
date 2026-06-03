@@ -10,6 +10,7 @@ from src.pipelines.sync_deals.sync import run as sync_deals
 from src.pipelines.sync_deal_context.run import run as sync_deal_context
 from src.pipelines.front_deals.run import run as front_deals_snapshot
 from src.pipelines.atlas.run import generate as atlas_generate
+from src.pipelines.audit.run import run_single as audit_call
 
 MAX_DEALS_PER_CYCLE = 30
 
@@ -27,6 +28,47 @@ ACTIVE_STAGES = {
     "On Hold", "Nurturing", "To reschedule",
     "Sales Nurturing", "Connected - Not Engaged",
 }
+
+
+def _audit_pending_calls(deal_uuid: str) -> int:
+    """Find calls with transcript but no completed audit, and audit them inline."""
+    result = supabase.rpc("check_calls_ready", {"p_deal_id": deal_uuid}).execute()
+    if result.data:
+        return 0
+
+    calls_result = (
+        supabase.table("calls")
+        .select("id, call_id, rol")
+        .eq("deal_id", deal_uuid)
+        .not_.is_("transcript", "null")
+        .not_.is_("rol", "null")
+        .execute()
+    )
+    if not calls_result.data:
+        return 0
+
+    audited = 0
+    for c in calls_result.data:
+        call_uuid = c["id"]
+        rol = c["rol"]
+        audit_table = "pbd_audits" if rol == "PBD" else "pae_audits"
+        existing = (
+            supabase.table(audit_table)
+            .select("win_rate_score")
+            .eq("call_id", call_uuid)
+            .not_.is_("win_rate_score", "null")
+            .limit(1)
+            .execute()
+        )
+        if existing.data:
+            continue
+        print(f"    Auditing call {c['call_id']} ({rol}) ...")
+        try:
+            audit_call(call_uuid)
+            audited += 1
+        except Exception as e:
+            print(f"    Audit failed for {c['call_id']}: {e}")
+    return audited
 
 
 def _fetch_stale_deals(limit: int) -> list[dict]:
@@ -128,6 +170,11 @@ def run(full: bool = False):
                 context_complete = ctx_result.get("complete", False)
             else:
                 context_complete = (ctx_result or 0) == 0
+
+            # ── Phase 3b: Audit pending calls ────────────────────
+            retried = _audit_pending_calls(deal_uuid)
+            if retried:
+                print(f"  ▸ AUDITS: {retried} pending calls audited")
 
             # ── Phase 4: Snapshot (only if context complete) ─────
             if context_complete:
