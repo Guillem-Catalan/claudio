@@ -46,7 +46,7 @@ jobs:
           AZURE_CLAUDE_DEPLOYMENT: ${{ secrets.AZURE_CLAUDE_DEPLOYMENT }}
           MODJO_API_KEY: ${{ secrets.MODJO_API_KEY }}
         run: |
-          python -m scripts.backfill_team \
+          python -u -m scripts.backfill_team \
             --team "${{ inputs.team }}" \
             --phase "${{ inputs.phase }}" \
             --limit "${{ inputs.limit }}"
