@@ -205,6 +205,8 @@ def run_sync(team: str):
                 continue
             for m in meetings:
                 m["deal_id"] = deal_uuid
+                if not m.get("hs_deal_id"):
+                    m["hs_deal_id"] = hs_deal_id
                 meeting_rows.append(m)
 
         for i in range(0, len(meeting_rows), 500):
