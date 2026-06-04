@@ -180,11 +180,19 @@ def run_sync(team: str):
     # Upsert
     print(f"  Upserting {len(filtered)} deals ...")
     written = 0
+    upserted_ids = []
     for i in range(0, len(filtered), 500):
         batch = filtered[i:i + 500]
         result = supabase.table("deals").upsert(batch, on_conflict="deal_id").execute()
         written += len(result.data or [])
+        upserted_ids.extend(r["id"] for r in (result.data or []) if r.get("id"))
     print(f"  {written} deals upserted")
+
+    # Reset context_stale so run_deals doesn't pick these up
+    for i in range(0, len(upserted_ids), 200):
+        batch = upserted_ids[i:i + 200]
+        supabase.table("deals").update({"context_stale": False}).in_("id", batch).execute()
+    print(f"  Reset context_stale on {len(upserted_ids)} deals")
 
     # Upsert meetings
     total_meetings = sum(len(v) for v in meeting_details.values())
