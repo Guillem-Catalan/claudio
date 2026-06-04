@@ -167,7 +167,7 @@ PAE_CHANNELS = {
     "David Clemente": "C0B33QDE4KD",
     "Jose Donis": "C0B24A51PNE",
     "Joan Lorenzo Galles": "C0B2UMVT5NK",
-    "Beatriz Bravo": "C0B384853M4",
+    "Beatriz Bravo": "C0B8BKTS1CL",
     "Nerea Urien Meizoso": "C0B2UMRUV2T",
     "Pol Bartolomé": "C0B33Q2T7FV",
     "Roberto Morán": "C0B36RD537X",
