@@ -22,6 +22,21 @@ from src.pipelines.sync_deals.properties import (
 
 UPSERT_BATCH = 500
 
+CLOSED_STAGES = {
+    "closed won", "closed lost", "opportunity lost",
+    "closed won - finance only", "closed - pending finance validation",
+    "closed pending payment",
+    "onboarding completed - converted", "onboarding completed - pending conversion",
+    "onboarding failed", "onboarding on hold",
+    "> 75% sessions done", "51-75% sessions done", "26-50% sessions done",
+    "≤ 25% sessions done", "1st session scheduled", "client pending to launch",
+    "churned (closed)", "retained (closed)", "preventive churn risk (new)",
+    "requested churn (new)", "(do not use) churn confirmed",
+    "product related process (ongoing)", "pending approval because low joined rate",
+    "wrongly created ticket (closed)", "spam",
+    "(do not use) pending post-mortem analysis", "(do not use) action plan",
+}
+
 
 def _resolve_atlas_ids(crm_ids: set[str]) -> dict[str, str]:
     if not crm_ids:
@@ -171,6 +186,18 @@ def run(full: bool = False, since_hours: int = 48):
         deal["numero_de_meetings"] = eng.get("numero_de_meetings", 0)
 
         rows.append(deal)
+
+    # 6b. Filter out closed deals (only upsert if already in Supabase)
+    existing_ids = set()
+    for i in range(0, len(rows), 200):
+        batch = [r["deal_id"] for r in rows[i:i + 200]]
+        result = supabase.table("deals").select("deal_id").in_("deal_id", batch).execute()
+        existing_ids |= {r["deal_id"] for r in (result.data or [])}
+
+    new_closed = [r for r in rows if (r.get("deal_stage") or "").lower() in CLOSED_STAGES and r["deal_id"] not in existing_ids]
+    rows = [r for r in rows if r["deal_id"] in existing_ids or (r.get("deal_stage") or "").lower() not in CLOSED_STAGES]
+    if new_closed:
+        print(f"   Skipped {len(new_closed)} new closed deals")
 
     # 7. Upsert
     print(f"\n11. Upserting {len(rows)} deals to Supabase ...")
