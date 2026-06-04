@@ -237,44 +237,30 @@ def run_context(team: str, limit: int = 50):
         name = email.split("@")[0].replace(".", " ").title()
         all_names.add(name)
 
-    stages = list(ACTIVE_STAGES)
-    result = (
-        supabase.table("deals")
-        .select("id, deal_id, deal_name, deal_stage, atlas_id, crm_id")
-        .is_("deal_context", "null")
-        .in_("deal_stage", stages)
-        .order("amount", desc=True)
-        .limit(limit)
-        .execute()
-    )
-
-    # Filter to team deals by PAE/PBD name match or deal_name containing partner names
     partner_names = team_cfg.get("partner_names", set())
-    team_deals = []
-    for d in (result.data or []):
-        name_lower = (d.get("deal_name") or "").lower()
-        if any(pn in name_lower for pn in partner_names):
-            team_deals.append(d)
+    stages = list(ACTIVE_STAGES)
 
-    if not team_deals:
-        # Fallback: get deals that have team member as PAE/PBD
-        for name in sorted(all_names)[:3]:
-            first_last = name.split()[:2]
-            pattern = f"%{'%'.join(first_last)}%"
-            r = (
-                supabase.table("deals")
-                .select("id, deal_id, deal_name, deal_stage, atlas_id, crm_id")
-                .is_("deal_context", "null")
-                .in_("deal_stage", stages)
-                .ilike("pae", pattern)
-                .order("amount", desc=True)
-                .limit(limit)
-                .execute()
-            )
-            team_deals.extend(r.data or [])
-        seen = set()
-        team_deals = [d for d in team_deals if d["id"] not in seen and not seen.add(d["id"])]
-        team_deals = team_deals[:limit]
+    # Get all team deals in active stages, then filter to those needing context
+    all_team = []
+    for pn in partner_names:
+        r = (
+            supabase.table("deals")
+            .select("id, deal_id, deal_name, deal_stage, atlas_id, crm_id, deal_context")
+            .ilike("deal_name", f"%{pn}%")
+            .in_("deal_stage", stages)
+            .order("amount", desc=True)
+            .limit(500)
+            .execute()
+        )
+        all_team.extend(r.data or [])
+
+    seen = set()
+    all_team = [d for d in all_team if d["id"] not in seen and not seen.add(d["id"])]
+
+    team_deals = [
+        d for d in all_team
+        if not d.get("deal_context") or len(d.get("deal_context") or "") < 100
+    ][:limit]
 
     if not team_deals:
         print(f"  No deals without context for {team}")
@@ -349,20 +335,25 @@ def run_snapshot(team: str, limit: int = 50):
     partner_names = team_cfg.get("partner_names", set())
     stages = list(ACTIVE_STAGES)
 
-    result = (
-        supabase.table("deals")
-        .select("id, deal_id, deal_name, deal_context")
-        .not_.is_("deal_context", "null")
-        .in_("deal_stage", stages)
-        .order("amount", desc=True)
-        .limit(500)
-        .execute()
-    )
+    all_team = []
+    for pn in partner_names:
+        r = (
+            supabase.table("deals")
+            .select("id, deal_id, deal_name, deal_context")
+            .ilike("deal_name", f"%{pn}%")
+            .in_("deal_stage", stages)
+            .order("amount", desc=True)
+            .limit(500)
+            .execute()
+        )
+        all_team.extend(r.data or [])
+
+    seen = set()
+    all_team = [d for d in all_team if d["id"] not in seen and not seen.add(d["id"])]
 
     team_deals = [
-        d for d in (result.data or [])
-        if any(pn in (d.get("deal_name") or "").lower() for pn in partner_names)
-        and d.get("deal_context") and len(d["deal_context"]) > 100
+        d for d in all_team
+        if d.get("deal_context") and len(d["deal_context"]) > 100
     ]
 
     # Check which already have recent snapshot
