@@ -12,6 +12,7 @@ CORE_PROPS = [
     "dealname",
     "amount",
     "dealstage",
+    "pipeline",
     "hs_manual_forecast_category",
     "closedate",
     "createdate",
@@ -96,13 +97,17 @@ ALL_PROPS = CORE_PROPS + list(PIPELINE_DATE_MAP.keys())
 
 # ── Pipeline stages ─────────────────────────────────────────────────────────
 
-def fetch_pipeline_stages() -> dict[str, str]:
+def fetch_pipeline_stages() -> tuple[dict[str, str], dict[str, str]]:
+    """Returns (stage_id → stage_label, stage_id → pipeline_label)."""
     data = hubspot.get("/crm/v3/pipelines/deals")
     stages: dict[str, str] = {}
+    pipelines: dict[str, str] = {}
     for pipeline in data.get("results", []):
+        pname = pipeline.get("label", "")
         for stage in pipeline.get("stages", []):
             stages[stage["id"]] = stage["label"]
-    return stages
+            pipelines[stage["id"]] = pname
+    return stages, pipelines
 
 
 # ── Owners ──────────────────────────────────────────────────────────────────
@@ -141,7 +146,7 @@ def _to_date(val: str | None) -> str | None:
     return val[:10]
 
 
-def fetch_deal_properties(deal_ids: list[str], stages: dict[str, str]) -> list[dict]:
+def fetch_deal_properties(deal_ids: list[str], stages: dict[str, str], pipeline_labels: dict[str, str] | None = None) -> list[dict]:
     deals = []
     today = datetime.now(timezone.utc).date()
 
@@ -183,6 +188,7 @@ def fetch_deal_properties(deal_ids: list[str], stages: dict[str, str]) -> list[d
                 "stage_probability_hs": float(stage_prob) if stage_prob else None,
                 "_owner_id": p.get("hubspot_owner_id") or "",
                 "_partner_name": p.get("partner_name") or "",
+                "_pipeline": (pipeline_labels or {}).get(stage_id, ""),
                 "first_meeting_at": _to_date(p.get("first_meeting_at")),
                 "hs_next_meeting_start_time": _to_date(p.get("hs_next_meeting_start_time")),
             }

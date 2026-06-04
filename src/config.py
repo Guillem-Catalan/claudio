@@ -41,15 +41,22 @@ TEAMS = {
         },
     },
     "TIM": {
-        "active": False,
+        "active": True,
+        "backfill_only": True,
         "partner_names": {"tim", "tim italia"},
         "partner_domains": {"sa.telecomitalia.it"},
-        "pbd": set(),
+        "pbd": {
+            "cecilia.rinaldo@factorial.co",
+            "alessandro.cardinale@factorial.co",
+            "miljan.nojkic@factorial.co",
+            "giacomo.torresi@factorial.co",
+        },
         "pae": {
-            "christian.lombardo@factorial.co",
-            "edoardo.rapezzi@factorial.co",
-            "emilio.fabbro@factorial.co",
             "nunzio.fumo@factorial.co",
+            "edoardo.rapezzi@factorial.co",
+            "christian.lombardo@factorial.co",
+            "emilio.fabbro@factorial.co",
+            "giuditta.giunta@factorial.co",
         },
     },
     "TELEKOM": {

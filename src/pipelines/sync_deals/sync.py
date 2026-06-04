@@ -22,6 +22,11 @@ from src.pipelines.sync_deals.properties import (
 
 UPSERT_BATCH = 500
 
+EXCLUDE_PIPELINES = {
+    "brazil sales pipeline", "churn pipeline", "upselling pipeline",
+    "it sdr pipeline", "xl account pipeline", "onboarding pipeline",
+}
+
 CLOSED_STAGES = {
     "closed won", "closed lost", "opportunity lost",
     "closed won - finance only", "closed - pending finance validation",
@@ -117,7 +122,7 @@ def run(full: bool = False, since_hours: int = 48):
 
     # 2. Fetch reference data
     print("\n2. Fetching pipeline stages ...")
-    stages = fetch_pipeline_stages()
+    stages, pipeline_labels = fetch_pipeline_stages()
     print(f"   {len(stages)} stages loaded")
 
     print("\n3. Fetching owners ...")
@@ -126,7 +131,7 @@ def run(full: bool = False, since_hours: int = 48):
 
     # 3. Batch read deal properties
     print(f"\n4. Reading properties for {len(deal_id_list)} deals ...")
-    deals = fetch_deal_properties(deal_id_list, stages)
+    deals = fetch_deal_properties(deal_id_list, stages, pipeline_labels)
     print(f"   {len(deals)} deals read")
 
     # 4. Fetch associations
@@ -164,7 +169,8 @@ def run(full: bool = False, since_hours: int = 48):
     for deal in deals:
         did = deal["deal_id"]
         owner_id = deal.pop("_owner_id")
-        deal.pop("_partner_name")
+        partner_name = deal.pop("_partner_name")
+        pipeline_name = deal.pop("_pipeline", "")
         pbd, pae = _resolve_pbd_pae(owner_id, owners)
 
         crm_id = company_map.get(did)
@@ -185,19 +191,37 @@ def run(full: bool = False, since_hours: int = 48):
         deal["numero_de_calls"] = eng.get("numero_de_calls", 0)
         deal["numero_de_meetings"] = eng.get("numero_de_meetings", 0)
 
+        deal["_pipeline"] = pipeline_name
         rows.append(deal)
 
-    # 6b. Filter out closed deals (only upsert if already in Supabase)
+    # 6b. Filter out new deals in excluded pipelines or closed stages
     existing_ids = set()
     for i in range(0, len(rows), 200):
         batch = [r["deal_id"] for r in rows[i:i + 200]]
         result = supabase.table("deals").select("deal_id").in_("deal_id", batch).execute()
         existing_ids |= {r["deal_id"] for r in (result.data or [])}
 
-    new_closed = [r for r in rows if (r.get("deal_stage") or "").lower() in CLOSED_STAGES and r["deal_id"] not in existing_ids]
-    rows = [r for r in rows if r["deal_id"] in existing_ids or (r.get("deal_stage") or "").lower() not in CLOSED_STAGES]
-    if new_closed:
-        print(f"   Skipped {len(new_closed)} new closed deals")
+    before = len(rows)
+    filtered = []
+    skipped_closed = 0
+    skipped_pipeline = 0
+    for r in rows:
+        is_new = r["deal_id"] not in existing_ids
+        if is_new:
+            if (r.get("deal_stage") or "").lower() in CLOSED_STAGES:
+                skipped_closed += 1
+                continue
+            if (r.get("_pipeline") or "").lower() in EXCLUDE_PIPELINES:
+                skipped_pipeline += 1
+                continue
+        r.pop("_pipeline", None)
+        filtered.append(r)
+    rows = filtered
+
+    if skipped_closed:
+        print(f"   Skipped {skipped_closed} new closed deals")
+    if skipped_pipeline:
+        print(f"   Skipped {skipped_pipeline} new deals in excluded pipelines")
 
     # 7. Upsert
     print(f"\n11. Upserting {len(rows)} deals to Supabase ...")

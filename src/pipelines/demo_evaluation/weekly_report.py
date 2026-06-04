@@ -24,12 +24,12 @@ def run_weekly(
 
     pae_emails: set[str] = set()
     for team_name, team in TEAMS.items():
-        if team_name in ("Santander", "Telefónica"):
+        if team.get("active") and not team.get("backfill_only"):
             pae_emails |= team["pae"]
 
     if pae_email:
         if pae_email not in pae_emails:
-            print(f"  {pae_email} not in Santander/Telefónica PAE list")
+            print(f"  {pae_email} not in active PAE list")
             return
         pae_emails = {pae_email}
 
