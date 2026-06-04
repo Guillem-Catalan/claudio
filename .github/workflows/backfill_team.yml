@@ -18,9 +18,9 @@ on:
           - context
           - snapshot
       limit:
-        description: "Max deals per phase (default 50)"
+        description: "Max deals per phase (default 9999 = all)"
         required: false
-        default: "50"
+        default: "9999"
         type: string
 
 jobs:
