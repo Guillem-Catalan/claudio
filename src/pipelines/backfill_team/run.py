@@ -313,7 +313,7 @@ def run_context(team: str, limit: int = 50):
                 existing = (
                     supabase.table(audit_table)
                     .select("win_rate_score")
-                    .eq("call_id", c["id"])
+                    .eq("call_ref", c["id"])
                     .not_.is_("win_rate_score", "null")
                     .limit(1)
                     .execute()
@@ -321,7 +321,7 @@ def run_context(team: str, limit: int = 50):
                 if not existing.data:
                     print(f"    Auditing call {c['call_id']} ...")
                     try:
-                        audit_call(c["id"])
+                        audit_call(c["call_id"])
                     except Exception as e:
                         print(f"    Audit failed: {e}")
 
