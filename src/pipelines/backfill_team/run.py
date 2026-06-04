@@ -209,10 +209,18 @@ def run_sync(team: str):
                     m["hs_deal_id"] = hs_deal_id
                 meeting_rows.append(m)
 
-        for i in range(0, len(meeting_rows), 500):
-            batch = meeting_rows[i:i + 500]
+        seen_ids = set()
+        deduped = []
+        for m in meeting_rows:
+            mid = m.get("hs_meeting_id")
+            if mid and mid not in seen_ids:
+                seen_ids.add(mid)
+                deduped.append(m)
+
+        for i in range(0, len(deduped), 500):
+            batch = deduped[i:i + 500]
             supabase.table("deal_meetings").upsert(batch, on_conflict="hs_meeting_id").execute()
-        print(f"  {len(meeting_rows)} meetings upserted")
+        print(f"  {len(deduped)} meetings upserted (deduped from {len(meeting_rows)})")
 
     return written
 
