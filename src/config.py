@@ -30,13 +30,11 @@ TEAMS = {
             "angel.hernandez@factorial.co",
             "jon.azconobieta@factorial.co",
             "maria.masoliver@factorial.co",
-            "lucia.guerrero@factorial.co",
             "alejandro.soto@factorial.co",
         },
         "pae": {
             "david.clemente@factorial.co",
             "nerea.urien@factorial.co",
-            "juan.martinez@factorial.co",
             "carlos.sanchez@factorial.co",
             "alejandro.soto@factorial.co",
             "joan.balana@factorial.co",
