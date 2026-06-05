@@ -28,7 +28,7 @@ _TIM_CAMPAIGN_TOKEN = "#25968646986"
 
 # ── TELEKOM ──────────────────────────────────────────────────────────────
 
-_TELEKOM_PARTNER_NAMES = ["TELEKOM"]
+_TELEKOM_PARTNER_NAMES = ["Deutsche Telekom"]
 _TELEKOM_CAMPAIGN_TOKEN = "#25359694224"
 
 
