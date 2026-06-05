@@ -18,7 +18,7 @@ from src.pipelines.sync_deals.sync import (
     CLOSED_STAGES,
     EXCLUDE_PIPELINES,
 )
-from src.pipelines.sync_deals.search import find_tim_deal_ids, find_tim_modified_ids
+from src.pipelines.sync_deals.search import find_tim_deal_ids, find_tim_modified_ids, find_telekom_deal_ids, find_telekom_modified_ids
 from src.pipelines.sync_deals.properties import (
     fetch_pipeline_stages,
     fetch_owners,
@@ -38,6 +38,9 @@ from src.pipelines.audit.run import run_single as audit_call
 TEAM_SEARCH = {
     "TIM": {
         "find_all": find_tim_deal_ids,
+    },
+    "TELEKOM": {
+        "find_all": find_telekom_deal_ids,
     },
 }
 

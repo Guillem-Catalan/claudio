@@ -59,13 +59,22 @@ TEAMS = {
         },
     },
     "TELEKOM": {
-        "active": False,
+        "active": True,
+        "backfill_only": True,
         "partner_names": {"telekom", "deutsche telekom"},
         "partner_domains": {"telekom.de"},
-        "pbd": set(),
+        "pbd": {
+            "johanna.henrich@factorial.co",
+            "fiona.durr@factorial.co",
+            "chiang.nguyen@factorial.co",
+            "enrique.gautier@factorial.co",
+            "michel.heinkele@factorial.co",
+        },
         "pae": {
             "leonhard.zeus@factorial.co",
             "katrin.virtbauer@factorial.co",
+            "stefan.platt@factorial.co",
+            "lior.shechori@factorial.co",
         },
     },
 }

@@ -26,6 +26,11 @@ _DEALNAME_TOKENS = ["santander", "telefonica", "telefónica"]
 _TIM_PARTNER_NAMES = ["TIM"]
 _TIM_CAMPAIGN_TOKEN = "#25968646986"
 
+# ── TELEKOM ──────────────────────────────────────────────────────────────
+
+_TELEKOM_PARTNER_NAMES = ["TELEKOM"]
+_TELEKOM_CAMPAIGN_TOKEN = "#25359694224"
+
 
 def _search_all(filter_groups: list[dict]) -> set[str]:
     ids: set[str] = set()
@@ -131,6 +136,68 @@ def find_tim_modified_ids(since_ms: int) -> set[str]:
     return union
 
 
+# ── TELEKOM search functions ─────────────────────────────────────────────
+
+def _search_telekom_by_partner_name() -> set[str]:
+    return _search_all([
+        {"filters": [{"propertyName": "partner_name", "operator": "EQ", "value": p}]}
+        for p in _TELEKOM_PARTNER_NAMES
+    ])
+
+
+def _search_telekom_by_campaign() -> set[str]:
+    return _search_all([
+        {"filters": [{
+            "propertyName": "marketing_lead_form_campaign_on_deal",
+            "operator": "CONTAINS_TOKEN",
+            "value": _TELEKOM_CAMPAIGN_TOKEN,
+        }]}
+    ])
+
+
+def find_telekom_deal_ids() -> set[str]:
+    print("  TELEKOM S1: partner_name ...")
+    s1 = _search_telekom_by_partner_name()
+    print(f"      {len(s1)} deals")
+
+    print("  TELEKOM S2: campaign ...")
+    s2 = _search_telekom_by_campaign()
+    print(f"      {len(s2)} deals")
+
+    union = s1 | s2
+    print(f"  TELEKOM union: {len(union)} unique deals")
+    return union
+
+
+def find_telekom_modified_ids(since_ms: int) -> set[str]:
+    mod_filter = {
+        "propertyName": "hs_lastmodifieddate",
+        "operator": "GTE",
+        "value": str(since_ms),
+    }
+
+    print("  TELEKOM S1: partner_name (incremental) ...")
+    s1 = _search_all([
+        {"filters": [{"propertyName": "partner_name", "operator": "EQ", "value": p}, mod_filter]}
+        for p in _TELEKOM_PARTNER_NAMES
+    ])
+    print(f"      {len(s1)} deals")
+
+    print("  TELEKOM S2: campaign (incremental) ...")
+    s2 = _search_all([
+        {"filters": [{
+            "propertyName": "marketing_lead_form_campaign_on_deal",
+            "operator": "CONTAINS_TOKEN",
+            "value": _TELEKOM_CAMPAIGN_TOKEN,
+        }, mod_filter]}
+    ])
+    print(f"      {len(s2)} deals")
+
+    union = s1 | s2
+    print(f"  TELEKOM union (incremental): {len(union)} deals")
+    return union
+
+
 # ── Unified entry points ────────────────────────────────────────────────
 
 def _include_team(team_name: str) -> bool:
@@ -158,6 +225,9 @@ def find_all_deal_ids() -> set[str]:
 
     if _include_team("TIM"):
         union |= find_tim_deal_ids()
+
+    if _include_team("TELEKOM"):
+        union |= find_telekom_deal_ids()
 
     print(f"  Union: {len(union)} unique deals")
     return union
@@ -200,6 +270,9 @@ def find_modified_deal_ids(since_ms: int) -> set[str]:
 
     if _include_team("TIM"):
         union |= find_tim_modified_ids(since_ms)
+
+    if _include_team("TELEKOM"):
+        union |= find_telekom_modified_ids(since_ms)
 
     print(f"  Union (incremental): {len(union)} unique deals")
     return union
