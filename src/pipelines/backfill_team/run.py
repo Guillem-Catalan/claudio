@@ -401,6 +401,99 @@ def run_snapshot(team: str, limit: int = 50):
     print(f"\n  Snapshots done: {ok} OK, {failed} failed")
 
 
+def _get_team_deals_needing_work(team: str, limit: int) -> list[dict]:
+    """Get team deals that need context or snapshot, ordered by MRR."""
+    team_cfg = TEAMS.get(team, {})
+    partner_names = team_cfg.get("partner_names", set())
+    stages = list(ACTIVE_STAGES)
+
+    all_team = []
+    for pn in partner_names:
+        r = (
+            supabase.table("deals")
+            .select("id, deal_id, deal_name, deal_stage, atlas_id, crm_id, deal_context")
+            .ilike("deal_name", f"%{pn}%")
+            .in_("deal_stage", stages)
+            .order("amount", desc=True)
+            .limit(500)
+            .execute()
+        )
+        all_team.extend(r.data or [])
+
+    seen = set()
+    all_team = [d for d in all_team if d["id"] not in seen and not seen.add(d["id"])]
+
+    needs_work = []
+    for d in all_team:
+        has_ctx = d.get("deal_context") and len(d.get("deal_context") or "") > 100
+        snap = (
+            supabase.table("front_deal_snapshots")
+            .select("id")
+            .eq("deal_id", d["id"])
+            .limit(1)
+            .execute()
+        )
+        has_snap = bool(snap.data)
+        if not has_ctx or not has_snap:
+            d["_has_ctx"] = has_ctx
+            d["_has_snap"] = has_snap
+            needs_work.append(d)
+
+    return needs_work[:limit]
+
+
+def run_all_per_deal(team: str, limit: int = 50):
+    """Process each deal end-to-end: atlas → context → snapshot → next deal."""
+    deals = _get_team_deals_needing_work(team, limit)
+    if not deals:
+        print(f"  No deals need processing for {team}")
+        return
+
+    print(f"  {len(deals)} deals to process")
+
+    ok = 0
+    failed = 0
+    for i, deal in enumerate(deals, 1):
+        deal_uuid = deal["id"]
+        hs_deal_id = deal["deal_id"]
+        has_ctx = deal.get("_has_ctx", False)
+        has_snap = deal.get("_has_snap", False)
+        print(f"\n  [{i}/{len(deals)}] {deal.get('deal_name', '?')[:50]} {'[need ctx+snap]' if not has_ctx else '[need snap]'}")
+
+        try:
+            if not has_ctx:
+                # Atlas
+                if deal.get("atlas_id"):
+                    atlas_check = (
+                        supabase.table("atlas")
+                        .select("last_generated")
+                        .eq("id", deal["atlas_id"])
+                        .maybe_single()
+                        .execute()
+                    )
+                    if atlas_check.data and atlas_check.data.get("last_generated") is None:
+                        print(f"    Generating atlas ...")
+                        atlas_generate(deal["atlas_id"], deal.get("crm_id"))
+
+                # Context (includes inline audits)
+                print(f"    Building context ...")
+                sync_deal_context(deal_uuid, hs_deal_id)
+
+            # Snapshot
+            print(f"    Generating snapshot ...")
+            front_deals_snapshot(deal_uuid, hs_deal_id)
+
+            ok += 1
+            print(f"    ✓ Complete")
+
+        except Exception as e:
+            failed += 1
+            print(f"    ✗ FAILED: {e}")
+            traceback.print_exc()
+
+    print(f"\n  Done: {ok} OK, {failed} failed")
+
+
 def run(team: str, phase: str = "all", limit: int = 50):
     print("=" * 60)
     print(f"BACKFILL TEAM — {team} — phase={phase} — limit={limit}")
@@ -410,15 +503,25 @@ def run(team: str, phase: str = "all", limit: int = 50):
         print(f"Unknown team: {team}")
         return
 
-    if phase in ("sync", "all"):
+    if phase == "all":
+        print(f"\n▸ PHASE: SYNC")
+        run_sync(team)
+        print(f"\n▸ PHASE: PROCESS (deal by deal)")
+        run_all_per_deal(team, limit=limit)
+        print(f"\n{'=' * 60}")
+        print("BACKFILL COMPLETE")
+        print("=" * 60)
+        return
+
+    if phase == "sync":
         print(f"\n▸ PHASE: SYNC")
         run_sync(team)
 
-    if phase in ("context", "all"):
+    if phase == "context":
         print(f"\n▸ PHASE: CONTEXT")
         run_context(team, limit=limit)
 
-    if phase in ("snapshot", "all"):
+    if phase == "snapshot":
         print(f"\n▸ PHASE: SNAPSHOT")
         run_snapshot(team, limit=limit)
 
