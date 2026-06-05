@@ -5,6 +5,7 @@ Phases: sync HubSpot → atlas (new companies) → build context → snapshot + 
 
 import traceback
 
+from src.config import TEAMS
 from src.db.client import supabase
 from src.pipelines.sync_deals.sync import run as sync_deals
 from src.pipelines.sync_deal_context.run import run as sync_deal_context
@@ -13,6 +14,11 @@ from src.pipelines.atlas.run import generate as atlas_generate
 from src.pipelines.audit.run import run_single as audit_call
 
 MAX_DEALS_PER_CYCLE = 30
+
+_BACKFILL_ONLY_NAMES: set[str] = set()
+for _t in TEAMS.values():
+    if _t.get("backfill_only"):
+        _BACKFILL_ONLY_NAMES |= _t.get("partner_names", set())
 
 ACTIVE_STAGES = {
     "Factorial Project Alignment started",
@@ -71,6 +77,11 @@ def _audit_pending_calls(deal_uuid: str) -> int:
     return audited
 
 
+def _is_backfill_only(deal_name: str) -> bool:
+    name_lower = (deal_name or "").lower()
+    return any(pn in name_lower for pn in _BACKFILL_ONLY_NAMES)
+
+
 def _fetch_stale_deals(limit: int) -> list[dict]:
     stages = list(ACTIVE_STAGES)
     result = (
@@ -80,10 +91,10 @@ def _fetch_stale_deals(limit: int) -> list[dict]:
         .in_("deal_stage", stages)
         .not_.is_("deal_context", "null")
         .order("updated_at", desc=False)
-        .limit(limit)
+        .limit(limit * 2)
         .execute()
     )
-    return result.data or []
+    return [d for d in (result.data or []) if not _is_backfill_only(d.get("deal_name", ""))][:limit]
 
 
 def _fetch_stale_deals_no_context(limit: int) -> list[dict]:
@@ -96,10 +107,10 @@ def _fetch_stale_deals_no_context(limit: int) -> list[dict]:
         .in_("deal_stage", stages)
         .is_("deal_context", "null")
         .order("updated_at", desc=False)
-        .limit(limit)
+        .limit(limit * 2)
         .execute()
     )
-    return result.data or []
+    return [d for d in (result.data or []) if not _is_backfill_only(d.get("deal_name", ""))][:limit]
 
 
 def _needs_atlas(deal: dict) -> bool:
