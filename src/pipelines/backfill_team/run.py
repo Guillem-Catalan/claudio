@@ -60,15 +60,36 @@ ACTIVE_STAGES = {
 }
 
 
-def _resolve_pbd_pae(owner_id: str, owners: dict) -> tuple[str, str]:
+def _resolve_pbd_pae(owner_id: str, all_owner_ids: list[str], owners: dict) -> tuple[str, str]:
     from src.config import ALL_PBD_EMAILS, ALL_PAE_EMAILS
-    if not owner_id or owner_id not in owners:
-        return "", ""
-    owner = owners[owner_id]
-    email = owner["email"]
-    name = owner["name"]
-    pbd = name if email in ALL_PBD_EMAILS else ""
-    pae = name if email in ALL_PAE_EMAILS else ""
+    pae = ""
+    pbd = ""
+
+    if owner_id and owner_id in owners:
+        owner = owners[owner_id]
+        if owner["email"] in ALL_PAE_EMAILS:
+            pae = owner["name"]
+        elif owner["email"] in ALL_PBD_EMAILS:
+            pbd = owner["name"]
+
+    if not pbd:
+        for oid in all_owner_ids:
+            oid = oid.strip()
+            if oid and oid in owners:
+                o = owners[oid]
+                if o["email"] in ALL_PBD_EMAILS:
+                    pbd = o["name"]
+                    break
+
+    if not pae:
+        for oid in all_owner_ids:
+            oid = oid.strip()
+            if oid and oid in owners:
+                o = owners[oid]
+                if o["email"] in ALL_PAE_EMAILS:
+                    pae = o["name"]
+                    break
+
     return pbd, pae
 
 
@@ -127,9 +148,10 @@ def run_sync(team: str):
     for deal in deals:
         did = deal["deal_id"]
         owner_id = deal.pop("_owner_id")
+        all_owner_ids = deal.pop("_all_owner_ids", [])
         deal.pop("_partner_name")
         pipeline_name = deal.pop("_pipeline", "")
-        pbd, pae = _resolve_pbd_pae(owner_id, owners)
+        pbd, pae = _resolve_pbd_pae(owner_id, all_owner_ids, owners)
 
         crm_id = company_map.get(did)
         atlas_id = atlas_map.get(crm_id) if crm_id else None

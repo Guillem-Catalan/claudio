@@ -64,14 +64,38 @@ def _resolve_atlas_ids(crm_ids: set[str]) -> dict[str, str]:
     return atlas_map
 
 
-def _resolve_pbd_pae(owner_id: str, owners: dict) -> tuple[str, str]:
-    if not owner_id or owner_id not in owners:
-        return "", ""
-    owner = owners[owner_id]
-    email = owner["email"]
-    name = owner["name"]
-    pbd = name if email in ALL_PBD_EMAILS else ""
-    pae = name if email in ALL_PAE_EMAILS else ""
+def _resolve_pbd_pae(owner_id: str, all_owner_ids: list[str], owners: dict) -> tuple[str, str]:
+    pae = ""
+    pbd = ""
+
+    # Current owner → PAE if in PAE list, else PBD
+    if owner_id and owner_id in owners:
+        owner = owners[owner_id]
+        if owner["email"] in ALL_PAE_EMAILS:
+            pae = owner["name"]
+        elif owner["email"] in ALL_PBD_EMAILS:
+            pbd = owner["name"]
+
+    # First historical owner that's a PBD → PBD (deal creator)
+    if not pbd:
+        for oid in all_owner_ids:
+            oid = oid.strip()
+            if oid and oid in owners:
+                o = owners[oid]
+                if o["email"] in ALL_PBD_EMAILS:
+                    pbd = o["name"]
+                    break
+
+    # If still no PAE, check all owners for first PAE
+    if not pae:
+        for oid in all_owner_ids:
+            oid = oid.strip()
+            if oid and oid in owners:
+                o = owners[oid]
+                if o["email"] in ALL_PAE_EMAILS:
+                    pae = o["name"]
+                    break
+
     return pbd, pae
 
 
@@ -169,9 +193,10 @@ def run(full: bool = False, since_hours: int = 48):
     for deal in deals:
         did = deal["deal_id"]
         owner_id = deal.pop("_owner_id")
+        all_owner_ids = deal.pop("_all_owner_ids", [])
         partner_name = deal.pop("_partner_name")
         pipeline_name = deal.pop("_pipeline", "")
-        pbd, pae = _resolve_pbd_pae(owner_id, owners)
+        pbd, pae = _resolve_pbd_pae(owner_id, all_owner_ids, owners)
 
         crm_id = company_map.get(did)
         atlas_id = atlas_map.get(crm_id) if crm_id else None
