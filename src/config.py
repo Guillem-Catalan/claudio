@@ -42,7 +42,6 @@ TEAMS = {
     },
     "TIM": {
         "active": True,
-        "backfill_only": True,
         "partner_names": {"tim", "tim italia"},
         "partner_domains": {"sa.telecomitalia.it"},
         "pbd": {
