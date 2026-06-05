@@ -429,21 +429,30 @@ def _get_team_deals_needing_work(team: str, limit: int) -> list[dict]:
     partner_names = team_cfg.get("partner_names", set())
     stages = list(ACTIVE_STAGES)
 
+    PRIORITY_STAGES = [
+        "Contract Sent", "Economical Alignment Started",
+        "Pricing and Packaging", "Pricing & Packaging",
+        "MEDDPICC Criteria Validation Started",
+        "Factorial Project Alignment started", "Product Alignment",
+        "Demo Booked", "Meeting Booked",
+    ]
+    stage_order = {s: i for i, s in enumerate(PRIORITY_STAGES)}
+
     all_team = []
     for pn in partner_names:
         r = (
             supabase.table("deals")
-            .select("id, deal_id, deal_name, deal_stage, atlas_id, crm_id, deal_context")
+            .select("id, deal_id, deal_name, deal_stage, atlas_id, crm_id, deal_context, amount")
             .ilike("deal_name", f"%{pn}%")
             .in_("deal_stage", stages)
-            .order("amount", desc=True)
-            .limit(500)
+            .limit(1000)
             .execute()
         )
         all_team.extend(r.data or [])
 
     seen = set()
     all_team = [d for d in all_team if d["id"] not in seen and not seen.add(d["id"])]
+    all_team.sort(key=lambda d: (stage_order.get(d.get("deal_stage", ""), 99), -(d.get("amount") or 0)))
 
     needs_work = []
     for d in all_team:
