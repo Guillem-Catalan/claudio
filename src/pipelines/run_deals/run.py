@@ -61,7 +61,7 @@ def _audit_pending_calls(deal_uuid: str) -> int:
         existing = (
             supabase.table(audit_table)
             .select("win_rate_score")
-            .eq("call_id", call_uuid)
+            .eq("call_ref", call_uuid)
             .not_.is_("win_rate_score", "null")
             .limit(1)
             .execute()
@@ -70,7 +70,7 @@ def _audit_pending_calls(deal_uuid: str) -> int:
             continue
         print(f"    Auditing call {c['call_id']} ({rol}) ...")
         try:
-            audit_call(call_uuid)
+            audit_call(c["call_id"])
             audited += 1
         except Exception as e:
             print(f"    Audit failed for {c['call_id']}: {e}")

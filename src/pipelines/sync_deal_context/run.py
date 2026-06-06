@@ -670,8 +670,22 @@ def run(deal_uuid: str, hs_deal_id: str, *, owners: dict[str, dict] | None = Non
                         items.append((date, "auditable", normalized))
                         modjo_auditable += 1
                     elif raw_calls:
-                        print(f"      Modjo {modjo_id}: transcript not ready — skipping meeting for retry")
-                        meetings_skipped += 1
+                        from datetime import datetime, timezone
+                        meeting_age_hours = 0
+                        try:
+                            meeting_dt = datetime.fromisoformat(date.replace("Z", "+00:00")) if date else None
+                            if meeting_dt:
+                                meeting_age_hours = (datetime.now(timezone.utc) - meeting_dt).total_seconds() / 3600
+                        except (ValueError, TypeError):
+                            pass
+
+                        if meeting_age_hours > 48:
+                            print(f"      Modjo {modjo_id}: transcript not ready after 48h — adding as context-only")
+                            items.append((date, "context", meeting_header))
+                            included += 1
+                        else:
+                            print(f"      Modjo {modjo_id}: transcript not ready — skipping meeting for retry")
+                            meetings_skipped += 1
                     else:
                         items.append((date, "context", meeting_header))
                         included += 1
