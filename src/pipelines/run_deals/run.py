@@ -24,14 +24,14 @@ ACTIVE_STAGES = {
     "Factorial Project Alignment started",
     "Demo Booked", "Meeting Booked",
     "MEDDPICC Criteria Validation Started",
-    "Economical Allignment Started",
+    "Economical Allignment Started", "Economical Alignment Started",
     "Pricing and Packaging", "Pricing & Packaging",
     "Contract Sent",
     "Discovery", "Product Alignment",
     "Pre-qualified", "Engaged", "Attempting to contact",
     "Associating the partner", "Research & Outreach",
     "New", "New Deals", "Opportunity detected",
-    "On Hold", "Nurturing", "To reschedule",
+    "On Hold", "Nurturing", "To reschedule", "To Reschedule",
     "Sales Nurturing", "Connected - Not Engaged",
 }
 
