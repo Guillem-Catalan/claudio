@@ -14,7 +14,7 @@ ADVANCED_STAGES = {
     "Factorial Project Alignment started",
     "Product Alignment",
     "MEDDPICC Criteria Validation Started",
-    "Economical Allignment Started",
+    "Economical Allignment Started", "Economical Alignment Started",
     "Pricing and Packaging",
     "Pricing & Packaging",
     "Contract Sent",

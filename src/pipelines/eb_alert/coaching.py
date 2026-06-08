@@ -50,7 +50,7 @@ Why it works: Naming the EB directly forces clarification — surfaces the risk 
 """
 
 _PROMPT = """\
-You are a Factorial PAE coach. A deal just entered Economical Allignment. Use the \
+You are a Factorial PAE coach. A deal just entered Economical Alignment. Use the \
 PAE Economic Buyer Script below to coach the AE on this specific deal.
 
 {script}

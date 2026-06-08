@@ -16,6 +16,7 @@ STAGE_TO_TYPE = {
     "Discovery": "first_demo",
     "MEDDPICC Criteria Validation": "meddic_review",
     "Economical Allignment": "pricing",
+    "Economical Alignment": "pricing",
     "Pricing and Packaging": "pricing",
     "Contract Sent": "closing",
 }

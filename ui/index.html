@@ -2504,6 +2504,7 @@ const STAGE_MAP = {
   'Meeting scheduled': { label: 'Demo', bg: 'bg-cyan-100', text: 'text-cyan-700' },
   'MEDDPICC Criteria Validation Started': { label: 'MEDDPICC', bg: 'bg-purple-100', text: 'text-purple-700' },
   'Economical Allignment Started': { label: 'Econ.', bg: 'bg-indigo-100', text: 'text-indigo-700' },
+  'Economical Alignment Started': { label: 'Econ.', bg: 'bg-indigo-100', text: 'text-indigo-700' },
   'Pricing and Packaging': { label: 'Pricing', bg: 'bg-blue-100', text: 'text-blue-700' },
   'Pricing & Packaging': { label: 'Pricing', bg: 'bg-blue-100', text: 'text-blue-700' },
   'Contract Sent': { label: 'Contract', bg: 'bg-green-100', text: 'text-green-700' },
@@ -2530,7 +2531,7 @@ const STAGE_MAP = {
 
 const PIPELINE_PHASES = [
   { key: 'closing', label: 'Closing', headerBg: 'bg-green-50', headerBorder: 'border-green-100', headerText: 'text-green-800', staleDays: 7,
-    stages: ['Economical Allignment Started', 'Pricing and Packaging', 'Pricing & Packaging', 'Contract Sent'] },
+    stages: ['Economical Allignment Started', 'Economical Alignment Started', 'Pricing and Packaging', 'Pricing & Packaging', 'Contract Sent'] },
   { key: 'evaluating', label: 'Evaluating', headerBg: 'bg-blue-50', headerBorder: 'border-blue-100', headerText: 'text-blue-800', staleDays: 10,
     stages: ['Factorial Project Alignment started', 'MEDDPICC Criteria Validation Started', 'Product Alignment'] },
   { key: 'demo', label: 'Demo', headerBg: 'bg-cyan-50', headerBorder: 'border-cyan-100', headerText: 'text-cyan-800', staleDays: 7,
