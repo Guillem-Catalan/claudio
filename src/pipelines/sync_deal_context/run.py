@@ -82,7 +82,7 @@ def _clean_email_body(raw: str) -> str:
     cutoffs = [m.start() for m in [chain_match, sig_match] if m]
     if cutoffs:
         text = text[: min(cutoffs)]
-    return _WHITESPACE.sub("\n\n", text).strip()[:4000]
+    return _WHITESPACE.sub("\n\n", text).strip()
 
 
 def _strip_html(text: str) -> str:
@@ -90,7 +90,7 @@ def _strip_html(text: str) -> str:
     clean = clean.replace("&nbsp;", " ").replace("&amp;", "&")
     clean = clean.replace("&lt;", "<").replace("&gt;", ">")
     lines = [line.strip() for line in clean.splitlines()]
-    return "\n".join(line for line in lines if line)[:4000]
+    return "\n".join(line for line in lines if line)
 
 
 def _parse_date(raw: str) -> str | None:
@@ -226,7 +226,7 @@ def _format_note(hs_id: str, p: dict, owners: dict) -> str:
     owner_id = p.get("hubspot_owner_id") or ""
     owner_info = owners.get(owner_id, {})
     author = owner_info.get("name", "?") if isinstance(owner_info, dict) else "?"
-    content = _strip_html(p.get("hs_note_body") or "")[:300]
+    content = _strip_html(p.get("hs_note_body") or "")
     return f"[{fecha}] NOTE [hs:{hs_id}] — {author}\n  {content}"
 
 
@@ -239,7 +239,7 @@ def _format_call_context(
     if body_clean and len(body_clean) >= 200:
         return (
             f"[{fecha}] CALL [hs:{hs_id}] — {owner_name} ({duration_min}min) — {title}"
-            f"\n  {body_clean[:500]}"
+            f"\n  {body_clean}"
         )
     return (
         f"[{fecha}] CALL [hs:{hs_id}] — {owner_name} ({duration_min}min) — {title}"
@@ -279,7 +279,7 @@ def _format_meeting(hs_id: str, p: dict, owners: dict) -> str:
     if modjo_match:
         return f"{header}\n  Outcome: {outcome}{duration}\n  Modjo: app.modjo.ai/call-details/{modjo_match.group(1)}"
 
-    notes_clean = _strip_html(notes_raw)[:500] if notes_raw else ""
+    notes_clean = _strip_html(notes_raw) if notes_raw else ""
     if notes_clean:
         return f"{header}\n  Outcome: {outcome}{duration}\n  Notes: {notes_clean}"
 
@@ -425,7 +425,7 @@ def _format_audit_entry(call: dict, audit: dict) -> str:
 
     dc = audit.get("deal_context")
     if dc:
-        parts.append(f"  Narrative: {dc[:500]}")
+        parts.append(f"  Narrative: {dc}")
     gap = audit.get("biggest_gap")
     if gap:
         parts.append(f"  Biggest gap: {gap}")
@@ -434,13 +434,13 @@ def _format_audit_entry(call: dict, audit: dict) -> str:
         parts.append(f"  Next objective: {nco}")
     obj = audit.get("objections")
     if obj:
-        parts.append(f"  Objections: {obj[:300]}")
+        parts.append(f"  Objections: {obj}")
     sig = audit.get("buying_signals")
     if sig:
-        parts.append(f"  Buying signals: {sig[:300]}")
+        parts.append(f"  Buying signals: {sig}")
     blk = audit.get("blockers")
     if blk:
-        parts.append(f"  Blockers: {blk[:300]}")
+        parts.append(f"  Blockers: {blk}")
 
     for prefix, pillars in [
         ("bant", ("budget", "authority", "need", "timing")),
@@ -453,7 +453,7 @@ def _format_audit_entry(call: dict, audit: dict) -> str:
                 evidence = audit.get(f"{prefix}_{p}_evidence") or ""
                 line = f"    {p.replace('_', ' ').title()}: {status}"
                 if evidence:
-                    line += f' — "{evidence[:150]}"'
+                    line += f' — "{evidence}"'
                 pillar_lines.append(line)
         if pillar_lines:
             parts.append(f"  {prefix.upper()}:")
