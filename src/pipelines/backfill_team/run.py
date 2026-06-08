@@ -11,7 +11,7 @@ Phases:
 
 import traceback
 
-from src.config import TEAMS
+from src.config import TEAMS, ALL_PARTNER_DOMAINS
 from src.db.client import supabase
 from src.pipelines.sync_deals.sync import (
     run as sync_deals_run,
@@ -459,6 +459,15 @@ def _get_team_deals_needing_work(team: str, limit: int) -> list[dict]:
 
     needs_work = []
     for d in all_team:
+        # Skip partner company deals
+        atlas_id = d.get("atlas_id")
+        if atlas_id:
+            a = supabase.table("atlas").select("website").eq("id", atlas_id).limit(1).execute()
+            if a.data:
+                website = (a.data[0].get("website") or "").lower()
+                if any(domain in website for domain in ALL_PARTNER_DOMAINS):
+                    continue
+
         has_ctx = d.get("deal_context") and len(d.get("deal_context") or "") > 100
         snap = (
             supabase.table("front_deal_snapshots")

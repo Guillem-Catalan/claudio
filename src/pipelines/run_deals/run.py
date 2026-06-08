@@ -5,7 +5,7 @@ Phases: sync HubSpot → atlas (new companies) → build context → snapshot + 
 
 import traceback
 
-from src.config import TEAMS
+from src.config import TEAMS, ALL_PARTNER_DOMAINS
 from src.db.client import supabase
 from src.pipelines.sync_deals.sync import run as sync_deals
 from src.pipelines.sync_deal_context.run import run as sync_deal_context
@@ -82,6 +82,25 @@ def _is_backfill_only(deal_name: str) -> bool:
     return any(pn in name_lower for pn in _BACKFILL_ONLY_NAMES)
 
 
+_partner_website_cache: dict[str, bool] = {}
+
+
+def _is_partner_company(deal: dict) -> bool:
+    atlas_id = deal.get("atlas_id")
+    if not atlas_id:
+        return False
+    if atlas_id in _partner_website_cache:
+        return _partner_website_cache[atlas_id]
+    result = supabase.table("atlas").select("website").eq("id", atlas_id).limit(1).execute()
+    if not result.data:
+        _partner_website_cache[atlas_id] = False
+        return False
+    website = (result.data[0].get("website") or "").lower()
+    is_partner = any(domain in website for domain in ALL_PARTNER_DOMAINS)
+    _partner_website_cache[atlas_id] = is_partner
+    return is_partner
+
+
 def _fetch_stale_deals(limit: int) -> list[dict]:
     stages = list(ACTIVE_STAGES)
     result = (
@@ -94,7 +113,9 @@ def _fetch_stale_deals(limit: int) -> list[dict]:
         .limit(limit * 2)
         .execute()
     )
-    return [d for d in (result.data or []) if not _is_backfill_only(d.get("deal_name", ""))][:limit]
+    filtered = [d for d in (result.data or [])
+                if not _is_backfill_only(d.get("deal_name", "")) and not _is_partner_company(d)]
+    return filtered[:limit]
 
 
 def _fetch_stale_deals_no_context(limit: int) -> list[dict]:
@@ -110,7 +131,9 @@ def _fetch_stale_deals_no_context(limit: int) -> list[dict]:
         .limit(limit * 2)
         .execute()
     )
-    return [d for d in (result.data or []) if not _is_backfill_only(d.get("deal_name", ""))][:limit]
+    filtered = [d for d in (result.data or [])
+                if not _is_backfill_only(d.get("deal_name", "")) and not _is_partner_company(d)]
+    return filtered[:limit]
 
 
 def _needs_atlas(deal: dict) -> bool:
