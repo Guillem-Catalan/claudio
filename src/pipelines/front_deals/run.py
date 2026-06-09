@@ -383,9 +383,18 @@ def run(deal_uuid: str, hs_deal_id: str):
         print(f"   Forecast failed: {e} — writing snapshot without it")
 
     print("6. Writing snapshot ...")
-    supabase.table("front_deal_snapshots").upsert(
-        snapshot, on_conflict="hs_deal_id,snapshot_date"
-    ).execute()
+    existing = (
+        supabase.table("front_deal_snapshots")
+        .select("id")
+        .eq("hs_deal_id", snapshot["hs_deal_id"])
+        .eq("snapshot_date", snapshot["snapshot_date"])
+        .limit(1)
+        .execute()
+    )
+    if existing.data:
+        supabase.table("front_deal_snapshots").update(snapshot).eq("id", existing.data[0]["id"]).execute()
+    else:
+        supabase.table("front_deal_snapshots").insert(snapshot).execute()
     print(f"   Snapshot for {d.get('deal_name')} written.")
 
     # ── Inline PBD snapshot (if deal is in PBD stage) ────────────────
