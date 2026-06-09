@@ -33,6 +33,7 @@ ACTIVE_STAGES = {
     "New", "New Deals", "Opportunity detected",
     "On Hold", "Nurturing", "To reschedule", "To Reschedule",
     "Sales Nurturing", "Connected - Not Engaged",
+    "New Client", "Client Contacted",
 }
 
 
