@@ -3346,7 +3346,7 @@ async function loadDeals() {
     const batch = dealIds.slice(i, i + 50);
     const { data: snaps, error: snapErr } = await _sb
       .from('front_deal_snapshots')
-      .select('deal_id, close_probability, m_score, e_score, dc_score, dp_score, i_score, c_score, deal_summary, deal_assessment, buyer_signals, live_blockers, objections, next_step, claudio_forecast, snapshot_date, m_accumulate, e_accumulate, dc_accumulate, dp_accumulate, i_accumulate, c_accumulate, deal_strengths, improvements, action_signal')
+      .select('deal_id, close_probability, m_score, e_score, dc_score, dp_score, i_score, c_score, comp_score, deal_summary, deal_assessment, buyer_signals, live_blockers, objections, next_step, claudio_forecast, snapshot_date, m_accumulate, e_accumulate, dc_accumulate, dp_accumulate, i_accumulate, c_accumulate, comp_accumulate, deal_strengths, improvements, action_signal')
       .in('deal_id', batch)
       .order('snapshot_date', { ascending: false })
       .limit(5000);
@@ -3514,7 +3514,7 @@ function getTrend(dealId) {
 
 function meddicAvg(snap) {
   if (!snap) return null;
-  const scores = [snap.m_score, snap.e_score, snap.dc_score, snap.dp_score, snap.i_score, snap.c_score].filter(s => s != null);
+  const scores = [snap.m_score, snap.e_score, snap.dc_score, snap.dp_score, snap.i_score, snap.c_score, snap.comp_score].filter(s => s != null);
   if (scores.length === 0) return null;
   return (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1);
 }
@@ -4383,6 +4383,7 @@ openHistorico = function(dealId) {
     { key: 'dp', label: 'Decision Process', val: snap?.dp_score, acc: snap?.dp_accumulate },
     { key: 'i', label: 'Identify Pain', val: snap?.i_score, acc: snap?.i_accumulate },
     { key: 'c', label: 'Champion', val: snap?.c_score, acc: snap?.c_accumulate },
+    { key: 'comp', label: 'Competition', val: snap?.comp_score, acc: snap?.comp_accumulate },
   ];
   const badges = modal.querySelectorAll('#meddicScoreBadges .meddic-badge');
   const detailBox = modal.querySelector('#meddicDetail');

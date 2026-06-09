@@ -19,6 +19,8 @@ Devuelve exactamente este JSON y nada más. Sin prose, sin markdown, solo el obj
   "I_score": 0,
   "C_accumulate": "...",
   "C_score": 0,
+  "Comp_accumulate": "...",
+  "Comp_score": 0,
   "objections": "...",
   "buyer_signals": "...",
   "live_blockers": "...",
@@ -150,6 +152,24 @@ C_score: Número entero del 1 al 10. Evalúa en orden:
 ¿El Champion tiene acceso directo al Economic Buyer y lo está movilizando activamente hacia el cierre? Si no → score máximo 9. Si sí → score 10.
 Solo devolver el número, sin explicación.
 
+Comp_accumulate: Genera exactamente 2 frases en este orden fijo:
+Frase 1 — Lo que se sabe: qué competidores se han mencionado en el deal, si están activos
+en la evaluación, qué propuesta o precio tienen, y qué ventajas/desventajas percibe el prospect
+respecto a Factorial.
+Frase 2 — Estado: si la situación competitiva está clara y Factorial está bien posicionado,
+confirmarlo explícitamente. Si no, indicar qué falta por saber (quién compite, con qué precio,
+qué criterios favorecen al competidor, etc.)
+Sin títulos, sin bullets, solo las 2 frases como texto corrido. Máximo 35 palabras por frase.
+Basarse únicamente en evidencia explícita del contexto del deal, no inferir nada no mencionado.
+Si no hay ninguna mención a competidores en todo el deal, decirlo explícitamente.
+
+Comp_score: Número entero del 1 al 10. Evalúa en orden:
+¿Se sabe si hay competidores activos en la evaluación? Si no hay información → score máximo 3.
+¿Se conocen los competidores específicos y qué ofrecen? Si no → score máximo 5.
+¿Factorial está claramente diferenciado frente a los competidores en los criterios del prospect? Si no → score máximo 7.
+¿El prospect ha confirmado que Factorial es su opción preferida o ha descartado competidores? Si no → score máximo 9. Si sí → score 10.
+Dentro de cada tramo, ajusta según la cantidad y solidez de las evidencias. Solo devolver el número.
+
 objections: Lista de bullets con las objeciones activas del prospect que no han sido superadas
 a lo largo del deal. Una objeción por bullet, máximo 15 palabras por bullet.
 Solo objeciones que siguen sin resolver en el momento actual — no incluir las ya superadas.
@@ -183,7 +203,19 @@ next_step: Próximos pasos del deal, ordenados por prioridad.
 
 Genera una lista de bullets en texto plano (sin markdown, usa \n para separar dentro del JSON).
 Cada bullet sigue el formato:
-• [Quién] → [acción concreta] [a quién, con nombre y cargo si disponible] — [cuándo]
+• [TAG si aplica] [Quién] → [acción concreta] [a quién, con nombre y cargo si disponible] — [cuándo]
+
+TAGS de herramientas — usa el tag SOLO cuando la acción lo requiera:
+  [ROI] — preparar o presentar cálculo de impacto económico / business case
+  [SLIDES] — preparar deck personalizado de presentación para stakeholder
+  [BATTLECARD] — preparar comparativa vs competidor específico identificado en el deal
+  [EMAIL] — enviar email de follow-up, propuesta, reactivación o documentación
+  [CALL] — llamar a alguien específico
+
+NO forzar un tag en cada bullet. Muchas acciones no necesitan tag (agendar reunión, escalar al TL,
+esperar respuesta, posponer deal, etc.). Usa el tag solo cuando la herramienta sea lo que realmente
+hace falta para avanzar el deal.
+
 Reglas:
 Máximo 5 bullets
 Ordenados por urgencia
@@ -192,7 +224,7 @@ Si el prospect prometió algo, incluir el follow up con deadline
 Idioma del next_step = idioma en que se comunican rep y prospect en el deal
 Sin explicaciones, sin contexto, sin "por qué" — solo la acción
 Ejemplo:
-• Pol → llamar a Marta Gómez (CFO) para cerrar pricing del módulo de nómina — antes del jueves 15\n• Pol → enviar propuesta formal con desglose de 3 módulos a Marta por email — inmediatamente después de la call\n• Hacer follow up a Marta sobre el presupuesto interno que prometió compartir — si no llega el viernes, escribir\n• Pol → agendar demo técnica con Javier López (IT) para resolver integración SAP — semana del 19 mayo\n• Escalar a Joan (TL) si Marta no responde en 5 días — deal lleva 12 días sin movimiento
+• [CALL] Pol → llamar a Marta Gómez (CFO) para cerrar pricing del módulo de nómina — antes del jueves 15\n• [EMAIL] Pol → enviar propuesta formal con desglose de 3 módulos a Marta — inmediatamente después de la call\n• Hacer follow up a Marta sobre el presupuesto interno que prometió compartir — si no llega el viernes, escribir\n• [ROI] Pol → preparar business case con ahorro de 40h/semana para que Marta presente a dirección — esta semana\n• Escalar a Joan (TL) si Marta no responde en 5 días — deal lleva 12 días sin movimiento
 
 action_signal: Una sola frase imperativa de máximo 60 caracteres que diga exactamente qué debe hacer
 el rep AHORA MISMO con este deal. Es lo primero que verá en el dashboard — tiene que ser tan concreto

@@ -48,7 +48,7 @@ def _build_event_card(ev: dict, syn: dict) -> str:
     if ev.get("meddic") and ev["meddic"].get("m_score") is not None:
         m = ev["meddic"]
         parts = []
-        for letter, key in [("M","m_score"),("E","e_score"),("DC","dc_score"),("DP","dp_score"),("I","i_score"),("C","c_score")]:
+        for letter, key in [("M","m_score"),("E","e_score"),("DC","dc_score"),("DP","dp_score"),("I","i_score"),("C","c_score"),("Comp","comp_score")]:
             s = m.get(key)
             css = _meddic_css(s)
             val = int(s) if s is not None else "?"

@@ -100,7 +100,8 @@ def _build_deal_card(q: dict, synthesis_deal: dict, is_first: bool) -> str:
 
     meddic = ""
     for letter, key in [("M", "m_score"), ("E", "e_score"), ("DC", "dc_score"),
-                        ("DP", "dp_score"), ("I", "i_score"), ("C", "c_score")]:
+                        ("DP", "dp_score"), ("I", "i_score"), ("C", "c_score"),
+                        ("Comp", "comp_score")]:
         score = s.get(key)
         css = _meddic_css(score)
         score_str = str(int(score)) if score is not None else "?"

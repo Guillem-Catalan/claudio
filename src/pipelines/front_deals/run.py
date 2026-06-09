@@ -88,7 +88,7 @@ def _build_user_prompt(deal: dict, deal_context: str, prev: dict | None) -> str:
         ]
         for field in [
             "deal_summary", "deal_assessment", "m_score", "e_score", "dc_score",
-            "dp_score", "i_score", "c_score", "live_blockers", "next_step",
+            "dp_score", "i_score", "c_score", "comp_score", "live_blockers", "next_step",
             "action_signal",
         ]:
             val = prev.get(field)
@@ -119,7 +119,7 @@ def _parse_response(text: str) -> dict:
 def _build_forecast_context(snap: dict, close_date: str) -> str:
     scores = " | ".join(
         f"{k}={snap.get(k.lower(), '?')}"
-        for k in ["M_score", "E_score", "DC_score", "DP_score", "I_score", "C_score"]
+        for k in ["M_score", "E_score", "DC_score", "DP_score", "I_score", "C_score", "Comp_score"]
     )
     lines = [
         "=== CONTEXTO DEL DEAL ===", "",
@@ -151,11 +151,12 @@ def _compute_probability(snap: dict, claude_out: dict) -> int:
         DC = float(snap.get("dc_score", 0) or 0)
         I = float(snap.get("i_score", 0) or 0)
         M = float(snap.get("m_score", 0) or 0)
+        Comp = float(snap.get("comp_score", 0) or 0)
     except (TypeError, ValueError):
         return 0
     bs = float(claude_out.get("bs") or 0)
     lb = float(claude_out.get("lb") or 0)
-    base = C * 0.15 + E * 0.25 + DP * 0.20 + DC * 0.20 + I * 0.15 + M * 0.05
+    base = C * 0.12 + E * 0.22 + DP * 0.18 + DC * 0.18 + I * 0.13 + M * 0.05 + Comp * 0.12
     adjusted = max(0.0, min(10.0, base + bs + lb))
     return round(adjusted * 10)
 
@@ -324,7 +325,8 @@ def run(deal_uuid: str, hs_deal_id: str):
     claude_out = _parse_response(response_text)
     print(f"   M={claude_out.get('M_score')} E={claude_out.get('E_score')} "
           f"DC={claude_out.get('DC_score')} DP={claude_out.get('DP_score')} "
-          f"I={claude_out.get('I_score')} C={claude_out.get('C_score')}")
+          f"I={claude_out.get('I_score')} C={claude_out.get('C_score')} "
+          f"Comp={claude_out.get('Comp_score')}")
 
     try:
         mrr = float(d.get("amount")) if d.get("amount") is not None else None
@@ -357,6 +359,8 @@ def run(deal_uuid: str, hs_deal_id: str):
         "i_score": claude_out.get("I_score"),
         "c_accumulate": _to_str(claude_out.get("C_accumulate")),
         "c_score": claude_out.get("C_score"),
+        "comp_accumulate": _to_str(claude_out.get("Comp_accumulate")),
+        "comp_score": claude_out.get("Comp_score"),
         "objections": _to_str(claude_out.get("objections")),
         "buyer_signals": _to_str(claude_out.get("buyer_signals")),
         "live_blockers": _to_str(claude_out.get("live_blockers")),

@@ -92,7 +92,7 @@ def _fetch_latest_snapshots(deal_ids: list[str]) -> dict[str, dict]:
             supabase.table("front_deal_snapshots")
             .select(
                 "deal_id, snapshot_date, close_probability, "
-                "m_score, e_score, dc_score, dp_score, i_score, c_score, "
+                "m_score, e_score, dc_score, dp_score, i_score, c_score, comp_score, "
                 "deal_summary, live_blockers, buyer_signals, objections, "
                 "next_step, deal_strengths, improvements"
             )
