@@ -60,7 +60,6 @@ TEAMS = {
     },
     "TELEKOM": {
         "active": True,
-        "backfill_only": True,
         "partner_names": {"telekom", "deutsche telekom"},
         "partner_domains": {"telekom.de"},
         "pbd": {
