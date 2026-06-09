@@ -56,7 +56,6 @@ ACTIVE_STAGES = {
     "Associating the partner", "Research & Outreach",
     "New", "New Deals", "Opportunity detected",
     "On Hold", "Nurturing", "To reschedule", "To Reschedule",
-    "New Client", "Client Contacted",
     "Sales Nurturing", "Connected - Not Engaged",
     "Long Nurturing", "Hot Nurturing",
     "Attempted to contact", "Meeting scheduled",

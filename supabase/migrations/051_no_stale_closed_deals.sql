@@ -27,7 +27,9 @@ BEGIN
     '> 75% sessions done', '51-75% sessions done',
     '26-50% sessions done', '≤ 25% sessions done',
     '1st Session Scheduled', 'Client pending to launch',
-    'Opportunity Lost '
+    'Opportunity Lost ',
+    'New Client', 'Client Contacted',
+    'Validating the product', 'Contracting'
   ) THEN
     RETURN NEW;
   END IF;
