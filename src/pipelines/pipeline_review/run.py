@@ -174,7 +174,7 @@ def _process_pae(pae_email: str, channel_override: str | None = None):
 
 def _generate_synthesis(pae_name: str, qualified: list[dict]) -> dict:
     system_prompt, user_prompt = build_prompt(pae_name, qualified)
-    response_text = analyze(system_prompt, user_prompt)
+    response_text = analyze(system_prompt, user_prompt, model="claudio-claude-sonnet-4-6")
     text = re.sub(r"^```(?:json)?\s*", "", response_text.strip())
     text = re.sub(r"\s*```$", "", text)
     return json.loads(text.strip())

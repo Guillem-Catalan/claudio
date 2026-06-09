@@ -145,7 +145,7 @@ def run(call: dict, pae_audit: dict, deal_context: str):
 
     user_prompt = _build_user_prompt(call, deal_data, deal_context)
     print(f"  [demo_eval] Calling Claude ({len(user_prompt)} chars) ...")
-    response_text = analyze(SYSTEM_PROMPT, user_prompt)
+    response_text = analyze(SYSTEM_PROMPT, user_prompt, model="claudio-claude-sonnet-4-6")
 
     print(f"  [demo_eval] Parsing response ...")
     claude_out = _parse_response(response_text)

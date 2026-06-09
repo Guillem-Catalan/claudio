@@ -428,7 +428,7 @@ def _generate_synthesis(
     system_prompt, user_prompt = build_prompt(
         pae_name, pae_email, week_start, week_end, audit_rows, deals_data
     )
-    response_text = analyze(system_prompt, user_prompt)
+    response_text = analyze(system_prompt, user_prompt, model="claudio-claude-sonnet-4-6")
     text = re.sub(r"^```(?:json)?\s*", "", response_text.strip())
     text = re.sub(r"\s*```$", "", text)
     return json.loads(text.strip())

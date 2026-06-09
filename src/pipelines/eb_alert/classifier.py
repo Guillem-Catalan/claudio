@@ -125,7 +125,7 @@ def classify_eb(e_accumulate: str | None, *, model: str | None = None) -> Classi
         kwargs["model"] = model
 
     from src.integrations.claude import analyze
-    response_text = analyze("", prompt, **kwargs)
+    response_text = analyze("", prompt, model="claudio-claude-sonnet-4-6", **kwargs)
 
     lines = response_text.strip().split("\n", 1)
     classification = lines[0].strip()

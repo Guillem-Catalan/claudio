@@ -4,7 +4,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const AZURE_ENDPOINT = Deno.env.get("AZURE_CLAUDE_ENDPOINT")!;
 const AZURE_KEY = Deno.env.get("AZURE_CLAUDE_API_KEY")!;
-const MODEL = Deno.env.get("AZURE_CLAUDE_FAST_DEPLOYMENT") || "claude-sonnet-4-6";
+const MODEL = Deno.env.get("AZURE_CLAUDE_FAST_DEPLOYMENT") || "claudio-claude-sonnet-4-6";
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 

@@ -105,7 +105,7 @@ def classify(data: dict) -> dict:
             if val:
                 user_prompt += f"  {key}: {val}\n"
 
-    raw = analyze(system_prompt, user_prompt, max_tokens=500)
+    raw = analyze(system_prompt, user_prompt, model="claudio-claude-sonnet-4-6", max_tokens=500)
     result = _parse_response(raw)
 
     needs = result.get("needs", [])

@@ -82,7 +82,7 @@ def _generate_modules(data: dict, needs: list[str]) -> dict:
 
     user_prompt += f"\nDEAL CONTEXT:\n{context_text}"
 
-    raw = analyze(system_prompt, user_prompt, max_tokens=12000)
+    raw = analyze(system_prompt, user_prompt, model="claudio-claude-sonnet-4-6", max_tokens=12000)
     return _parse_response(raw)
 
 

@@ -109,4 +109,4 @@ def generate_coaching(
         gap=gap,
     )
 
-    return analyze("", prompt, max_tokens=200)
+    return analyze("", prompt, model="claudio-claude-sonnet-4-6", max_tokens=200)

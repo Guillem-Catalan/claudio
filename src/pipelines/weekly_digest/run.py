@@ -232,7 +232,7 @@ def _build_events(calls, pae_audits, audit_demos, deal_map, snap_map, deal_meeti
 
 def _generate_synthesis(pae_name: str, events: list[dict], week_start: date, week_end: date) -> dict:
     system_prompt, user_prompt = build_prompt(pae_name, events, week_start, week_end)
-    response_text = analyze(system_prompt, user_prompt)
+    response_text = analyze(system_prompt, user_prompt, model="claudio-claude-sonnet-4-6")
     text = re.sub(r"^```(?:json)?\s*", "", response_text.strip())
     text = re.sub(r"\s*```$", "", text)
     return json.loads(text.strip())

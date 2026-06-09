@@ -43,7 +43,7 @@ def generate_eb_from_context(deal_context: str, deal: dict) -> tuple[str, int | 
         f"HISTORIAL COMPLETO DEL DEAL:\n\n{deal_context}"
     )
 
-    raw = analyze(SYSTEM_PROMPT, user_prompt, max_tokens=1000)
+    raw = analyze(SYSTEM_PROMPT, user_prompt, model="claudio-claude-sonnet-4-6", max_tokens=1000)
 
     raw = raw.strip()
     if raw.startswith("```"):

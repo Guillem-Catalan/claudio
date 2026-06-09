@@ -12,8 +12,8 @@ _client = anthropic.Anthropic(
     },
 )
 
-_MODEL = os.environ.get("AZURE_CLAUDE_DEPLOYMENT") or "claude-opus-4-6"
-_MODEL_FAST = os.environ.get("AZURE_CLAUDE_FAST_DEPLOYMENT") or "claude-haiku-4-5"
+_MODEL = os.environ.get("AZURE_CLAUDE_DEPLOYMENT") or "claudio-claude-opus-4-6"
+_MODEL_FAST = os.environ.get("AZURE_CLAUDE_FAST_DEPLOYMENT") or "claudio-claude-sonnet-4-6"
 
 
 def analyze(system_prompt: str, user_prompt: str, *, model: str | None = None, max_tokens: int = 16000) -> str:

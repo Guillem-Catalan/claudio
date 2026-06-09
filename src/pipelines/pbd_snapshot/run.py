@@ -13,7 +13,7 @@ from src.db.client import supabase
 from src.integrations.claude import analyze
 
 _PROMPT = (Path(__file__).resolve().parent.parent.parent / "prompts/pbd_snapshot.txt").read_text()
-_MODEL = "claude-sonnet-4-6"
+_MODEL = "claudio-claude-sonnet-4-6"
 
 PBD_STAGES = frozenset({
     "Research & Outreach",

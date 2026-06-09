@@ -251,7 +251,7 @@ def _run_pbd_snapshot(deal_uuid: str, hs_deal_id: str, deal: dict, deal_context:
 
     user_prompt = _build_pbd_user_prompt(deal, deal_context, prev_bant, prev_snapshot)
     print(f"   Calling Claude for BANT ({len(user_prompt)} chars) ...")
-    response_text = analyze(_PBD_PROMPT, user_prompt, model="claude-sonnet-4-6")
+    response_text = analyze(_PBD_PROMPT, user_prompt, model="claudio-claude-sonnet-4-6")
 
     out = _parse_response(response_text)
     snapshot = {

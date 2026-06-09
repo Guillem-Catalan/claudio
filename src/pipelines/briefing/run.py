@@ -59,7 +59,7 @@ def run(*, briefing_id: str | None = None, deal_uuid: str | None = None, meeting
     user_prompt = f"Generate briefing for: {company}\nMeeting type: {meeting_type}\n\n{context}"
 
     try:
-        raw_response = analyze(system_prompt, user_prompt)
+        raw_response = analyze(system_prompt, user_prompt, model="claudio-claude-sonnet-4-6")
         brief = _parse_response(raw_response)
     except Exception as e:
         print(f"   ERROR: {e}")

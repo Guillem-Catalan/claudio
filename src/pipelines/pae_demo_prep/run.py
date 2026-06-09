@@ -136,7 +136,7 @@ def run(deal_uuid: str):
     print("2. Calling Claude ...")
     system_prompt = _load_system_prompt()
     user_prompt = f"Generate demo preparation brief for: {company}\n\n{context}"
-    raw_response = analyze(system_prompt, user_prompt)
+    raw_response = analyze(system_prompt, user_prompt, model="claudio-claude-sonnet-4-6")
     brief = _parse_response(raw_response)
 
     print("3. Generating PDF ...")
