@@ -9,9 +9,9 @@ on:
         default: "5"
         type: string
       model:
-        description: "Claude model (e.g. claude-sonnet-4-6)"
+        description: "Claude model (e.g. claudio-claude-sonnet-4-6)"
         required: false
-        default: "claude-sonnet-4-6"
+        default: "claudio-claude-sonnet-4-6"
         type: string
       dry_run:
         description: "Dry run (list deals without processing)"
@@ -42,7 +42,7 @@ jobs:
           HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
           AZURE_CLAUDE_ENDPOINT: ${{ secrets.AZURE_CLAUDE_ENDPOINT }}
           AZURE_CLAUDE_API_KEY: ${{ secrets.AZURE_CLAUDE_API_KEY }}
-          AZURE_CLAUDE_DEPLOYMENT: ${{ inputs.model || 'claude-sonnet-4-6' }}
+          AZURE_CLAUDE_DEPLOYMENT: ${{ inputs.model || 'claudio-claude-sonnet-4-6' }}
           MODJO_API_KEY: ${{ secrets.MODJO_API_KEY }}
         run: >-
           python -m scripts.backfill_meetings_rebuild

@@ -10,9 +10,9 @@ on:
         description: "Claude model"
         type: choice
         options:
-          - claude-sonnet-4-6
-          - claude-opus-4-6
-        default: claude-sonnet-4-6
+          - claudio-claude-sonnet-4-6
+          - claudio-claude-opus-4-6
+        default: claudio-claude-sonnet-4-6
       workers:
         description: "Parallel workers (1-4)"
         type: choice
@@ -45,7 +45,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           AZURE_CLAUDE_ENDPOINT: ${{ secrets.AZURE_CLAUDE_ENDPOINT }}
           AZURE_CLAUDE_API_KEY: ${{ secrets.AZURE_CLAUDE_API_KEY }}
-          AZURE_CLAUDE_DEPLOYMENT: claude-sonnet-4-6
+          AZURE_CLAUDE_DEPLOYMENT: claudio-claude-sonnet-4-6
           HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
         run: |
           ARGS=""
