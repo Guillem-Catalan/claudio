@@ -68,9 +68,9 @@ BEGIN
   END IF;
 
   -- ── Insert draft request ──
-  INSERT INTO email_drafts (deal_id, deal_name, snapshot_date, status, context_length)
-  VALUES (NEW.deal_id, NEW.deal_name, NEW.snapshot_date, 'pending', _deal_context_len)
-  ON CONFLICT (deal_id, snapshot_date) DO NOTHING;
+  INSERT INTO email_drafts (deal_id, deal_name, status, context_length)
+  VALUES (NEW.deal_id, NEW.deal_name, 'pending', _deal_context_len)
+  ON CONFLICT (deal_id) DO NOTHING;
 
   RETURN NEW;
 END;
