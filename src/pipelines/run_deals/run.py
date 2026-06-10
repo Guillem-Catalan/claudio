@@ -262,9 +262,8 @@ def run(full: bool = False):
     try:
         sync_deals(full=full)
     except Exception as e:
-        print(f"  FATAL: sync_deals failed: {e}")
+        print(f"  WARN: sync_deals failed: {e} — continuing with existing data")
         traceback.print_exc()
-        return
 
     # ── Phase 2+3+4: Process stale deals ─────────────────────────
     stale = _fetch_stale_deals(MAX_DEALS_PER_CYCLE)
