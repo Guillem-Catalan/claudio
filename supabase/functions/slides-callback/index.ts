@@ -29,6 +29,7 @@ Deno.serve(async (req) => {
       status: cbStatus,
       share_url,
       html_slides,
+      slide_images,
       presentation_url: legacyUrl,
       error_message,
       deal_id,
@@ -45,6 +46,7 @@ Deno.serve(async (req) => {
     if (url) updateData.share_url = url;
     if (url) updateData.presentation_url = url;
     if (html_slides) updateData.html_slides = html_slides;
+    if (slide_images) updateData.slide_images = slide_images;
 
     if (slideId) {
       const { error } = await sb.from("slides").update(updateData).eq("id", slideId);
