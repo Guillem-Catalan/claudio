@@ -16,7 +16,6 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Auth check
   const apiKey = req.headers.get("x-api-key");
   if (apiKey !== EXPECTED_API_KEY) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
@@ -24,34 +23,40 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { slide_id, presentation_url, deal_id } = body;
+    const {
+      callback_slide_id,
+      slide_id: legacySlideId,
+      status: cbStatus,
+      share_url,
+      html_slides,
+      presentation_url: legacyUrl,
+      error_message,
+      deal_id,
+    } = body;
 
-    if (!presentation_url) {
-      return new Response(JSON.stringify({ error: "presentation_url required" }), { status: 400 });
-    }
+    const slideId = callback_slide_id || legacySlideId;
+    const url = share_url || legacyUrl;
+    const finalStatus = cbStatus === "completed" || cbStatus === "ready" ? "ready" : cbStatus === "failed" ? "error" : "ready";
 
-    // Update by slide_id if provided
-    if (slide_id) {
-      const { error } = await sb
-        .from("slides")
-        .update({
-          status: "ready",
-          presentation_url: presentation_url,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", slide_id);
+    const updateData: Record<string, unknown> = {
+      status: finalStatus,
+      updated_at: new Date().toISOString(),
+    };
+    if (url) updateData.share_url = url;
+    if (url) updateData.presentation_url = url;
+    if (html_slides) updateData.html_slides = html_slides;
 
+    if (slideId) {
+      const { error } = await sb.from("slides").update(updateData).eq("id", slideId);
       if (error) {
         return new Response(JSON.stringify({ error: "Update failed", detail: error }), { status: 500 });
       }
-
-      return new Response(JSON.stringify({ ok: true, slide_id }), {
+      return new Response(JSON.stringify({ ok: true, slide_id: slideId }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    // Fallback: update by deal_id (latest pending)
     if (deal_id) {
       const { data: pending } = await sb
         .from("slides")
@@ -62,15 +67,7 @@ Deno.serve(async (req) => {
         .limit(1);
 
       if (pending && pending.length > 0) {
-        await sb
-          .from("slides")
-          .update({
-            status: "ready",
-            presentation_url: presentation_url,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", pending[0].id);
-
+        await sb.from("slides").update(updateData).eq("id", pending[0].id);
         return new Response(JSON.stringify({ ok: true, slide_id: pending[0].id }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
@@ -78,7 +75,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ error: "No matching slide found. Provide slide_id or deal_id." }), { status: 404 });
+    return new Response(JSON.stringify({ error: "No matching slide found" }), { status: 404 });
   } catch (e) {
     return new Response(JSON.stringify({ error: String(e) }), { status: 500 });
   }
