@@ -46,6 +46,7 @@ SELECT d.id AS deal_id, d.deal_id AS hs_deal_id, d.deal_name, d.deal_stage,
        d.amount, d.close_date, d.pae, d.pbd, COALESCE(d.pae, d.pbd) AS owner
 FROM public.deals d
 WHERE d.deal_stage IN ('Closed Won','Closed won','Closed Won - Finance Only')
-  AND COALESCE(d.deal_name, '') NOT ILIKE '%session%';
+  AND COALESCE(d.deal_name, '') NOT ILIKE '%session%'
+  AND COALESCE(d.pae, '') != '';
 
 GRANT SELECT ON public.v_deals_closed TO authenticated, anon;
