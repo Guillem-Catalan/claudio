@@ -1,0 +1,114 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Claudio — Sales Intelligence design tokens.
+ * Mirrors the original tailwind extension: brand + meddic palette,
+ * Inter font, 13px base, dense data-app feel.
+ */
+
+@theme inline {
+  --font-sans: "Inter", system-ui, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Brand scale (from original tailwind.config) */
+  --color-brand-50: #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-200: #bfdbfe;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+  --color-brand-800: #1e3a5f;
+  --color-brand-900: #0f172a;
+
+  /* MEDDIC role colors */
+  --color-meddic-m: #8b5cf6;
+  --color-meddic-e: #06b6d4;
+  --color-meddic-dc: #f59e0b;
+  --color-meddic-dp: #ef4444;
+  --color-meddic-i: #10b981;
+  --color-meddic-c: #ec4899;
+}
+
+:root {
+  --radius: 0.5rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.245 0.04 256);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.245 0.04 256);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.245 0.04 256);
+
+  /* primary = brand-600 (#2563eb) */
+  --primary: oklch(0.55 0.21 257);
+  --primary-foreground: oklch(0.985 0 0);
+
+  --secondary: oklch(0.968 0.007 247);
+  --secondary-foreground: oklch(0.245 0.04 256);
+  --muted: oklch(0.968 0.007 247);
+  --muted-foreground: oklch(0.55 0.025 256);
+  --accent: oklch(0.968 0.007 247);
+  --accent-foreground: oklch(0.245 0.04 256);
+  --destructive: oklch(0.58 0.22 27);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.92 0.012 256);
+  --input: oklch(0.92 0.012 256);
+  --ring: oklch(0.55 0.21 257);
+}
+
+@layer base {
+  * { border-color: var(--color-border); }
+  html, body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Carry-over utilities from the original single-page app */
+.tab-active { border-bottom: 2px solid var(--color-brand-600); color: var(--color-brand-600); font-weight: 600; }
+.fade-in { animation: fadeIn 0.3s ease-in; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+.badge-prob { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 9999px; }
+.stage-pill { font-size: 10px; padding: 1px 8px; border-radius: 9999px; white-space: nowrap; }
+.metric-card { transition: all 0.15s; }
+.metric-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+.deal-card { transition: all 0.15s; cursor: pointer; }
+.deal-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+.kanban-col { min-width: 280px; max-width: 320px; }
+.dense-row { padding: 6px 12px; }
+.dense-row:hover { background: #f8fafc; }
+.trend-up { color: #16a34a; }
+.trend-up::before { content: '▲ '; font-size: 9px; }
+.trend-down { color: #dc2626; }
+.trend-down::before { content: '▼ '; font-size: 9px; }
+.trend-flat { color: #94a3b8; }
+.trend-flat::before { content: '— '; font-size: 9px; }
+
+::-webkit-scrollbar { height: 8px; width: 6px; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
