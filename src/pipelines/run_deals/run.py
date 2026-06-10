@@ -101,6 +101,106 @@ def _is_partner_company(deal: dict) -> bool:
     return is_partner
 
 
+_STAGE_TO_BRIEF_USE_CASE = {
+    "Demo Booked": "pae_brief_first_demo_multisector",
+    "Meeting Booked": "pae_brief_first_demo_multisector",
+    "Meeting scheduled": "pae_brief_first_demo_multisector",
+    "Factorial Project Alignment started": "pae_brief_first_demo_multisector",
+    "Product Alignment": "pae_brief_first_demo_multisector",
+    "Discovery": "pae_brief_first_demo_multisector",
+    "MEDDPICC Criteria Validation Started": "pae_brief_followup_meddic_multisector",
+    "Economical Allignment Started": "pae_brief_pricing_closing_multisector",
+    "Economical Alignment Started": "pae_brief_pricing_closing_multisector",
+    "Pricing and Packaging": "pae_brief_pricing_closing_multisector",
+    "Pricing & Packaging": "pae_brief_pricing_closing_multisector",
+    "Contract Sent": "pae_brief_pricing_closing_multisector",
+}
+
+
+def _create_today_briefings() -> int:
+    from datetime import date, datetime, timezone
+
+    today = date.today().isoformat()
+    deal_ids: set[str] = set()
+
+    # Source 1: deals.hs_next_meeting_start_time = today
+    r1 = (
+        supabase.table("deals")
+        .select("id")
+        .gte("hs_next_meeting_start_time", today)
+        .lt("hs_next_meeting_start_time", today + "T23:59:59")
+        .execute()
+    )
+    deal_ids |= {d["id"] for d in (r1.data or [])}
+
+    # Source 2: deal_meetings today
+    r2 = (
+        supabase.table("deal_meetings")
+        .select("deal_id")
+        .gte("meeting_start", today + "T00:00:00")
+        .lt("meeting_start", today + "T23:59:59")
+        .not_.is_("deal_id", "null")
+        .execute()
+    )
+    deal_ids |= {d["deal_id"] for d in (r2.data or [])}
+
+    # Source 3: calendar_meetings today (resolved)
+    r3 = (
+        supabase.table("calendar_meetings")
+        .select("deal_id")
+        .gte("meeting_start", today + "T00:00:00")
+        .lt("meeting_start", today + "T23:59:59")
+        .eq("resolved", True)
+        .not_.is_("deal_id", "null")
+        .execute()
+    )
+    deal_ids |= {d["deal_id"] for d in (r3.data or [])}
+
+    if not deal_ids:
+        return 0
+
+    # Check which already have a briefing today
+    existing = (
+        supabase.table("briefings")
+        .select("deal_id")
+        .gte("created_at", today + "T00:00:00")
+        .execute()
+    )
+    existing_ids = {d["deal_id"] for d in (existing.data or [])}
+    new_ids = deal_ids - existing_ids
+
+    if not new_ids:
+        return 0
+
+    # Fetch deal info for new briefings
+    created = 0
+    for deal_id in new_ids:
+        deal = (
+            supabase.table("deals")
+            .select("id, deal_name, deal_stage")
+            .eq("id", deal_id)
+            .limit(1)
+            .execute()
+        )
+        if not deal.data:
+            continue
+
+        d = deal.data[0]
+        stage = d.get("deal_stage") or ""
+        use_case = _STAGE_TO_BRIEF_USE_CASE.get(stage, "pae_brief_followup_meddic_multisector")
+
+        supabase.table("briefings").insert({
+            "deal_id": d["id"],
+            "deal_name": d.get("deal_name") or "",
+            "meeting_type": use_case.split("_")[2] if "_" in use_case else "follow_up",
+            "use_case_key": use_case,
+            "status": "pending",
+        }).execute()
+        created += 1
+
+    return created
+
+
 def _fetch_stale_deals(limit: int) -> list[dict]:
     stages = list(ACTIVE_STAGES)
     result = (
@@ -229,6 +329,17 @@ def run(full: bool = False):
             print(f"  ✗ FAILED: {e}")
             traceback.print_exc()
             continue
+
+    # ── Phase 5: Generate briefings for deals with meetings today ──
+    print("\n▸ PHASE 5: BRIEFINGS")
+    try:
+        briefings_created = _create_today_briefings()
+        if briefings_created:
+            print(f"  {briefings_created} briefings created")
+        else:
+            print("  No new briefings needed")
+    except Exception as e:
+        print(f"  Briefings failed: {e}")
 
     # ── Summary ──────────────────────────────────────────────────
     print(f"\n{'=' * 60}")

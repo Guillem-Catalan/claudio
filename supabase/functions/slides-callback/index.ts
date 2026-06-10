@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
       deal_id,
     } = body;
 
-    const slideId = callback_slide_id || legacySlideId;
+    const itemId = callback_slide_id || legacySlideId;
     const url = share_url || legacyUrl;
     const finalStatus = cbStatus === "completed" || cbStatus === "ready" ? "ready" : cbStatus === "failed" ? "error" : "ready";
 
@@ -48,17 +48,31 @@ Deno.serve(async (req) => {
     if (html_slides) updateData.html_slides = html_slides;
     if (slide_images) updateData.slide_images = slide_images;
 
-    if (slideId) {
-      const { error } = await sb.from("slides").update(updateData).eq("id", slideId);
-      if (error) {
-        return new Response(JSON.stringify({ error: "Update failed", detail: error }), { status: 500 });
+    if (itemId) {
+      // Try slides table first
+      const { data: slideRow } = await sb.from("slides").select("id").eq("id", itemId).limit(1);
+      if (slideRow && slideRow.length > 0) {
+        const { error } = await sb.from("slides").update(updateData).eq("id", itemId);
+        if (error) return new Response(JSON.stringify({ error: "Slides update failed", detail: error }), { status: 500 });
+        return new Response(JSON.stringify({ ok: true, type: "slide", id: itemId }), {
+          status: 200, headers: { "Content-Type": "application/json" },
+        });
       }
-      return new Response(JSON.stringify({ ok: true, slide_id: slideId }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
+
+      // Try briefings table
+      const { data: briefRow } = await sb.from("briefings").select("id").eq("id", itemId).limit(1);
+      if (briefRow && briefRow.length > 0) {
+        const { error } = await sb.from("briefings").update(updateData).eq("id", itemId);
+        if (error) return new Response(JSON.stringify({ error: "Briefings update failed", detail: error }), { status: 500 });
+        return new Response(JSON.stringify({ ok: true, type: "briefing", id: itemId }), {
+          status: 200, headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ error: "ID not found in slides or briefings" }), { status: 404 });
     }
 
+    // Fallback by deal_id
     if (deal_id) {
       const { data: pending } = await sb
         .from("slides")
@@ -70,14 +84,13 @@ Deno.serve(async (req) => {
 
       if (pending && pending.length > 0) {
         await sb.from("slides").update(updateData).eq("id", pending[0].id);
-        return new Response(JSON.stringify({ ok: true, slide_id: pending[0].id }), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
+        return new Response(JSON.stringify({ ok: true, type: "slide", id: pending[0].id }), {
+          status: 200, headers: { "Content-Type": "application/json" },
         });
       }
     }
 
-    return new Response(JSON.stringify({ error: "No matching slide found" }), { status: 404 });
+    return new Response(JSON.stringify({ error: "No matching record found" }), { status: 404 });
   } catch (e) {
     return new Response(JSON.stringify({ error: String(e) }), { status: 500 });
   }
