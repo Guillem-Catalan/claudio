@@ -35,11 +35,10 @@ def _is_internal_title(title: str) -> bool:
 
 
 def _pae_calendars() -> list[dict]:
-    """Build list of PAE calendars from config (Santander + Telefónica only)."""
+    """Build list of PAE calendars from all active teams."""
     calendars = []
-    for team_name in ("Santander", "Telefónica"):
-        team = TEAMS.get(team_name)
-        if not team:
+    for team_name, team in TEAMS.items():
+        if not team.get("active"):
             continue
         for email in sorted(team.get("pae", set())):
             name = email.split("@")[0].replace(".", " ").title()
