@@ -48,7 +48,7 @@ async function callClaude(systemPrompt: string, userPrompt: string): Promise<str
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "api-key": AZURE_KEY,
+      "x-api-key": AZURE_KEY,
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
