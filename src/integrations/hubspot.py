@@ -6,7 +6,7 @@ import requests
 
 TOKEN = os.environ.get("HUBSPOT_TOKEN", "")
 BASE = "https://api.hubapi.com"
-_MIN_INTERVAL = 0.12
+_MIN_INTERVAL = 0.2
 _last_request_at = 0.0
 _request_count = 0
 _lock = threading.Lock()
@@ -31,7 +31,7 @@ def _throttle():
 
 
 _RETRYABLE = {401, 429, 500, 502, 503}
-_MAX_RETRIES = 3
+_MAX_RETRIES = 5
 
 
 def _retry_wait(resp: requests.Response, attempt: int) -> float:
