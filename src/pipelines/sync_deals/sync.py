@@ -99,6 +99,30 @@ def _resolve_pbd_pae(owner_id: str, all_owner_ids: list[str], owners: dict) -> t
     return pbd, pae
 
 
+def _fallback_owner_from_calls(deal_uuid: str) -> tuple[str, str]:
+    """Last resort: find PAE/PBD from the most recent call on this deal."""
+    resp = (
+        supabase.table("calls")
+        .select("owner_email, owner_nombre, rol")
+        .eq("deal_id", deal_uuid)
+        .not_.is_("owner_email", "null")
+        .order("fecha", desc=True)
+        .limit(5)
+        .execute()
+    )
+    pbd, pae = "", ""
+    for c in (resp.data or []):
+        email = (c.get("owner_email") or "").lower()
+        name = c.get("owner_nombre") or ""
+        if not pae and email in ALL_PAE_EMAILS:
+            pae = name
+        if not pbd and email in ALL_PBD_EMAILS:
+            pbd = name
+        if pae and pbd:
+            break
+    return pbd, pae
+
+
 def _upsert(rows: list[dict]) -> int:
     written = 0
     for i in range(0, len(rows), UPSERT_BATCH):
@@ -197,6 +221,7 @@ def run(full: bool = False, since_hours: int = 48):
         partner_name = deal.pop("_partner_name")
         pipeline_name = deal.pop("_pipeline", "")
         pbd, pae = _resolve_pbd_pae(owner_id, all_owner_ids, owners)
+        hs_owner_email = owners.get(owner_id, {}).get("email", "") if owner_id else ""
 
         crm_id = company_map.get(did)
         atlas_id = atlas_map.get(crm_id) if crm_id else None
@@ -216,10 +241,60 @@ def run(full: bool = False, since_hours: int = 48):
         deal["numero_de_calls"] = eng.get("numero_de_calls", 0)
         deal["numero_de_meetings"] = eng.get("numero_de_meetings", 0)
 
-        deal["_pipeline"] = pipeline_name
+        deal["pipeline_name"] = pipeline_name
         rows.append(deal)
 
-    # 6b. Filter out new deals in excluded pipelines or closed stages
+    # 6b. Fallback: resolve owner from calls for deals without PAE/PBD
+    no_owner_hs_ids = [r["deal_id"] for r in rows if not r.get("pae") and not r.get("pbd")]
+    if no_owner_hs_ids:
+        # Batch lookup: deal_id (hs) → UUID
+        hs_to_uuid = {}
+        for i in range(0, len(no_owner_hs_ids), 200):
+            batch = no_owner_hs_ids[i:i + 200]
+            resp = supabase.table("deals").select("id, deal_id").in_("deal_id", batch).execute()
+            for d in (resp.data or []):
+                hs_to_uuid[d["deal_id"]] = d["id"]
+
+        # Batch fetch latest calls for these deals
+        uuids = list(hs_to_uuid.values())
+        call_owner_map = {}
+        for i in range(0, len(uuids), 50):
+            batch = uuids[i:i + 50]
+            resp = (
+                supabase.table("calls")
+                .select("deal_id, owner_email, owner_nombre, rol")
+                .in_("deal_id", batch)
+                .not_.is_("owner_email", "null")
+                .order("fecha", desc=True)
+                .execute()
+            )
+            for c in (resp.data or []):
+                did = c["deal_id"]
+                if did not in call_owner_map:
+                    call_owner_map[did] = []
+                call_owner_map[did].append(c)
+
+        resolved = 0
+        for r in rows:
+            if r.get("pae") or r.get("pbd"):
+                continue
+            uuid = hs_to_uuid.get(r["deal_id"])
+            if not uuid or uuid not in call_owner_map:
+                continue
+            for c in call_owner_map[uuid]:
+                email = (c.get("owner_email") or "").lower()
+                name = c.get("owner_nombre") or ""
+                if not r.get("pae") and email in ALL_PAE_EMAILS:
+                    r["pae"] = name
+                if not r.get("pbd") and email in ALL_PBD_EMAILS:
+                    r["pbd"] = name
+                if r.get("pae") and r.get("pbd"):
+                    break
+            if r.get("pae") or r.get("pbd"):
+                resolved += 1
+        print(f"   Fallback: {len(no_owner_hs_ids)} deals without owner, resolved {resolved} from calls")
+
+    # 6c. Filter out new deals in excluded pipelines or closed stages
     existing_ids = set()
     for i in range(0, len(rows), 200):
         batch = [r["deal_id"] for r in rows[i:i + 200]]
@@ -236,10 +311,9 @@ def run(full: bool = False, since_hours: int = 48):
             if (r.get("deal_stage") or "").lower() in CLOSED_STAGES:
                 skipped_closed += 1
                 continue
-            if (r.get("_pipeline") or "").lower() in EXCLUDE_PIPELINES:
+            if (r.get("pipeline_name") or "").lower() in EXCLUDE_PIPELINES:
                 skipped_pipeline += 1
                 continue
-        r.pop("_pipeline", None)
         filtered.append(r)
     rows = filtered
 
