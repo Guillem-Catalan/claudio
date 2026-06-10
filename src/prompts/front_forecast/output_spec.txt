@@ -1,7 +1,7 @@
 === OUTPUT SPEC ===
 
 Responde únicamente con un JSON con la siguiente estructura:
-{"deal_killer": false, "deal_killer_value": null, "bs": 0.0, "lb": 0.0}
+{"deal_killer": false, "deal_killer_value": null, "bs": 0.0, "lb": 0.0, "claudio_close_date": "YYYY-MM-DD", "close_date_reasoning": "..."}
 
 Sin prose, sin markdown, solo el objeto JSON.
 
@@ -90,3 +90,26 @@ lb: -0.5 — Blocker menor (cualquiera de estos):
   Ejemplos reales: "Nacho (CFO) de vacaciones, sin fecha confirmada de vuelta pero contexto activo" | "Dirección exige segundo presupuesto — proceso en curso" | "Objeción de conciliación con tarjetas pendiente de respuesta"
 
 lb: 0.0 — Sin blockers activos
+
+─────────────────────────────────────────────
+PASO 3 — Predecir fecha de cierre
+─────────────────────────────────────────────
+
+claudio_close_date: Fecha en formato "YYYY-MM-DD". Tu mejor estimación de cuándo se cerrará este deal.
+
+Factores a considerar (en orden de importancia):
+1. Stage actual y velocidad típica: un deal en Contract Sent cierra en 1-2 semanas. Un deal en Demo Booked necesita 4-8 semanas mínimo.
+2. Blockers activos: cada blocker no resuelto añade 2-4 semanas. Blockers estructurales (lb: -2.0) añaden 2+ meses.
+3. Buyer signals: señales fuertes (bs >= 1.5) acortan 1-2 semanas. Sin señales, añadir 2 semanas.
+4. Actividad reciente: si el último contacto fue hace 2+ semanas, añadir esas semanas al timeline.
+5. Deal age: deals que llevan 60+ días sin avanzar de stage tienen inercia negativa — ser conservador.
+6. Close_date del rep (en el contexto): usarla como referencia pero NO copiarla. Si el rep dice "25 junio" pero el deal tiene blockers graves, tu fecha debe ser posterior.
+
+Reglas:
+- Si deal_killer: true → claudio_close_date: null
+- Si el deal está en stage temprano (Pre-qualified, Attempting to contact, etc.) sin actividad → fecha a 3+ meses vista
+- Nunca poner una fecha pasada
+- La fecha de hoy la puedes inferir de deal_age y la fecha de creación del deal
+
+close_date_reasoning: 1-2 frases explicando por qué esa fecha. Menciona el factor principal que determina el timeline.
+Si deal_killer: true → close_date_reasoning: "Deal killed — sin fecha de cierre."

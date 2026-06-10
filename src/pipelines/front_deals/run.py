@@ -175,6 +175,8 @@ def _run_forecast(snapshot: dict, close_date: str) -> dict:
     return {
         "close_probability": close_probability,
         "claudio_forecast": claudio_forecast,
+        "claudio_close_date": claude_out.get("claudio_close_date"),
+        "close_date_reasoning": claude_out.get("close_date_reasoning"),
     }
 
 
@@ -378,7 +380,11 @@ def run(deal_uuid: str, hs_deal_id: str):
         forecast_result = _run_forecast(snapshot, close_date)
         snapshot["close_probability"] = forecast_result["close_probability"]
         snapshot["claudio_forecast"] = forecast_result["claudio_forecast"]
-        print(f"   → {forecast_result['close_probability']}% / {forecast_result['claudio_forecast']}€")
+        if forecast_result.get("claudio_close_date"):
+            snapshot["claudio_close_date"] = forecast_result["claudio_close_date"]
+        if forecast_result.get("close_date_reasoning"):
+            snapshot["close_date_reasoning"] = forecast_result["close_date_reasoning"]
+        print(f"   → {forecast_result['close_probability']}% / {forecast_result['claudio_forecast']}€ / close: {forecast_result.get('claudio_close_date', '?')}")
     except Exception as e:
         print(f"   Forecast failed: {e} — writing snapshot without it")
 
