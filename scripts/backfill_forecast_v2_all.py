@@ -48,26 +48,29 @@ def backfill(limit: int = 100, offset: int = 0):
 
     filtered = [d for d in all_deals if "session" not in (d.get("deal_name") or "").lower()]
 
-    # Check which already have v2
-    deal_ids = [d["id"] for d in filtered]
-    already = set()
-    for i in range(0, len(deal_ids), 50):
-        batch = deal_ids[i:i + 50]
-        for val in (True, False):
-            resp = (
-                supabase.table("front_deal_snapshots")
-                .select("deal_id")
-                .in_("deal_id", batch)
-                .eq("closes_this_month", val)
-                .limit(len(batch))
-                .execute()
-            )
-            already |= {r["deal_id"] for r in (resp.data or [])}
+    force = os.environ.get("FORCE_REWRITE", "").lower() == "true"
 
-    todo = [d for d in filtered if d["id"] not in already]
-    todo = todo[offset:offset + limit]
-
-    print(f"  {len(filtered)} open deals total, {len(already)} already have v2, processing {len(todo)}")
+    if force:
+        todo = filtered[offset:offset + limit]
+        print(f"  {len(filtered)} open deals total, FORCE rewrite, processing {len(todo)}")
+    else:
+        deal_ids = [d["id"] for d in filtered]
+        already = set()
+        for i in range(0, len(deal_ids), 50):
+            batch = deal_ids[i:i + 50]
+            for val in (True, False):
+                resp = (
+                    supabase.table("front_deal_snapshots")
+                    .select("deal_id")
+                    .in_("deal_id", batch)
+                    .eq("closes_this_month", val)
+                    .limit(len(batch))
+                    .execute()
+                )
+                already |= {r["deal_id"] for r in (resp.data or [])}
+        todo = [d for d in filtered if d["id"] not in already]
+        todo = todo[offset:offset + limit]
+        print(f"  {len(filtered)} open deals total, {len(already)} already have v2, processing {len(todo)}")
 
     ok = 0
     failed = 0
