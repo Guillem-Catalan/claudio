@@ -35,25 +35,18 @@ EXCLUDE_STAGES_LOWER = {
 def backfill(limit: int = 100, offset: int = 0):
     print(f"Backfilling forecast v2 (limit={limit}, offset={offset}) ...")
 
-    # Get deals with latest snapshot that DON'T have v2 yet
+    # Get post-demo deals with context
     all_deals = (
         supabase.table("deals")
         .select("id, deal_id, deal_name, deal_stage, amount, deal_age_days, pae, pbd, close_date, deal_context, forecast_category, pipeline_name")
         .not_.is_("deal_context", "null")
+        .in_("deal_stage", list(POST_DEMO_STAGES))
         .order("amount", desc=True)
-        .limit(5000)
+        .limit(1000)
         .execute()
     ).data or []
 
-    # Filter: only post-demo stages, no session deals
-    filtered = []
-    for d in all_deals:
-        stage = d.get("deal_stage") or ""
-        if stage not in POST_DEMO_STAGES:
-            continue
-        if "session" in (d.get("deal_name") or "").lower():
-            continue
-        filtered.append(d)
+    filtered = [d for d in all_deals if "session" not in (d.get("deal_name") or "").lower()]
 
     # Check which already have v2
     deal_ids = [d["id"] for d in filtered]
