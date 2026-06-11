@@ -67,9 +67,10 @@ TEAMS = {
             "fiona.durr@factorial.co",
             "chiang.nguyen@factorial.co",
             "enrique.gautier@factorial.co",
-            "michel.heinkele@factorial.co",
+            "alexander.ulrich@factorial.co",
         },
         "pae": {
+            "gabriel.lichtenstein@factorial.co",
             "leonhard.zeus@factorial.co",
             "katrin.virtbauer@factorial.co",
             "stefan.platt@factorial.co",
