@@ -27,6 +27,8 @@ CORE_PROPS = [
     "partner_name",
     "first_meeting_at",
     "hs_next_meeting_start_time",
+    "closed_lost_reason",
+    "hs_closed_lost_reason",
 ]
 
 PIPELINE_DATE_MAP: dict[str, str] = {
@@ -193,6 +195,7 @@ def fetch_deal_properties(deal_ids: list[str], stages: dict[str, str], pipeline_
                 "_pipeline": (pipeline_labels or {}).get(stage_id, ""),
                 "first_meeting_at": _to_date(p.get("first_meeting_at")),
                 "hs_next_meeting_start_time": _to_date(p.get("hs_next_meeting_start_time")),
+                "closed_lost_reason": p.get("closed_lost_reason") or p.get("hs_closed_lost_reason") or "",
             }
 
             for hs_prop, col in PIPELINE_DATE_MAP.items():

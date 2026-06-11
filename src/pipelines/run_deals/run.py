@@ -340,6 +340,31 @@ def run(full: bool = False):
     except Exception as e:
         print(f"  Briefings failed: {e}")
 
+    # ── Phase 6: Compile trajectories for newly closed deals ────
+    print(f"\n▸ PHASE 6: COMPILE TRAJECTORIES")
+    try:
+        from src.pipelines.intelligence.trajectories import compile_trajectory
+        closed_resp = (
+            supabase.table("deals")
+            .select("id, deal_name, deal_stage")
+            .in_("deal_stage", ["Closed Won", "Closed won", "Closed Won - Finance Only", "Closed Lost", "Closed lost", "Opportunity lost", "Opportunity Lost"])
+            .not_.is_("id", "null")
+            .execute()
+        )
+        compiled = 0
+        for cd in (closed_resp.data or []):
+            existing = supabase.table("deal_trajectories").select("id").eq("deal_id", cd["id"]).limit(1).execute()
+            if not existing.data:
+                result = compile_trajectory(cd["id"])
+                if result:
+                    compiled += 1
+                    print(f"  Compiled: {cd['deal_name'][:50]} ({result['outcome']})")
+                if compiled >= 10:
+                    break
+        print(f"  {compiled} new trajectories compiled")
+    except Exception as e:
+        print(f"  Trajectories failed: {e}")
+
     # ── Summary ──────────────────────────────────────────────────
     print(f"\n{'=' * 60}")
     print(f"RUN DEALS COMPLETE: {ok} OK, {failed} failed, {pending_transcript} pending transcript")

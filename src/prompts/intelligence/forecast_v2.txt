@@ -1,0 +1,61 @@
+=== FORECAST V2 — OUTPUT SPEC ===
+
+Analiza el deal comparándolo con los deals históricos similares y responde con este JSON:
+
+{
+  "closes_this_month": true/false,
+  "closes_next_month": true/false,
+  "forecast_confidence": "high/medium/low",
+  "estimated_close_date": "YYYY-MM-DD",
+  "forecast_reasoning": "...",
+  "forecast_risks": "...",
+  "forecast_accelerators": "..."
+}
+
+INSTRUCCIONES:
+
+closes_this_month: ¿Se cerrará este deal ANTES del último día del mes actual?
+Evalúa en este orden:
+1. ¿Hay contrato enviado/en revisión/firmándose? Si sí y no hay blockers graves → TRUE con high confidence.
+2. ¿El prospect ha aceptado propuesta/pricing y hay next step concreto con fecha este mes? → TRUE con medium confidence.
+3. ¿El deal está en stage avanzado (Pricing, Contract Sent) con actividad esta semana? → TRUE con medium confidence.
+4. ¿El deal está en FPA/Demo con close_date este mes? Compara con benchmark: ¿deals similares cerraron tan rápido? Si el benchmark dice que no → FALSE.
+5. Si hay ghosting (>10 días sin respuesta) → FALSE independientemente del stage.
+Mira los deals similares que ganaron: ¿cuántos días antes del cierre estaban en el stage actual del deal? Si el deal actual no tiene suficientes días → FALSE.
+
+closes_next_month: ¿Se cerrará el mes que viene?
+Solo relevante si closes_this_month es FALSE.
+Aplica la misma lógica pero con un mes más de margen.
+
+forecast_confidence:
+- "high": hay señales concretas (contrato, pricing aceptado, deadline externo) Y el benchmark confirma
+- "medium": señales positivas pero falta confirmación, O el benchmark es mixto
+- "low": poca información, benchmark insuficiente, o señales contradictorias
+
+estimated_close_date: tu mejor estimación de fecha de cierre.
+Basa en: stage actual + velocidad de avance + benchmark de deals similares + close_date del PAE.
+Si el PAE dice una fecha y el benchmark la confirma → usa la del PAE.
+Si el PAE es optimista vs benchmark → ajusta según el benchmark.
+Si hay forcing function (deadline externo del prospect) → prioriza esa fecha.
+Si no hay suficiente info → usa la media del benchmark para deals similares.
+
+forecast_reasoning: 2-3 frases CONCRETAS explicando tu predicción.
+Menciona: la señal principal, el benchmark usado, y por qué confías o no.
+NO seas genérico. Cita hechos específicos del contexto y del benchmark.
+Ejemplo bueno: "El prospect pidió contrato definitivo con deadline hoy. De 5 deals similares con contrato en negociación, 4 cerraron en <5 días."
+Ejemplo malo: "El deal tiene buenas señales y está avanzando bien."
+
+forecast_risks: bullets con los riesgos específicos que podrían retrasar o matar el deal.
+Si no hay riesgos visibles, decirlo. Máximo 3 bullets, concretos.
+
+forecast_accelerators: bullets con lo que podría acelerar el cierre.
+Basado en lo que funcionó en deals similares del benchmark. Máximo 3 bullets, concretos.
+
+REGLAS CRÍTICAS:
+- NO copies la probabilidad v1. El forecast v2 es una predicción de TIMING, no de health.
+- Un deal puede tener 40% de probabilidad v1 pero closes_this_month=true si hay contrato en mesa.
+- Un deal puede tener 80% de probabilidad v1 pero closes_this_month=false si no hay actividad reciente.
+- Si no hay benchmark suficiente (pocos deals similares), di "low" confidence y explica por qué.
+- Si el deal_context menciona ghosting, competidor, o cambio de prioridades → pesa mucho.
+- Si hay forcing function del prospect (deadline, budget cycle, etc.) → pesa más que el MEDDIC.
+- ESTABILIDAD: si ayer dijiste "closes_this_month=true" y no ha cambiado nada → sigue siendo true. No cambies por ruido.

@@ -388,6 +388,32 @@ def run(deal_uuid: str, hs_deal_id: str):
     except Exception as e:
         print(f"   Forecast failed: {e} — writing snapshot without it")
 
+    # ── Forecast V2 (benchmark-based) ─────────────────────────────────
+    print("5b. Computing forecast v2 ...")
+    try:
+        from src.pipelines.intelligence.forecast_v2 import run as forecast_v2_run
+        v2_result = forecast_v2_run(deal_uuid, snapshot, d)
+        if v2_result:
+            if v2_result.get("closes_this_month") is not None:
+                snapshot["closes_this_month"] = v2_result["closes_this_month"]
+            if v2_result.get("closes_next_month") is not None:
+                snapshot["closes_next_month"] = v2_result["closes_next_month"]
+            if v2_result.get("forecast_confidence"):
+                snapshot["forecast_confidence"] = v2_result["forecast_confidence"]
+            if v2_result.get("forecast_reasoning"):
+                snapshot["forecast_reasoning"] = v2_result["forecast_reasoning"]
+            if v2_result.get("forecast_risks"):
+                snapshot["forecast_risks"] = v2_result["forecast_risks"]
+            if v2_result.get("forecast_accelerators"):
+                snapshot["forecast_accelerators"] = v2_result["forecast_accelerators"]
+            if v2_result.get("estimated_close_date"):
+                snapshot["claudio_close_date"] = v2_result["estimated_close_date"]
+            ctm = "YES" if v2_result.get("closes_this_month") else "NO"
+            conf = v2_result.get("forecast_confidence", "?")
+            print(f"   → closes_this_month={ctm} ({conf}) | close: {v2_result.get('estimated_close_date', '?')}")
+    except Exception as e:
+        print(f"   Forecast v2 failed: {e} — continuing without it")
+
     print("6. Writing snapshot ...")
     existing = (
         supabase.table("front_deal_snapshots")
