@@ -45,17 +45,13 @@ def backfill(limit: int = 100, offset: int = 0):
         .execute()
     ).data or []
 
-    # Filter: only post-demo stages, non-onboarding, non-upsell without PAE
+    # Filter: only post-demo stages, no session deals
     filtered = []
     for d in all_deals:
         stage = d.get("deal_stage") or ""
         if stage not in POST_DEMO_STAGES:
             continue
         if "session" in (d.get("deal_name") or "").lower():
-            continue
-        pipeline = (d.get("pipeline_name") or "").lower()
-        has_pae = bool(d.get("pae"))
-        if pipeline and pipeline not in ("partners distribution", "sales pipeline", "") and not has_pae:
             continue
         filtered.append(d)
 

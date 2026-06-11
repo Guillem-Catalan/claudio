@@ -6,7 +6,7 @@ on:
       limit:
         description: "Deals per batch"
         type: string
-        default: "80"
+        default: "500"
       offset:
         description: "Start offset (0, 80, 160, ...)"
         type: string
@@ -15,7 +15,7 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 55
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
 
