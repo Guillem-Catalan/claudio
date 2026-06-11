@@ -201,6 +201,21 @@ def _create_today_briefings() -> int:
     return created
 
 
+def _preload_partner_cache(atlas_ids: list[str]) -> None:
+    """Batch preload atlas websites to avoid per-deal timeout."""
+    ids_to_load = [a for a in atlas_ids if a and a not in _partner_website_cache]
+    for i in range(0, len(ids_to_load), 50):
+        batch = ids_to_load[i:i + 50]
+        try:
+            resp = supabase.table("atlas").select("id, website").in_("id", batch).execute()
+            for a in (resp.data or []):
+                website = (a.get("website") or "").lower()
+                _partner_website_cache[a["id"]] = any(domain in website for domain in ALL_PARTNER_DOMAINS)
+        except Exception:
+            for aid in batch:
+                _partner_website_cache[aid] = False
+
+
 def _fetch_stale_deals(limit: int) -> list[dict]:
     stages = list(ACTIVE_STAGES)
     result = (
@@ -213,8 +228,9 @@ def _fetch_stale_deals(limit: int) -> list[dict]:
         .limit(limit * 2)
         .execute()
     )
-    filtered = [d for d in (result.data or [])
-                if not _is_backfill_only(d.get("deal_name", "")) and not _is_partner_company(d)]
+    candidates = [d for d in (result.data or []) if not _is_backfill_only(d.get("deal_name", ""))]
+    _preload_partner_cache([d.get("atlas_id") for d in candidates if d.get("atlas_id")])
+    filtered = [d for d in candidates if not _is_partner_company(d)]
     return filtered[:limit]
 
 
@@ -231,8 +247,9 @@ def _fetch_stale_deals_no_context(limit: int) -> list[dict]:
         .limit(limit * 2)
         .execute()
     )
-    filtered = [d for d in (result.data or [])
-                if not _is_backfill_only(d.get("deal_name", "")) and not _is_partner_company(d)]
+    candidates = [d for d in (result.data or []) if not _is_backfill_only(d.get("deal_name", ""))]
+    _preload_partner_cache([d.get("atlas_id") for d in candidates if d.get("atlas_id")])
+    filtered = [d for d in candidates if not _is_partner_company(d)]
     return filtered[:limit]
 
 
