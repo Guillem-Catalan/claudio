@@ -38,7 +38,9 @@ from src.pipelines.sync_deal_context.run import (
     _format_date,
 )
 
-SLACK_CHANNEL_ID = os.environ.get("SLACK_CHANNEL_ID") or "C0B1VPPG1F1"
+from src.config import TEAM_LEAD_CHANNELS
+
+SLACK_CHANNEL_FALLBACK = os.environ.get("SLACK_CHANNEL_FALLBACK") or "C0B1VPPG1F1"
 
 
 def _build_deal_context(deal_uuid: str, hs_deal_id: str) -> str:
@@ -292,9 +294,10 @@ def main():
             lead_slack_user_id=lead_slack_ids.get(partner_team),
             lead_email=partner_cfg.get("lead_email"),
         )
+        channel = TEAM_LEAD_CHANNELS.get(partner_team, SLACK_CHANNEL_FALLBACK)
         try:
-            ts = slack.post_message(SLACK_CHANNEL_ID, payload)
-            print(f"   Sent missing front_deal alert (ts={ts})")
+            ts = slack.post_message(channel, payload)
+            print(f"   Sent missing front_deal alert to {partner_team} channel (ts={ts})")
         except Exception as e:
             print(f"   Slack error: {e}")
         return
@@ -373,10 +376,11 @@ def main():
         lead_name=pbd_name,
     )
 
-    # Post to Slack
-    print("6. Posting to Slack ...")
+    # Post to Slack — route to team-specific TL channel
+    channel = TEAM_LEAD_CHANNELS.get(partner_team, SLACK_CHANNEL_FALLBACK)
+    print(f"6. Posting to Slack ({partner_team} → {channel}) ...")
     try:
-        ts = slack.post_message(SLACK_CHANNEL_ID, payload)
+        ts = slack.post_message(channel, payload)
         print(f"   Sent (ts={ts})")
     except Exception as e:
         print(f"   Slack error: {e}")
