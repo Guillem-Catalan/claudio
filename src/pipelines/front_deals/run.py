@@ -370,6 +370,8 @@ def run(deal_uuid: str, hs_deal_id: str):
         "deal_strengths": _to_str(claude_out.get("deal_strengths")),
         "next_step": _to_str(claude_out.get("next_step")),
         "action_signal": _to_str(claude_out.get("action_signal")),
+        "howto_label": _to_str(claude_out.get("howto_label")),
+        "howto_body": _to_str(claude_out.get("howto_body")),
     }
     snapshot = {k: v for k, v in snapshot.items() if v is not None and v != ""}
 
@@ -394,23 +396,18 @@ def run(deal_uuid: str, hs_deal_id: str):
         from src.pipelines.intelligence.forecast_v2 import run as forecast_v2_run
         v2_result = forecast_v2_run(deal_uuid, snapshot, d)
         if v2_result:
-            if v2_result.get("closes_this_month") is not None:
-                snapshot["closes_this_month"] = v2_result["closes_this_month"]
-            if v2_result.get("closes_next_month") is not None:
-                snapshot["closes_next_month"] = v2_result["closes_next_month"]
-            if v2_result.get("forecast_confidence"):
-                snapshot["forecast_confidence"] = v2_result["forecast_confidence"]
-            if v2_result.get("forecast_reasoning"):
-                snapshot["forecast_reasoning"] = v2_result["forecast_reasoning"]
-            if v2_result.get("forecast_risks"):
-                snapshot["forecast_risks"] = v2_result["forecast_risks"]
-            if v2_result.get("forecast_accelerators"):
-                snapshot["forecast_accelerators"] = v2_result["forecast_accelerators"]
+            for key in ("closes_this_month", "closes_next_month", "forecast_confidence",
+                        "forecast_reasoning", "forecast_risks", "forecast_accelerators",
+                        "forecast_pushable", "push_action", "deal_momentum"):
+                if v2_result.get(key) is not None:
+                    snapshot[key] = v2_result[key]
             if v2_result.get("estimated_close_date"):
                 snapshot["claudio_close_date"] = v2_result["estimated_close_date"]
             ctm = "YES" if v2_result.get("closes_this_month") else "NO"
+            push = " | PUSHABLE" if v2_result.get("forecast_pushable") else ""
+            mom = v2_result.get("deal_momentum", "?")
             conf = v2_result.get("forecast_confidence", "?")
-            print(f"   → closes_this_month={ctm} ({conf}) | close: {v2_result.get('estimated_close_date', '?')}")
+            print(f"   → {ctm} ({conf}) | momentum={mom}{push} | close: {v2_result.get('estimated_close_date', '?')}")
     except Exception as e:
         print(f"   Forecast v2 failed: {e} — continuing without it")
 

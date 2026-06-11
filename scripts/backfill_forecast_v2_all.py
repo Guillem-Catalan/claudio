@@ -95,7 +95,8 @@ def backfill(limit: int = 100, offset: int = 0):
             if result:
                 update = {}
                 for key in ("closes_this_month", "closes_next_month", "forecast_confidence",
-                            "forecast_reasoning", "forecast_risks", "forecast_accelerators"):
+                            "forecast_reasoning", "forecast_risks", "forecast_accelerators",
+                            "forecast_pushable", "push_action", "deal_momentum"):
                     if result.get(key) is not None:
                         update[key] = result[key]
                 if result.get("estimated_close_date"):
@@ -105,7 +106,9 @@ def backfill(limit: int = 100, offset: int = 0):
                     supabase.table("front_deal_snapshots").update(update).eq("id", snapshot["id"]).execute()
 
                 ctm = "YES" if result.get("closes_this_month") else "NO"
-                print(f"    → {ctm} ({result.get('forecast_confidence', '?')})")
+                push = " PUSHABLE" if result.get("forecast_pushable") else ""
+                mom = result.get("deal_momentum", "?")
+                print(f"    → {ctm} ({result.get('forecast_confidence', '?')}) momentum={mom}{push}")
                 ok += 1
             else:
                 print(f"    → no result")

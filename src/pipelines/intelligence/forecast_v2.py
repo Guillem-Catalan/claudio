@@ -25,10 +25,10 @@ def run(deal_uuid: str, snapshot: dict, deal: dict, model: str | None = None) ->
     pae = deal.get("pae") or deal.get("pbd") or "?"
     close_date_pae = deal.get("close_date") or "?"
 
-    # 1. Get deal trajectory (all snapshots)
+    # 1. Get deal trajectory (all snapshots) + previous forecast
     snap_resp = (
         supabase.table("front_deal_snapshots")
-        .select("snapshot_date, close_probability, m_score, e_score, dc_score, dp_score, i_score, c_score, buyer_signals, live_blockers, next_step, deal_assessment")
+        .select("snapshot_date, close_probability, m_score, e_score, dc_score, dp_score, i_score, c_score, buyer_signals, live_blockers, next_step, deal_assessment, closes_this_month, forecast_confidence, forecast_reasoning, push_action, deal_momentum")
         .eq("deal_id", deal_uuid)
         .order("snapshot_date")
         .execute()
@@ -103,7 +103,24 @@ def run(deal_uuid: str, snapshot: dict, deal: dict, model: str | None = None) ->
     # 5. Get recent deal_context (last interactions)
     ctx = (deal.get("deal_context") or "")[-5000:]
 
-    # 6. Current snapshot data
+    # 6. Previous forecast (continuity)
+    prev_forecast = ""
+    for s in reversed(snapshots):
+        if s.get("closes_this_month") is not None:
+            ctm = "YES" if s["closes_this_month"] else "NO"
+            prev_forecast = (
+                f"## YOUR PREVIOUS FORECAST ({s['snapshot_date']})\n"
+                f"closes_this_month: {ctm} ({s.get('forecast_confidence', '?')})\n"
+                f"push_action: {s.get('push_action') or 'none'}\n"
+                f"momentum: {s.get('deal_momentum') or '?'}\n"
+                f"reasoning: {(s.get('forecast_reasoning') or '')[:300]}\n"
+                f"→ Only change your prediction if there's a MATERIAL change since then.\n"
+            )
+            break
+    if not prev_forecast:
+        prev_forecast = "## YOUR PREVIOUS FORECAST\nFirst time forecasting this deal.\n"
+
+    # 7. Current snapshot data
     current_snap = (
         f"MEDDIC: M={snapshot.get('m_score','?')} E={snapshot.get('e_score','?')} "
         f"DC={snapshot.get('dc_score','?')} DP={snapshot.get('dp_score','?')} "
@@ -115,7 +132,7 @@ def run(deal_uuid: str, snapshot: dict, deal: dict, model: str | None = None) ->
         f"Next step: {(snapshot.get('next_step') or '')[:200]}"
     )
 
-    # 7. Build prompt
+    # 8. Build prompt
     prompt_template = _PROMPT_PATH.read_text()
 
     user_prompt = (
@@ -125,6 +142,7 @@ def run(deal_uuid: str, snapshot: dict, deal: dict, model: str | None = None) ->
         f"PAE close_date: {close_date_pae}\n"
         f"Today: {date.today().isoformat()}\n"
         f"Current month: {current_month}\n\n"
+        f"{prev_forecast}\n"
         f"## CURRENT SNAPSHOT\n{current_snap}\n\n"
         f"## TRAJECTORY (last 15 snapshots)\n{trajectory_text}\n\n"
         f"## RECENT INTERACTIONS (last 5K chars)\n{ctx}\n\n"
@@ -136,10 +154,9 @@ def run(deal_uuid: str, snapshot: dict, deal: dict, model: str | None = None) ->
     )
 
     system = (
-        "Eres Claudio, un sistema de Revenue Intelligence que predice cuándo se cerrarán deals de ventas B2B SaaS. "
-        "Tu trabajo es analizar un deal activo comparándolo con deals históricos similares y hacer una predicción "
-        "de si se cerrará este mes, el siguiente, o más tarde. "
-        "No uses fórmulas — lee el contexto real como lo haría un VP de Sales con 20 años de experiencia. "
+        "Eres Claudio, un asistente de ventas senior que conoce cada deal a fondo. "
+        "Tu trabajo es predecir cuándo se cerrará este deal, detectar dónde influir para acelerarlo, "
+        "y avisar si se está cayendo. Lee todo como lo haría un VP de Sales con 20 años de experiencia. "
         "Responde SOLO con un JSON válido. Sin markdown, sin prose."
     )
 
