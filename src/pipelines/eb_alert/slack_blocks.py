@@ -12,6 +12,8 @@ PARTNER_CONFIG = {
     "Santander": {"emoji": ":Santander:", "lead_email": "roberto.moran@factorial.co"},
     "Telefonica": {"emoji": ":telefonica:", "lead_email": "carlos.sanchez@factorial.co"},
     "Telefónica": {"emoji": ":telefonica:", "lead_email": "carlos.sanchez@factorial.co"},
+    "TELEKOM": {"emoji": ":telekom:", "lead_email": "gabriel.lichtenstein@factorial.co"},
+    "TIM": {"emoji": ":tim:", "lead_email": ""},
 }
 
 HEADERS = {

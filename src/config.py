@@ -191,4 +191,6 @@ PAE_CHANNELS = {
 TEAM_LEAD_CHANNELS = {
     "Santander": "C0B36RD537X",   # Roberto Morán
     "Telefónica": "C0B33QJLF8B",  # Carlos Sanchez
+    "TELEKOM": "C0B9QCWDCQ4",    # Gabriel Lichtenstein
+    "TIM": "C0B9QCWDCQ4",        # Fallback to TELEKOM channel until TIM has own
 }
