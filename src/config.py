@@ -10,6 +10,7 @@ TEAMS = {
             "paula.gil@factorial.co",
             "david.soler@factorial.co",
             "lucia.garana@factorial.co",
+            "ignacio.otero@factorial.co",
             "nicolas.gonzalez@factorial.co",
         },
         "pae": {
