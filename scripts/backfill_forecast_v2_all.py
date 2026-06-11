@@ -1,10 +1,22 @@
 """Backfill forecast v2 for ALL open deals (excluding onboarding/upsell). Runs in batches."""
 
+import os
 import sys
 import traceback
 
 from src.db.client import supabase
 from src.pipelines.intelligence.forecast_v2 import run as forecast_v2_run
+
+# Use Sonnet for backfill (cheaper), Opus for real-time
+BACKFILL_MODEL = os.environ.get("BACKFILL_MODEL", "")
+
+POST_DEMO_STAGES = {
+    "Factorial Project Alignment started", "Product Alignment",
+    "MEDDPICC Criteria Validation Started",
+    "Economical Alignment Started", "Economical Allignment Started",
+    "Pricing and Packaging", "Pricing & Packaging",
+    "Contract Sent", "Contracting",
+}
 
 EXCLUDE_STAGES_LOWER = {
     "closed won", "closed lost", "closed won - finance only", "opportunity lost",
@@ -33,11 +45,11 @@ def backfill(limit: int = 100, offset: int = 0):
         .execute()
     ).data or []
 
-    # Filter: only open, non-onboarding, non-upsell without PAE
+    # Filter: only post-demo stages, non-onboarding, non-upsell without PAE
     filtered = []
     for d in all_deals:
-        stage = (d.get("deal_stage") or "").lower()
-        if stage in EXCLUDE_STAGES_LOWER:
+        stage = d.get("deal_stage") or ""
+        if stage not in POST_DEMO_STAGES:
             continue
         if "session" in (d.get("deal_name") or "").lower():
             continue
@@ -90,7 +102,7 @@ def backfill(limit: int = 100, offset: int = 0):
         snapshot = snap_resp.data[0]
 
         try:
-            result = forecast_v2_run(deal_uuid, snapshot, d)
+            result = forecast_v2_run(deal_uuid, snapshot, d, model=BACKFILL_MODEL or None)
             if result:
                 update = {}
                 for key in ("closes_this_month", "closes_next_month", "forecast_confidence",

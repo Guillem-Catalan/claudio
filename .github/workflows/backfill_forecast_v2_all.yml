@@ -32,4 +32,5 @@ jobs:
           AZURE_CLAUDE_ENDPOINT: ${{ secrets.AZURE_CLAUDE_ENDPOINT }}
           AZURE_CLAUDE_API_KEY: ${{ secrets.AZURE_CLAUDE_API_KEY }}
           AZURE_CLAUDE_DEPLOYMENT: ${{ secrets.AZURE_CLAUDE_DEPLOYMENT }}
+          BACKFILL_MODEL: "claudio-claude-sonnet-4-6"
         run: python -m scripts.backfill_forecast_v2_all ${{ inputs.limit }} ${{ inputs.offset }}

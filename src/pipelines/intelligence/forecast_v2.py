@@ -15,7 +15,7 @@ from src.pipelines.intelligence.similarity import find_similar
 _PROMPT_PATH = Path(__file__).resolve().parent.parent.parent / "prompts" / "intelligence" / "forecast_v2.txt"
 
 
-def run(deal_uuid: str, snapshot: dict, deal: dict) -> dict | None:
+def run(deal_uuid: str, snapshot: dict, deal: dict, model: str | None = None) -> dict | None:
     """Generate forecast v2 for a deal using benchmark comparison."""
 
     deal_name = deal.get("deal_name", "?")
@@ -144,7 +144,7 @@ def run(deal_uuid: str, snapshot: dict, deal: dict) -> dict | None:
     )
 
     try:
-        raw = analyze(system, user_prompt, max_tokens=2000)
+        raw = analyze(system, user_prompt, model=model, max_tokens=2000)
         text = re.sub(r"^```(?:json)?\s*", "", raw.strip())
         text = re.sub(r"\s*```$", "", text)
         result = json.loads(text.strip())
