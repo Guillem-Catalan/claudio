@@ -1,0 +1,38 @@
+name: Backfill Lessons
+on:
+  workflow_dispatch:
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Backfill lessons for June closed deals
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          AZURE_CLAUDE_ENDPOINT: ${{ secrets.AZURE_CLAUDE_ENDPOINT }}
+          AZURE_CLAUDE_API_KEY: ${{ secrets.AZURE_CLAUDE_API_KEY }}
+          AZURE_CLAUDE_DEPLOYMENT: ${{ secrets.AZURE_CLAUDE_DEPLOYMENT }}
+        run: |
+          python3 -c "
+          from src.pipelines.intelligence.trajectories import compile_trajectory
+          from src.db.client import supabase
+
+          deals = supabase.table('deals').select('id,deal_name').in_('deal_stage', ['Closed Won','Closed won','Closed Won - Finance Only']).gte('close_date','2026-06-01').lt('close_date','2026-07-01').execute()
+
+          for d in deals.data:
+              print(f'Processing {d[\"deal_name\"][:40]}...')
+              supabase.table('deal_trajectories').delete().eq('deal_id', d['id']).execute()
+              result = compile_trajectory(d['id'])
+              if result:
+                  import json
+                  lessons = json.loads(result.get('lessons','[]'))
+                  print(f'  OK - {len(lessons)} lessons')
+              else:
+                  print(f'  SKIP')
+          "
