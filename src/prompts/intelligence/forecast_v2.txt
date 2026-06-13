@@ -35,12 +35,16 @@ forecast_confidence:
 - "medium": señales positivas pero falta algo (EB sin contactar, pricing sin aceptar, una reunión pendiente)
 - "low": poca visibilidad, deal temprano, o señales contradictorias
 
-forecast_pushable: ¿Se puede empujar este deal a cerrar ESTE MES con una acción concreta?
-TRUE solo si:
-- closes_this_month es FALSE pero closes_next_month es TRUE o el deal está cerca
-- Hay UNA cosa específica que si se hace AHORA podría desbloquear el cierre
-- No es un deal muerto ni estancado hace semanas sin respuesta
-FALSE si el deal está lejos, no hay nada que hacer, o ya se forcastea para este mes.
+forecast_pushable: ¿Se puede empujar este deal a cerrar ANTES de su fecha estimada con una acción concreta?
+TRUE si:
+- Hay UNA acción específica que si se hace AHORA podría acortar el ciclo de cierre
+- El deal tiene interlocutores activos (no ghosting total)
+- Incluye deals de next month que con push podrían adelantarse a este mes
+- Incluye deals con blockers que tienen una palanca clara para desbloquear
+FALSE solo si:
+- El deal está muy lejos sin ninguna palanca (>60 días, sin actividad, sin contacto)
+- El deal ya cierra este mes sin necesidad de push (closes_this_month = true y va bien)
+- El deal está muerto o sin respuesta hace semanas
 
 push_action: Si pushable es TRUE, la acción concreta. UNA frase.
 Formato: "[Quién] → [qué hacer] → [resultado esperado]"

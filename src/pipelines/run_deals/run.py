@@ -382,6 +382,22 @@ def run(full: bool = False):
     except Exception as e:
         print(f"  Trajectories failed: {e}")
 
+    # ── Phase 7: Synthesize deal actions ────────────────────────
+    print(f"\n▸ PHASE 7: SYNTHESIZE ACTIONS")
+    try:
+        from src.pipelines.actions.synthesize import synthesize_for_deal
+        actions_ok = 0
+        for deal in all_stale[:MAX_DEALS_PER_CYCLE]:
+            try:
+                result = synthesize_for_deal(deal["id"])
+                if result:
+                    actions_ok += 1
+            except Exception as e:
+                print(f"  Action synthesis failed for {deal.get('deal_name', '?')[:30]}: {e}")
+        print(f"  {actions_ok} actions synthesized")
+    except Exception as e:
+        print(f"  Actions phase failed: {e}")
+
     # ── Summary ──────────────────────────────────────────────────
     print(f"\n{'=' * 60}")
     print(f"RUN DEALS COMPLETE: {ok} OK, {failed} failed, {pending_transcript} pending transcript")
