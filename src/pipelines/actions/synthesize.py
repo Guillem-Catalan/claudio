@@ -227,38 +227,43 @@ def synthesize_for_deal(deal_uuid: str) -> dict | None:
 
 
 def synthesize_all():
-    """Synthesize actions for all deals that have a recent snapshot."""
+    """Synthesize actions for ALL active deals that have snapshots."""
     print("Synthesizing deal actions ...")
 
-    # Get all deals with a snapshot from today or yesterday
-    today = date.today().isoformat()
-    snap_resp = (
-        supabase.table("front_deal_snapshots")
-        .select("deal_id")
-        .gte("snapshot_date", today)
-        .execute()
-    )
-    deal_ids = list({s["deal_id"] for s in (snap_resp.data or [])})
-
-    if not deal_ids:
-        # Fallback: get latest snapshot per deal
-        snap_resp = (
+    # Get all unique deal_ids that have at least one snapshot
+    # Paginate because there can be thousands
+    all_deal_ids: set[str] = set()
+    offset = 0
+    PAGE = 1000
+    while True:
+        resp = (
             supabase.table("front_deal_snapshots")
             .select("deal_id")
-            .order("snapshot_date", desc=True)
-            .limit(500)
+            .range(offset, offset + PAGE - 1)
             .execute()
         )
-        deal_ids = list({s["deal_id"] for s in (snap_resp.data or [])})
+        rows = resp.data or []
+        for r in rows:
+            all_deal_ids.add(r["deal_id"])
+        if len(rows) < PAGE:
+            break
+        offset += PAGE
+
+    print(f"  Found {len(all_deal_ids)} unique deals with snapshots")
 
     ok = 0
-    for deal_id in deal_ids:
+    errors = 0
+    for i, deal_id in enumerate(all_deal_ids):
         try:
             result = synthesize_for_deal(deal_id)
             if result:
                 ok += 1
         except Exception as e:
-            print(f"  Error for {deal_id}: {e}")
+            errors += 1
+            if errors <= 5:
+                print(f"  Error for {deal_id}: {e}")
+        if (i + 1) % 100 == 0:
+            print(f"  ... {i + 1}/{len(all_deal_ids)} processed ({ok} ok)")
 
-    print(f"  Synthesized {ok} actions from {len(deal_ids)} deals.")
+    print(f"  Synthesized {ok} actions from {len(all_deal_ids)} deals ({errors} errors).")
     return ok
