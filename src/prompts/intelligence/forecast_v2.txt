@@ -48,7 +48,8 @@ FALSE solo si:
 
 push_action: Si pushable es TRUE, la acción concreta. UNA frase.
 Formato: "[Quién] → [qué hacer] → [resultado esperado]"
-Ejemplo: "Pol → pedir call con DG esta semana → si confirma, contrato puede firmarse antes del 30"
+IMPORTANTE: Usa SIEMPRE fechas absolutas (DD/MM). NUNCA "hoy", "mañana", "esta semana".
+Ejemplo: "Pol → pedir call con DG antes del viernes 13/06 → si confirma, contrato puede firmarse antes del 30/06"
 Si pushable es FALSE, dejar vacío "".
 
 deal_momentum: ¿El deal va a más o a menos?
