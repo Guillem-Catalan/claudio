@@ -1,0 +1,36 @@
+name: Test Model Migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "Task to test (blank = all). Options: audit, snapshot_meddic, forecast_v1, forecast_v2, trajectory_lessons, briefing, email_draft, eb_alert, pbd_bant, atlas, patterns"
+        required: false
+        type: string
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements.txt
+
+      - name: Run model migration tests
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          AZURE_CLAUDE_ENDPOINT: ${{ secrets.AZURE_CLAUDE_ENDPOINT }}
+          AZURE_CLAUDE_API_KEY: ${{ secrets.AZURE_CLAUDE_API_KEY }}
+          AZURE_CLAUDE_DEPLOYMENT: ${{ secrets.AZURE_CLAUDE_DEPLOYMENT }}
+        run: |
+          if [ -n "${{ inputs.task }}" ]; then
+            python -m scripts.test_model_migration ${{ inputs.task }}
+          else
+            python -m scripts.test_model_migration
+          fi
