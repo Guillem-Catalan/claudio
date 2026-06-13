@@ -131,12 +131,12 @@ async function fetchPartnerAtlasIds(): Promise<Set<string>> {
 
 // Rep name → team mapping (derived from config.py TEAMS)
 const REP_TEAM: Record<string, string> = {};
-// From src/config.py TEAMS — exact PAE + PBD per team
+// From src/config.py TEAMS — PAEs only (this app is for PAEs)
 export const TEAM_REPS: Record<string, string[]> = {
-  "Santander": ["Beatriz Bravo","Carlos Acosta","David Soler","Ignacio Otero","Ines Rivera","Joan Balana","Joan Lorenzo","Jose Donis","Lucia Garana","Marta Ruiz","Nicolas Gonzalez","Paula Gil","Pol Bartolome","Roberto Moran","Xavier Fortuny"],
-  "Telefónica": ["Alejandro Soto","Angel Hernandez","Carlos Sanchez","David Clemente","Joan Balana","Jon Azconobieta","Maria Masoliver","Nerea Urien"],
-  "TIM": ["Alessandro Cardinale","Cecilia Rinaldo","Christian Lombardo","Edoardo Rapezzi","Emilio Fabbro","Giacomo Torresi","Giuditta Giunta","Miljan Nojkic","Nunzio Fumo"],
-  "TELEKOM": ["Alexander Ulrich","Chiang Nguyen","Enrique Gautier","Fiona Durr","Gabriel Lichtenstein","Johanna Henrich","Katrin Virtbauer","Leonhard Zeus","Lior Shechori","Stefan Platt"],
+  "Santander": ["Beatriz Bravo","Joan Balana","Joan Lorenzo","Jose Donis","Pol Bartolome","Roberto Moran","Xavier Fortuny"],
+  "Telefónica": ["Alejandro Soto","Carlos Sanchez","David Clemente","Joan Balana","Nerea Urien"],
+  "TIM": ["Christian Lombardo","Edoardo Rapezzi","Emilio Fabbro","Giuditta Giunta","Nunzio Fumo"],
+  "TELEKOM": ["Gabriel Lichtenstein","Katrin Virtbauer","Leonhard Zeus","Lior Shechori","Stefan Platt"],
 };
 const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 for (const [team, reps] of Object.entries(TEAM_REPS)) {
@@ -762,6 +762,7 @@ async function loadData(): Promise<CZData> {
     .from("deal_actions")
     .select("*")
     .eq("status", "pending")
+    .eq("action_role", "pae")
     .order("action_priority")
     .limit(500);
 

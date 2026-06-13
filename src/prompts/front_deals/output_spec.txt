@@ -207,6 +207,16 @@ Genera una lista de bullets en texto plano (sin markdown, usa \n para separar de
 Cada bullet sigue el formato:
 • [TAG si aplica] [Quién] → [acción concreta] [a quién, con nombre y cargo si disponible] — [cuándo]
 
+IMPORTANTE — QUIÉN: Mira el contexto del deal para saber quién tiene que hacer cada acción.
+Los datos del deal incluyen PBD y PAE. El PBD es quien prospecta y cualifica (stages tempranos).
+El PAE es quien hace demos, negocia y cierra (stages avanzados).
+- Si el deal está en stage de prospección/cualificación y el PBD es quien ha estado interactuando
+  → asigna la acción al PBD (nombre del PBD, no del PAE)
+- Si el deal está en stage de demo o superior, o si el PAE ya ha tenido interacciones directas
+  → asigna la acción al PAE
+- Si ambos están involucrados, asigna cada acción a quien corresponda
+- Lee las interacciones del contexto para ver quién ha estado hablando con el prospect
+
 TAGS de herramientas — usa el tag SOLO cuando la acción lo requiera:
   [ROI] — preparar o presentar cálculo de impacto económico / business case
   [SLIDES] — preparar deck personalizado de presentación para stakeholder
@@ -232,9 +242,10 @@ Ejemplo:
 • [CALL] Pol → llamar a Marta Gómez (CFO) para cerrar pricing del módulo de nómina — antes del jueves 15/06\n• [EMAIL] Pol → enviar propuesta formal con desglose de 3 módulos a Marta — inmediatamente después de la call\n• Hacer follow up a Marta sobre el presupuesto interno que prometió compartir — si no llega el viernes 13/06, escribir\n• [ROI] Pol → preparar business case con ahorro de 40h/semana para que Marta presente a dirección — antes del 13/06\n• Escalar a Joan (TL) si Marta no responde en 5 días — deal lleva 12 días sin movimiento
 
 action_signal: Una sola frase imperativa de máximo 60 caracteres que diga exactamente qué debe hacer
-el rep AHORA MISMO con este deal. Es lo primero que verá en el dashboard — tiene que ser tan concreto
-que pueda actuar sin abrir el deal.
-Formato: [Verbo] [a quién, con nombre si disponible] [qué hacer] [cuándo si hay fecha]
+el rep responsable AHORA MISMO con este deal. Si el deal está en stage PBD y el PBD es quien interactúa,
+la acción es para el PBD. Si está en stage PAE o el PAE ya interviene, la acción es para el PAE.
+Es lo primero que verá en el dashboard — tiene que ser tan concreto que pueda actuar sin abrir el deal.
+Formato: [Verbo] [a quién, con nombre si disponible] [qué hacer] [cuándo con fecha DD/MM]
 Reglas:
 - Siempre accionable y específica. NUNCA frases genéricas como "Seguir avanzando", "Continuar proceso",
   "Mantener contacto" o "Hacer seguimiento del deal".

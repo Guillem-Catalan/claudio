@@ -10,6 +10,7 @@ import re
 from datetime import date, timedelta
 
 from src.db.client import supabase
+from src.config import ALL_PBD_EMAILS, ALL_PAE_EMAILS
 
 EXCLUDE_STAGES = {
     "Opportunity lost", "Closed lost", "Closed Lost", "Closed Won", "Closed won",
@@ -265,6 +266,20 @@ def synthesize_for_deal(deal_uuid: str) -> dict | None:
     when_label = _format_when_label(due, today)
     owner = d.get("pae") or d.get("pbd") or ""
 
+    # Determine if the action is for a PAE or PBD
+    # Try to match action_who to known emails
+    who_lower = who.lower().replace(" ", ".")
+    who_email_guess = who_lower + "@factorial.co" if who_lower else ""
+    pbd_name = (d.get("pbd") or "").lower()
+    pae_name = (d.get("pae") or "").lower()
+
+    if who_email_guess in ALL_PBD_EMAILS and who_email_guess not in ALL_PAE_EMAILS:
+        action_role = "pbd"
+    elif pbd_name and who.lower().startswith(pbd_name.split()[0]) and who.lower() != pae_name.lower():
+        action_role = "pbd"
+    else:
+        action_role = "pae"
+
     row = {
         "deal_id": deal_uuid,
         "snapshot_date": snap_date_str,
@@ -275,6 +290,7 @@ def synthesize_for_deal(deal_uuid: str) -> dict | None:
         "action_when": when_label,
         "action_due_date": due.isoformat(),
         "action_priority": priority,
+        "action_role": action_role,
         "follow_ups": json.dumps(follow_ups),
         "deal_name": d.get("deal_name"),
         "deal_owner": owner,
