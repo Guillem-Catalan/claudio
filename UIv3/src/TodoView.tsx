@@ -116,8 +116,16 @@ function ActionRow({ a, onOpen, onToggle, isDone }: {
             {a.actionWho && a.actionWho !== "—" && <span style={{ color: "var(--indigo)", fontWeight: 700 }}>{a.actionWho} → </span>}
             {a.actionHeadline}
           </div>
-          <div style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 1 }}>
+          <div style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 1, display: "flex", alignItems: "center", gap: 4 }}>
             {a.dealName} · {fmtMRR(a.dealMrr)} · {a.dealStage}
+            {a.hsId && (
+              <a href={`https://app.hubspot.com/contacts/8929875/deal/${a.hsId}`}
+                target="_blank" rel="noopener noreferrer" title="Abrir en HubSpot"
+                onClick={e => e.stopPropagation()}
+                style={{ display: "inline-flex", color: "var(--ink-4)", flex: "none" }}>
+                <svg width={12} height={12} viewBox="0 0 24 24" fill="currentColor"><path d="M17.63 13.31a3.3 3.3 0 01-1.63.43 3.37 3.37 0 01-3.37-3.37c0-.6.16-1.17.44-1.66l-2.3-2.3a.99.99 0 01-.15-.17 2.48 2.48 0 01-1.52.53V9.3a1.35 1.35 0 110-2.7V4.06A2.06 2.06 0 007.04 2a2.06 2.06 0 00-2.06 2.06v2.53a2.73 2.73 0 00.88 5.31h.05a2.7 2.7 0 001.79-.68l2.38 2.38a3.34 3.34 0 00-.46 1.69A3.37 3.37 0 0013 18.66a3.3 3.3 0 001.86-.57l2.74 2.74a1.1 1.1 0 001.56-1.56zM13 16.92a1.63 1.63 0 110-3.25 1.63 1.63 0 010 3.25z"/></svg>
+              </a>
+            )}
           </div>
         </div>
         <div>

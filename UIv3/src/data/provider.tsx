@@ -1,6 +1,7 @@
 import { useState, useEffect, type ReactNode } from "react";
 import { DataContext, type CZData, type DealRow, type FunnelStage, type ForecastDeal, type ForecastData, type ClosedDeal, type ActionItem } from "./store";
 import { supabase } from "./supabase";
+import { usePermissions, type UserProfile } from "../permissions";
 
 // ---- Stage palette ----
 const STAGE: Record<string, { tone: string }> = {
@@ -208,6 +209,7 @@ async function fetchPaged<T>(table: string, cols: string, filter?: (q: any) => a
 // ---- Types ----
 type RawDeal = {
   id: string;
+  deal_id: string | null;
   deal_name: string | null;
   deal_stage: string | null;
   amount: number | null;
@@ -288,7 +290,7 @@ async function loadData(): Promise<CZData> {
   const excludeList = [...EXCLUDE];
   const [partnerIds, deals, targets] = await Promise.all([
     fetchPartnerAtlasIds(),
-    fetchPaged<RawDeal>("deals", "id,deal_name,deal_stage,amount,pae,pbd,close_date,last_contacted_hs,forecast_category,hs_next_meeting_start_time,atlas_id,pipeline_name,contact_count,deal_age_days", q =>
+    fetchPaged<RawDeal>("deals", "id,deal_id,deal_name,deal_stage,amount,pae,pbd,close_date,last_contacted_hs,forecast_category,hs_next_meeting_start_time,atlas_id,pipeline_name,contact_count,deal_age_days", q =>
       q.not("deal_stage", "in", `(${excludeList.join(",")})`)
     ),
     fetchPaged<RawTarget>("forecast_targets", "team,month,monthly_target"),
@@ -424,6 +426,7 @@ async function loadData(): Promise<CZData> {
 
     allRows.push({
       id: d.id,
+      hsId: d.deal_id || undefined,
       deal: d.deal_name || "—",
       team: extractTeam(d.deal_name, d.pae, d.pbd),
       stage: shortStage(stage),
@@ -659,6 +662,32 @@ async function loadData(): Promise<CZData> {
   });
   const closedTotal = closedDeals.reduce((s, d) => s + (d.mrr || 0), 0);
 
+  // Lost deals this month
+  const CLOSED_LOST = ["Opportunity lost", "Closed Lost", "Closed lost", "Opportunity Lost"];
+  const { data: lostRaw } = await supabase
+    .from("deals")
+    .select("id,deal_id,deal_name,deal_stage,amount,pae,pbd,close_date,closed_lost_reason,deal_age_days")
+    .in("deal_stage", CLOSED_LOST)
+    .gte("close_date", cm + "-01")
+    .lt("close_date", nextMonthStr + "-01");
+
+  const lostDeals: import("./store").LostDeal[] = (lostRaw || []).map((d: any) => ({
+    id: d.id,
+    hsId: d.deal_id || undefined,
+    deal: d.deal_name || "—",
+    stage: d.deal_stage || "Lost",
+    mrr: d.amount,
+    prob: 0,
+    last: d.close_date || "—",
+    trend: null,
+    owner: d.pae || d.pbd || "—",
+    team: extractTeam(d.deal_name, d.pae, d.pbd),
+    closeDate: d.close_date || null,
+    lostReason: d.closed_lost_reason || null,
+    dealAge: d.deal_age_days || null,
+  }));
+  const lostTotal = lostDeals.reduce((s, d) => s + (d.mrr || 0), 0);
+
   const forecast: ForecastData = {
     target: targetTotal,
     hsTotal: Math.round(hsTotal),
@@ -666,11 +695,13 @@ async function loadData(): Promise<CZData> {
     nextMonthTotal: Math.round(nextMonthTotal),
     pushableCount: pushableDeals.length,
     closedTotal: Math.round(closedTotal),
+    lostTotal: Math.round(lostTotal),
     hsDeals,
     closzrDeals,
     nextMonthDeals,
     pushableDeals,
     closedDeals,
+    lostDeals,
     allDeals: allFcDeals,
     targets,
   };
@@ -757,6 +788,12 @@ async function loadData(): Promise<CZData> {
     methodology,
   };
 
+  // Map deal UUID → HubSpot numeric ID
+  const dealHsMap = new Map<string, string>();
+  for (const d of activeDeals) {
+    if (d.deal_id) dealHsMap.set(d.id, d.deal_id);
+  }
+
   // ---- TO-DOs: fetch deal_actions ----
   const { data: actionsRaw } = await supabase
     .from("deal_actions")
@@ -772,6 +809,7 @@ async function loadData(): Promise<CZData> {
     return {
       id: a.id,
       dealId: a.deal_id,
+      hsId: dealHsMap.get(a.deal_id) || undefined,
       dealName: a.deal_name || "—",
       dealOwner: a.deal_owner || "—",
       dealMrr: a.deal_mrr,
@@ -805,31 +843,112 @@ async function loadData(): Promise<CZData> {
   };
 }
 
+// ---- Permission-based filtering ----
+function applyPermissions(data: CZData, profile: UserProfile | null): CZData {
+  if (!profile) return data;
+  const teams = profile.visibleTeams || [];
+  if (!teams.length && profile.role !== "Admin") return data;
+  // Admin with "all" scope sees everything
+  const scope = profile.tabPermissions?.deals?.scope || "all";
+  if (scope === "all" && profile.role === "Admin") return data;
+
+  const teamSet = new Set(teams.map(t => t === "Telefonica" ? "Telefónica" : t));
+  const ownerEmail = profile.email.toLowerCase();
+
+  const filterRow = (r: DealRow): boolean => {
+    if (scope === "self") {
+      const repEmail = (r.owner || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ /g, ".") + "@factorial.co";
+      return repEmail === ownerEmail;
+    }
+    // scope "team" or "all" with visible_teams set → filter by team
+    if (teamSet.size === 0) return true;
+    return teamSet.has(r.team || "");
+  };
+
+  const filterForecast = (d: ForecastDeal): boolean => filterRow(d as any);
+
+  const filteredPipeline = data.pipeline.map(stage => {
+    const rows = stage.rows.filter(filterRow);
+    return { ...stage, rows, count: rows.length, value: rows.reduce((s, r) => s + (r.mrr || 0), 0), stale: rows.filter(r => r.stale).length };
+  });
+  const filteredAside = data.pipelineAside.map(stage => {
+    const rows = stage.rows.filter(filterRow);
+    return { ...stage, rows, count: rows.length, value: rows.reduce((s, r) => s + (r.mrr || 0), 0), stale: rows.filter(r => r.stale).length };
+  });
+  const filteredGroups = data.groups.map(g => ({ ...g, rows: g.rows.filter(filterRow) })).filter(g => g.rows.length > 0);
+  const filteredTodos = data.todos.filter(a => {
+    if (scope === "self") {
+      const repEmail = (a.dealOwner || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ /g, ".") + "@factorial.co";
+      return repEmail === ownerEmail;
+    }
+    return teamSet.size === 0 || teamSet.has(a.team);
+  });
+
+  const fc = data.forecast;
+  const fCloszr = fc.closzrDeals.filter(filterForecast);
+  const fNext = fc.nextMonthDeals.filter(filterForecast);
+  const fPush = fc.pushableDeals.filter(filterForecast);
+  const filterByTeam = (d: { team?: string }) => {
+    if (scope === "self") return false;
+    return teamSet.size === 0 || teamSet.has(d.team || "");
+  };
+  const fClosed = fc.closedDeals.filter(filterByTeam);
+  const fLost = fc.lostDeals.filter(filterByTeam);
+  const fHs = fc.hsDeals.filter(filterForecast);
+
+  return {
+    ...data,
+    groups: filteredGroups,
+    pipeline: filteredPipeline,
+    pipelineAside: filteredAside,
+    todos: filteredTodos,
+    forecast: {
+      ...fc,
+      hsTotal: fHs.filter(d => d.hsCategory === "Commit" || d.hsCategory === "Upside").reduce((s, d) => s + (d.mrr || 0), 0),
+      closzrTotal: fCloszr.reduce((s, d) => s + (d.mrr || 0), 0),
+      nextMonthTotal: fNext.reduce((s, d) => s + (d.mrr || 0), 0),
+      pushableCount: fPush.length,
+      closedTotal: fClosed.reduce((s, d) => s + (d.mrr || 0), 0),
+      lostTotal: fLost.reduce((s, d) => s + (d.mrr || 0), 0),
+      hsDeals: fHs,
+      closzrDeals: fCloszr,
+      nextMonthDeals: fNext,
+      pushableDeals: fPush,
+      closedDeals: fClosed,
+      lostDeals: fLost,
+      allDeals: fc.allDeals.filter(filterForecast),
+    },
+  };
+}
+
 // ---- Provider ----
 export function DataProvider({ children }: { children: ReactNode }) {
-  const [data, setData] = useState<CZData>({
+  const { profile } = usePermissions();
+  const [raw, setRaw] = useState<CZData | null>(null);
+
+  const emptyData: CZData = {
     STAGE,
     groups: [],
     nakiva: null,
     yukAtlas: null,
     pipeline: [],
     pipelineAside: [],
-    forecast: { target: 0, hsTotal: 0, closzrTotal: 0, nextMonthTotal: 0, pushableCount: 0, closedTotal: 0, hsDeals: [], closzrDeals: [], nextMonthDeals: [], pushableDeals: [], closedDeals: [], allDeals: [], targets: [] },
+    forecast: { target: 0, hsTotal: 0, closzrTotal: 0, nextMonthTotal: 0, pushableCount: 0, closedTotal: 0, lostTotal: 0, hsDeals: [], closzrDeals: [], nextMonthDeals: [], pushableDeals: [], closedDeals: [], lostDeals: [], allDeals: [], targets: [] },
     oneOnOne: { reps: [], rep: "", activeDeals: 0, pipeline: 0, top10: [], meddicBase: 0, meddic: [], meddicNote: "", weakness: [], tlActions: [], methodologyOpen: 0, methodology: [] },
     todos: [],
     loading: true,
-  });
+  };
 
   useEffect(() => {
-    loadData().then(setData).catch(err => {
+    loadData().then(setRaw).catch(err => {
       console.error("Failed to load data:", err);
-      setData(prev => ({ ...prev, loading: false }));
+      setRaw(prev => prev ? { ...prev, loading: false } : { ...emptyData, loading: false });
     });
 
     let reloadTimer: ReturnType<typeof setTimeout>;
     const debouncedReload = () => {
       clearTimeout(reloadTimer);
-      reloadTimer = setTimeout(() => { loadData().then(setData); }, 5000);
+      reloadTimer = setTimeout(() => { loadData().then(setRaw); }, 5000);
     };
 
     const ch = supabase
@@ -838,10 +957,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "front_deal_snapshots" }, debouncedReload)
       .on("postgres_changes", { event: "*", schema: "public", table: "deal_meetings" }, debouncedReload)
       .on("postgres_changes", { event: "*", schema: "public", table: "calendar_meetings" }, debouncedReload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "deal_actions" }, debouncedReload)
       .subscribe();
 
     return () => { clearTimeout(reloadTimer); supabase.removeChannel(ch); };
   }, []);
+
+  const data = raw ? applyPermissions(raw, profile) : emptyData;
 
   return (
     <DataContext.Provider value={data}>

@@ -1,19 +1,28 @@
 /* ============================================================
    CLOSZR — App root
    ============================================================ */
-import { useState, useEffect, useCallback } from "react";
-import { Icon, Avatar } from "./components";
+import { useState, useEffect, useCallback, lazy, Suspense } from "react";
+import { Icon, Avatar, getInitials } from "./components";
 import { useData } from "./data/store";
 import { fetchDealDetail, type DealDetail } from "./data/fetchDetail";
-import DealsTable from "./DealsTable";
+import { usePermissions, isTabEnabled } from "./permissions";
 import PipelineView from "./PipelineView";
 import DealWorkspace from "./DealWorkspace";
 import ForecastView from "./ForecastView";
 import OneOnOneView from "./OneOnOneView";
 import TodoView from "./TodoView";
+const AdminView = lazy(() => import("./AdminView"));
+
+const TAB_MAP: Record<string, string> = { "Forecast": "forecast", "TO-DOs": "todos", "Pipeline": "deals", "1:1": "oneone", "Admin": "admin" };
 
 function TopBar({ view, onNav }: { view: string; onNav: (v: string) => void }) {
-  const tabs = ["TO-DOs", "Deals", "Forecast", "1:1"];
+  const { profile } = usePermissions();
+  const mainTabs = ["Forecast", "TO-DOs", "Pipeline", "1:1"];
+  const tabs = mainTabs.filter(t => isTabEnabled(profile, TAB_MAP[t]));
+  const showAdmin = isTabEnabled(profile, "admin");
+  const displayName = profile?.name || profile?.email?.split("@")[0] || "";
+  const roleLabel = profile?.role || "";
+
   return (
     <header className="cz-topbar">
       <div className="cz-brand">
@@ -24,30 +33,27 @@ function TopBar({ view, onNav }: { view: string; onNav: (v: string) => void }) {
         {tabs.map(t => <button key={t} className={"cz-topnav-tab" + (t === view ? " on" : "")} onClick={() => onNav(t)}>{t}</button>)}
       </nav>
       <div style={{flex:1}}/>
-      <button className="cz-team-select">All Teams <Icon name="chevDown" size={14}/></button>
       <div className="cz-user">
-        <Avatar initials="XS" size={34} name="Xavi Soler"/>
+        <Avatar initials={getInitials(displayName)} size={34} name={displayName}/>
         <div className="cz-user-info">
-          <span className="cz-user-name">Xavi Soler</span>
-          <span className="cz-user-role">Team Lead · Santander</span>
+          <span className="cz-user-name">{displayName}</span>
+          <span className="cz-user-role">{roleLabel}{profile?.subteam && profile.subteam !== "Unassigned" ? ` · ${profile.subteam}` : ""}</span>
         </div>
       </div>
+      {showAdmin && (
+        <button className={"cz-topnav-tab" + (view === "Admin" ? " on" : "")} onClick={() => onNav("Admin")} style={{ marginLeft: 8 }}>
+          <Icon name="settings" size={16} stroke={2}/>
+        </button>
+      )}
     </header>
   );
 }
 
 // ComingSoon removed — all tabs have content now
 
-function DealsTab({ onOpen }: { onOpen: (row: any, tab: string) => void }) {
-  const [view, setView] = useState("pipeline");
-  return view === "hoy"
-    ? <DealsTable onOpen={onOpen} view={view} setView={setView}/>
-    : <PipelineView onOpen={onOpen} view={view} setView={setView}/>;
-}
-
 function App() {
   const D = useData();
-  const [view, setView] = useState("TO-DOs");
+  const [view, setView] = useState("Forecast");
   const [detail, setDetail] = useState<DealDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
@@ -85,9 +91,10 @@ function App() {
       <TopBar view={view} onNav={setView}/>
       <main className="cz-main">
         {view === "TO-DOs" && <TodoView onOpen={handleOpen}/>}
-        {view === "Deals" && <DealsTab onOpen={handleOpen}/>}
+        {view === "Pipeline" && <PipelineView onOpen={handleOpen}/>}
         {view === "Forecast" && <ForecastView/>}
         {view === "1:1" && <OneOnOneView onOpen={handleOpen}/>}
+        {view === "Admin" && <Suspense fallback={<p style={{color:"var(--ink-3)"}}>Cargando...</p>}><AdminView/></Suspense>}
       </main>
       {detailLoading && (
         <div className="cz-overlay" style={{background:"rgba(28,24,16,.25)"}}>

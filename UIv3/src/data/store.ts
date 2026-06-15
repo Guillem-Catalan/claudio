@@ -4,6 +4,7 @@ import { createContext, useContext } from "react";
 
 export type DealRow = {
   id?: string;
+  hsId?: string;
   deal: string;
   sub?: string;
   stage: string;
@@ -61,6 +62,13 @@ export type ClosedDeal = DealRow & {
   interactions: { total_calls?: number; total_emails?: number } | null;
 };
 
+export type LostDeal = DealRow & {
+  hsId?: string;
+  closeDate: string | null;
+  lostReason: string | null;
+  dealAge: number | null;
+};
+
 export type ForecastData = {
   target: number;
   hsTotal: number;
@@ -68,11 +76,13 @@ export type ForecastData = {
   nextMonthTotal: number;
   pushableCount: number;
   closedTotal: number;
+  lostTotal: number;
   hsDeals: ForecastDeal[];
   closzrDeals: ForecastDeal[];
   nextMonthDeals: ForecastDeal[];
   pushableDeals: ForecastDeal[];
   closedDeals: ClosedDeal[];
+  lostDeals: LostDeal[];
   allDeals: ForecastDeal[];
   targets: { team: string; month: string; monthly_target: number }[];
 };
@@ -103,6 +113,7 @@ export type OneOnOneData = {
 export type ActionItem = {
   id: string;
   dealId: string;
+  hsId?: string;
   dealName: string;
   dealOwner: string;
   dealMrr: number | null;
