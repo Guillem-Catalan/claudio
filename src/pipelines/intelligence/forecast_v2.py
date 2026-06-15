@@ -9,14 +9,16 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from src.db.client import supabase
-from src.integrations.claude import analyze
+from src.integrations.claude import analyze, _MODEL_OPUS
 from src.pipelines.intelligence.similarity import find_similar
 
 _PROMPT_PATH = Path(__file__).resolve().parent.parent.parent / "prompts" / "intelligence" / "forecast_v2.txt"
 
 
 def run(deal_uuid: str, snapshot: dict, deal: dict, model: str | None = None) -> dict | None:
-    """Generate forecast v2 for a deal using benchmark comparison."""
+    """Generate forecast v2 for a deal using benchmark comparison. Defaults to Opus."""
+    if model is None:
+        model = _MODEL_OPUS
 
     deal_name = deal.get("deal_name", "?")
     deal_stage = deal.get("deal_stage", "?")

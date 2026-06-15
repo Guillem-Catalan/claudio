@@ -12,7 +12,8 @@ _client = anthropic.Anthropic(
     },
 )
 
-_MODEL = os.environ.get("AZURE_CLAUDE_DEPLOYMENT") or "claudio-claude-opus-4-6"
+_MODEL = os.environ.get("AZURE_CLAUDE_DEPLOYMENT") or "claudio-claude-sonnet-4-6"
+_MODEL_OPUS = "claudio-claude-opus-4-6"
 _MODEL_FAST = os.environ.get("AZURE_CLAUDE_FAST_DEPLOYMENT") or "claudio-claude-sonnet-4-6"
 
 
