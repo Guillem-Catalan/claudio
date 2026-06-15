@@ -171,6 +171,22 @@ def sync_today(target_date: datetime | None = None):
             written += len(result.data or [])
         print(f"\n  Upserted: {written} calendar meetings")
 
+    # Remove cancelled events: events in DB for today that are no longer in Google Calendar
+    synced_event_ids = {r["gcal_event_id"] for r in rows}
+    existing_result = (
+        supabase.table("calendar_meetings")
+        .select("id, gcal_event_id")
+        .gte("meeting_start", time_min)
+        .lte("meeting_start", time_max)
+        .execute()
+    )
+    existing_events = existing_result.data or []
+    to_delete = [e["id"] for e in existing_events if e["gcal_event_id"] not in synced_event_ids]
+    if to_delete:
+        for i in range(0, len(to_delete), 100):
+            supabase.table("calendar_meetings").delete().in_("id", to_delete[i:i+100]).execute()
+        print(f"  Deleted {len(to_delete)} cancelled events")
+
     # Cleanup old meetings (>7 days)
     cutoff = (now - timedelta(days=7)).isoformat()
     supabase.table("calendar_meetings").delete().lt("meeting_start", cutoff).execute()
