@@ -136,6 +136,51 @@ def _format_when_label(due: date, today: date) -> str:
     return due.isoformat()
 
 
+def _absolutize_text(text: str, snapshot_dt: date) -> str:
+    """Replace relative date words in text with absolute DD/MM dates."""
+    day_names_es = {
+        "lunes": 0, "martes": 1, "miércoles": 2, "jueves": 3, "viernes": 4,
+        "sábado": 5, "domingo": 6,
+    }
+
+    def _fmt(d: date) -> str:
+        names = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+        return f"{names[d.weekday()]} {d.day:02d}/{d.month:02d}"
+
+    result = text
+
+    # "hoy" → "viernes 13/06"
+    result = re.sub(r'\bhoy\b', _fmt(snapshot_dt), result, flags=re.IGNORECASE)
+
+    # "mañana" → "sábado 14/06"
+    tomorrow = snapshot_dt + timedelta(days=1)
+    result = re.sub(r'\bmañana\b', _fmt(tomorrow), result, flags=re.IGNORECASE)
+
+    # "esta semana" → "antes del viernes DD/MM"
+    days_to_fri = 4 - snapshot_dt.weekday()
+    if days_to_fri < 0:
+        days_to_fri += 7
+    friday = snapshot_dt + timedelta(days=days_to_fri)
+    result = re.sub(r'\besta semana\b', f"antes del viernes {friday.day:02d}/{friday.month:02d}", result, flags=re.IGNORECASE)
+
+    # "próxima semana" / "semana que viene" → "semana del lunes DD/MM"
+    days_to_mon = 7 - snapshot_dt.weekday()
+    next_monday = snapshot_dt + timedelta(days=days_to_mon)
+    result = re.sub(r'\bpróxima semana\b', f"semana del lunes {next_monday.day:02d}/{next_monday.month:02d}", result, flags=re.IGNORECASE)
+    result = re.sub(r'\bsemana que viene\b', f"semana del lunes {next_monday.day:02d}/{next_monday.month:02d}", result, flags=re.IGNORECASE)
+
+    # Day names without date: "lunes" → "lunes 16/06"
+    for name, weekday in day_names_es.items():
+        pattern = rf'\b{name}\b(?!\s+\d)'
+        days_ahead = weekday - snapshot_dt.weekday()
+        if days_ahead <= 0:
+            days_ahead += 7
+        target = snapshot_dt + timedelta(days=days_ahead)
+        result = re.sub(pattern, f"{name} {target.day:02d}/{target.month:02d}", result, flags=re.IGNORECASE)
+
+    return result
+
+
 def _parse_next_step_lines(next_step: str | None, snapshot_dt: date) -> list[dict]:
     if not next_step:
         return []
@@ -150,6 +195,7 @@ def _parse_next_step_lines(next_step: str | None, snapshot_dt: date) -> list[dic
         action_type = _parse_action_type(line)
         who, text = _parse_who_and_text(line)
         due = _resolve_due_date(line, snapshot_dt)
+        text = _absolutize_text(text, snapshot_dt)
         result.append({"type": action_type, "who": who, "text": text, "due": due.isoformat()})
     return result
 
@@ -233,17 +279,19 @@ def synthesize_for_deal(deal_uuid: str) -> dict | None:
 
     if push_action:
         who, headline = _parse_who_and_text(push_action)
+        headline = _absolutize_text(headline, snapshot_dt)
         action_type = _parse_action_type(push_action)
         due = _resolve_due_date(push_action, snapshot_dt)
     elif action_signal:
         who = d.get("pae") or d.get("pbd") or ""
         headline = action_signal[0].upper() + action_signal[1:] if action_signal else ""
+        headline = _absolutize_text(headline, snapshot_dt)
         action_type = _parse_action_type(action_signal)
         due = _resolve_due_date(action_signal, snapshot_dt)
     elif ns_lines:
         first = ns_lines[0]
         who = first["who"]
-        headline = first["text"]
+        headline = first["text"]  # already absolutized in _parse_next_step_lines
         action_type = first["type"]
         due = date.fromisoformat(first["due"])
     else:
@@ -253,12 +301,16 @@ def synthesize_for_deal(deal_uuid: str) -> dict | None:
         who = d.get("pae") or d.get("pbd") or "Rep"
 
     detail = push_action if push_action else (snap.get("forecast_accelerators") or "")
+    if detail:
+        detail = _absolutize_text(detail, snapshot_dt)
 
     follow_ups = []
     for i, ns in enumerate(ns_lines[1:5], start=2):
         follow_ups.append({
             "order": i, "type": ns["type"], "who": ns["who"] or who,
-            "text": ns["text"], "when": _format_when_label(date.fromisoformat(ns["due"]), today),
+            "text": ns["text"],  # already absolutized
+            "when": _format_when_label(date.fromisoformat(ns["due"]), today),
+            "due": ns["due"],
         })
 
     bucket = _determine_bucket(snap)

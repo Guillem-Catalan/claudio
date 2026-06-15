@@ -116,7 +116,7 @@ export type ActionItem = {
   actionWhen: string;
   actionPriority: number;
   actionDueDate: string | null;
-  followUps: { order: number; type: string; who: string; text: string; when: string }[];
+  followUps: { order: number; type: string; who: string; text: string; when: string; due?: string }[];
   status: string;
   team: string;
 };
